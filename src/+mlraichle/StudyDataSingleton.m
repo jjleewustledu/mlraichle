@@ -54,38 +54,65 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
     
     methods
         function f = fslFolder(~, sessDat)
-            f = sprintf('V%i', sessDat.snumber);
+            f = sprintf('V%i', sessDat.vnumber);
         end
         function f = hdrinfoFolder(~, sessDat)
-            f = sprintf('V%i', sessDat.snumber);
+            f = sprintf('V%i', sessDat.vnumber);
         end
         function f = mriFolder(~, sessDat)
-            f = sprintf('V%i', sessDat.snumber);
+            f = sprintf('V%i', sessDat.vnumber);
         end
         function f = petFolder(~, sessDat)
-            f = sprintf('V%i', sessDat.snumber);
+            f = sprintf('V%i', sessDat.vnumber);
         end      
         
-        function fn = ho_fn(~, sessDat)
-            fn = sprintf('%sho%i.4dfp.nii.gz', sessDat.sessionFolder, sessDat.snumber);
+        function fn = fdg_fn(~, sessDat, varargin)            
+            ip = inputParser;
+            addOptional(ip, 'suff', '', @ischar);
+            parse(ip, varargin{:})  
+            fn = sprintf('%sfdg%s.4dfp.nii.gz', sessDat.sessionFolder, ip.Results.suff);
         end
-        function fn = oc_fn(~, sessDat)
-            fn = sprintf('%soc%i.4dfp.nii.gz', sessDat.sessionFolder, sessDat.snumber);
+        function fn = ho_fn(~, sessDat, varargin)
+            ip = inputParser;
+            addOptional(ip, 'suff', '', @ischar);
+            parse(ip, varargin{:})
+            fn = sprintf('%sho%i%s.4dfp.nii.gz', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
         end
-        function fn = mpr_fn(~, sessDat)
-            fn = sprintf('%s_mpr.4dfp.nii.gz', sessDat.sessionFolder);
+        function fn = mpr_fn(~, sessDat, varargin)
+            ip = inputParser;
+            addOptional(ip, 'suff', '', @ischar);
+            parse(ip, varargin{:})
+            fn = sprintf('%s_mpr%s.4dfp.nii.gz', sessDat.sessionFolder, ip.Results.suff);
         end
-        function fn = oo_fn(~, sessDat)
-            fn = sprintf('%soo%i.4dfp.nii.gz', sessDat.sessionFolder, sessDat.snumber);
+        function fn = oc_fn(~, sessDat, varargin)
+            ip = inputParser;
+            addOptional(ip, 'suff', '', @ischar);
+            parse(ip, varargin{:})
+            fn = sprintf('%soc%i%s.4dfp.nii.gz', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
         end
-        function fn = petfov_fn(~)
-            fn = 'PETFOV.4dfp.nii.gz';
+        function fn = oo_fn(~, sessDat, varargin)
+            ip = inputParser;
+            addOptional(ip, 'suff', '', @ischar);
+            parse(ip, varargin{:})
+            fn = sprintf('%soo%i%s.4dfp.nii.gz', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
         end
-        function fn = tof_fn(~)
-            fn = 'TOF_ART.4dfp.nii.gz';
+        function fn = petfov_fn(~, varargin)
+            ip = inputParser;
+            addOptional(ip, 'suff', '', @ischar);
+            parse(ip, varargin{:})
+            fn = sprintf('PETFOV%s.4dfp.nii.gz', ip.Results.suff);
         end
-        function fn = toffov_fn(~)
-            fn = 'AIFFOV.4dfp.nii.gz';
+        function fn = tof_fn(~, varargin)
+            ip = inputParser;
+            addOptional(ip, 'suff', '', @ischar);
+            parse(ip, varargin{:})
+            fn = sprintf('TOF_ART%s.4dfp.nii.gz', ip.Results.suff);
+        end
+        function fn = toffov_fn(~, varargin)
+            ip = inputParser;
+            addOptional(ip, 'suff', '', @ischar);
+            parse(ip, varargin{:})
+            fn = sprintf('AIFFOV%s.4dfp.nii.gz', ip.Results.suff);
         end
     end
     
@@ -107,14 +134,14 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
             end
             this.sessionDataComposite_ = ...
                 mlpatterns.CellComposite( ...
-                    cellfun(@(x) mlpipeline.SessionData('studyData', this, 'sessionPath', x), ...
+                    cellfun(@(x) mlraichle.SessionData('studyData', this, 'sessionPath', x), ...
                     fqdns, 'UniformOutput', false));            
             this.registerThis;
         end
         function registerThis(this)
             mlpipeline.StudyDataSingletons.register('raichle', this);
         end
- 	end 
+    end     
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end
