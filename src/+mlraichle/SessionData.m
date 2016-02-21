@@ -32,7 +32,7 @@ classdef SessionData < mlpipeline.SessionData
         end
         function g = get.ep2d_fqfn(this)
             g = fullfile(this.fslPath, this.studyData_.ep2d_fn(this));
-            this.ensureNIFTI_GZ(g);
+            g = this.ensureNIFTI_GZ(g);
             if (2 ~= exist(g, 'file'))
                 g = '';
                 return
@@ -40,7 +40,7 @@ classdef SessionData < mlpipeline.SessionData
         end
         function g = get.mpr_fqfn(this)
             g = fullfile(this.fslPath, this.studyData_.mpr_fn(this));
-            this.ensureNIFTI_GZ(g);
+            g = this.ensureNIFTI_GZ(g);
             if (2 ~= exist(g, 'file'))
                 g = '';
                 return
@@ -60,7 +60,7 @@ classdef SessionData < mlpipeline.SessionData
         end
         function g = get.petfov_fqfn(this)
             g = fullfile(this.petPath, this.studyData_.petfov_fn(this.suffix));
-            this.ensureNIFTI_GZ(g);
+            g = this.ensureNIFTI_GZ(g);
             if (2 ~= exist(g, 'file'))
                 g = '';
                 return
@@ -68,7 +68,7 @@ classdef SessionData < mlpipeline.SessionData
         end
         function g = get.tof_fqfn(this)
             g = fullfile(this.petPath, 'fdg', 'pet_proc', this.studyData_.tof_fn(this.suffix));
-            this.ensureNIFTI_GZ(g);
+            g = this.ensureNIFTI_GZ(g);
             if (2 ~= exist(g, 'file'))
                 g = '';
                 return
@@ -76,7 +76,7 @@ classdef SessionData < mlpipeline.SessionData
         end
         function g = get.toffov_fqfn(this)
             g = fullfile(this.petPath, 'fdg', 'pet_proc', this.studyData_.toffov_fn(this.suffix));
-            this.ensureNIFTI_GZ(g);
+            g = this.ensureNIFTI_GZ(g);
             if (2 ~= exist(g, 'file'))
                 g = '';
                 return
@@ -136,7 +136,7 @@ classdef SessionData < mlpipeline.SessionData
         end
         function g = ho(this)
             import mlpet.*;
-            if (lexist(this.fdg_fqfn('_flip2_crop_mcf')))
+            if (lexist(this.ho_fqfn('_flip2_crop_mcf')))
                 g = PETImagingContext(this.ho_fqfn('_flip2_crop_mcf'));
                 return
             end
@@ -155,7 +155,7 @@ classdef SessionData < mlpipeline.SessionData
         end
         function g = oo(this)
             import mlpet.*;
-            if (lexist(this.fdg_fqfn('_flip2_crop_mcf')))
+            if (lexist(this.oo_fqfn('_flip2_crop_mcf')))
                 g = PETImagingContext(this.oo_fqfn('_flip2_crop_mcf'));
                 return
             end
