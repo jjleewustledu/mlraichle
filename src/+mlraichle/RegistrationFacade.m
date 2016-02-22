@@ -23,6 +23,9 @@ classdef RegistrationFacade < mlfsl.RegistrationFacade
             end
             g = this.fdg_;
         end
+        
+        %% ALGORITHM 1
+        
         function product = registerTalairachWithPet(this)
             %% REGISTERTALAIRACHWITHPET
             %  @return product is a struct with products as fields.
@@ -33,7 +36,7 @@ classdef RegistrationFacade < mlfsl.RegistrationFacade
             msrb.sourceImage = product.talairach;
             msrb.referenceImage = product.petAtlas;
             msrb = msrb.registerSurjective;
-            product.tal_on_atl = msrb.productuct;
+            product.tal_on_atl = msrb.product;
             product.xfm_tal_on_atl = msrb.xfm;
             
             [oc1_on_atl,product.xfm_atl_on_oc1] = this.petRegisterAndInvertTransform(product.oc1, product.petAtlas);
@@ -57,16 +60,29 @@ classdef RegistrationFacade < mlfsl.RegistrationFacade
             product.talairach = this.talairach;
             product.oc1       = this.oc(1);
             product.oc2       = this.oc(2);
-            product.ho1       = this.petMotionCorrect(this.ho(1));
-            product.ho2       = this.petMotionCorrect(this.ho(2));
-            product.oo1       = this.petMotionCorrect(this.oo(1));
-            product.oo2       = this.petMotionCorrect(this.oo(2));
-            product.fdg       = this.petMotionCorrect(this.fdg);
-            
+            product.ho1       = this.ho(1);
+            product.ho2       = this.ho(2);
+            product.oo1       = this.oo(1);
+            product.oo2       = this.oo(2);
+            product.fdg       = this.fdg;  
+            product.petAtlas  = this.initialPetAtlas(product);
+        end
+        function atlas   = initialPetAtlas(this, product)
             pet = mlpet.PETImagingContext( ...
-                    this.annihilateEmptyCells({ ...
-                    product.oc1 product.oc2 product.ho1 product.ho2 product.oo1 product.oo2 product.fdg }));
-            product.petAtlas = pet.atlas;
+                this.annihilateEmptyCells({ ...
+                    product.fdg product.ho1 product.ho2 product.oo1 product.oo2 product.oc1 product.oc2 }));
+            iter = pet.createIterator;
+            assert(iter.hasNext);
+            atlas = iter.next.clone;            
+            while (iter.hasNext)
+                prb = mlpet.PETRegistrationBuilder('sessionData', this.sessionData);
+                prb.sourceImage = iter.next;
+                prb.referenceImage = atlas;
+                prb = prb.registerBijective;
+                atlas.add(prb.product);
+                atlas = atlas.atlas;
+            end            
+            atlas.fileprefix = 'petAtlas';   
         end
         function product = finalTalairachProduct(this, product)    
             product.talairach_on_oc1 = this.transform(product.tal_on_atl, product.xfm_atl_on_oc1, product.oc1);
@@ -91,6 +107,77 @@ classdef RegistrationFacade < mlfsl.RegistrationFacade
             masks.talairach_on_oo2 = this.transform(masks.talairach_on_atl, product.xfm_atl_on_oo2, product.oo2, t);
             masks.talairach_on_fdg = this.transform(masks.talairach_on_atl, product.xfm_atl_on_fdg, product.fdg, t);
             save(this.checkpointFqfilename('masksTalairachProduct'), 'masks');
+        end
+        
+        %% ALGORITHM 2
+        
+        function product = registerTalairachWithPet2(this)
+            %% REGISTERTALAIRACHWITHPET2
+            %  @return product is a struct with products as fields.
+            
+            product = this.initialTalairachProduct2;
+            
+            in = { 'fdg' 'ho1' 'ho2' 'oo1' 'oo2' };
+            out = cellfun(@(x) ['talairach_on_' x], in, 'UniformOutput', false);
+            xfm = cellfun(@(x) ['xfm_tal_on_' x],   in, 'UniformOutput', false);
+            for idx = 1:length(in)
+                try                     
+                    msrb = mlfsl.MultispectralRegistrationBuilder('sessionData', this.sessionData);
+                    msrb.sourceImage = product.talairach;
+                    msrb.sourceWeight = product.brainweight;
+                    msrb.referenceImage = product.(in{idx});
+                    msrb = msrb.registerAnatomyOnDynamicPET;
+                    product.(out{idx}) = msrb.product;
+                    product.(xfm{idx}) = msrb.xfm;
+                catch ME
+                    handwarning(ME);
+                end
+            end
+            
+            in = { 'oc1' 'oc2' };
+            out = cellfun(@(x) ['talairach_on_' x], in, 'UniformOutput', false);
+            xfm = cellfun(@(x) ['xfm_tal_on_' x],   in, 'UniformOutput', false);
+            for idx = 1:length(in)
+                try
+                    msrb = mlfsl.MultispectralRegistrationBuilder('sessionData', this.sessionData);
+                    msrb.sourceImage = product.talairach;
+                    msrb.sourceWeight = product.brainweight;
+                    msrb.referenceImage = product.(in{idx});
+                    msrb = msrb.registerSurjective;
+                    product.(out{idx}) = msrb.product;
+                    product.(xfm{idx}) = msrb.xfm;
+                catch ME
+                    handwarning(ME);
+                end
+            end
+            
+            %save(this.checkpointFqfilename('registerTalairachWithPet2'), 'product');
+        end 
+        function product = initialTalairachProduct2(this)            
+            product.talairach   = this.talairach;
+            product.brainweight = this.sessionData.assembleImagingWeight( ...
+                                                   this.brain.ones, 0.5, this.brain.binarized, 0.5);
+            product.oc1         = this.oc(1);
+            product.oc2         = this.oc(2);
+            product.ho1         = this.ho(1);
+            product.ho2         = this.ho(2);
+            product.oo1         = this.oo(1);
+            product.oo2         = this.oo(2);
+            product.fdg         = this.fdg;
+        end
+        function masks = masksTalairachProduct2(this, msk, product)
+            assert(all(msk.niftid.size == product.talairach.niftid.size));
+            this.sessionData.ensureNIFTI_GZ(msk);
+            
+            t = 'transformNearestNeighbor';
+            masks.talairach_on_oc1 = this.transform(msk, product.xfm_tal_on_oc1, product.oc1, t);
+            masks.talairach_on_oc2 = this.transform(msk, product.xfm_tal_on_oc2, product.oc2, t);
+            masks.talairach_on_ho1 = this.transform(msk, product.xfm_tal_on_ho1, product.ho1, t);
+            masks.talairach_on_ho2 = this.transform(msk, product.xfm_tal_on_ho2, product.ho2, t);
+            masks.talairach_on_oo1 = this.transform(msk, product.xfm_tal_on_oo1, product.oo1, t);
+            masks.talairach_on_oo2 = this.transform(msk, product.xfm_tal_on_oo2, product.oo2, t);
+            masks.talairach_on_fdg = this.transform(msk, product.xfm_tal_on_fdg, product.fdg, t);
+            save(this.checkpointFqfilename('masksTalairachProduct2'), 'masks');
         end
 		  
  		function this = RegistrationFacade(varargin)

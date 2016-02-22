@@ -11,6 +11,7 @@ classdef SessionData < mlpipeline.SessionData
 
 	properties (Dependent)
         aparcA2009sAseg_fqfn
+        brain_fqfn
         ep2d_fqfn
         mpr_fqfn
         orig_fqfn
@@ -29,6 +30,9 @@ classdef SessionData < mlpipeline.SessionData
                 g = '';
                 return
             end
+        end
+        function g = get.brain_fqfn(this)
+            g = fullfile(this.mriPath, 'brain.mgz');
         end
         function g = get.ep2d_fqfn(this)
             g = fullfile(this.fslPath, this.studyData_.ep2d_fn(this));
@@ -123,6 +127,9 @@ classdef SessionData < mlpipeline.SessionData
         function g = aparcA2009sAseg(this)
             g = mlmr.MRImagingContext(this.aparcA2009sAseg_fqfn);
         end
+        function g = brain(this)
+            g = mlmr.MRImagingContext(this.brain_fqfn);
+        end
         function g = ep2d(this)
             g = this.flipAndCropImaging(mlmr.MRImagingContext(this.ep2d_fqfn));
         end
@@ -132,12 +139,20 @@ classdef SessionData < mlpipeline.SessionData
                 g = PETImagingContext(this.fdg_fqfn('_flip2_crop_mcf'));
                 return
             end
+            if (lexist(this.fdg_fqfn('_flip2_crop')))
+                g = PETImagingContext(this.fdg_fqfn('_flip2_crop'));
+                return
+            end
             g = this.flipAndCropImaging(PETImagingContext(this.fdg_fqfn));
         end
         function g = ho(this)
             import mlpet.*;
             if (lexist(this.ho_fqfn('_flip2_crop_mcf')))
                 g = PETImagingContext(this.ho_fqfn('_flip2_crop_mcf'));
+                return
+            end
+            if (lexist(this.ho_fqfn('_flip2_crop')))
+                g = PETImagingContext(this.ho_fqfn('_flip2_crop'));
                 return
             end
             g = this.flipAndCropImaging(PETImagingContext(this.ho_fqfn));
@@ -159,6 +174,10 @@ classdef SessionData < mlpipeline.SessionData
                 g = PETImagingContext(this.oo_fqfn('_flip2_crop_mcf'));
                 return
             end
+            if (lexist(this.oo_fqfn('_flip2_crop')))
+                g = PETImagingContext(this.oo_fqfn('_flip2_crop'));
+                return
+            end
             g = this.flipAndCropImaging(PETImagingContext(this.oo_fqfn));
         end
         function g = orig(this)
@@ -170,6 +189,14 @@ classdef SessionData < mlpipeline.SessionData
         end
         function g = petfov(this)
             g = mlfourd.ImagingContext(this.petfov_fqfn);
+        end      
+        function p = petPointSpread(~)
+            %% PETPOINTSPREAD
+            %  The fwhh at 1cm from axis was measured by:
+            %  Delso, Fuerst Jackoby, et al.  Performance Measurements of the Siemens mMR Integrated Whole-Body PET/MR
+            %  Scanner.  J Nucl Med 2011; 52:1?9.
+            
+            p = [4.3 4.3 4.3];
         end
         function g = tof(this)
             g = mlmr.MRImagingContext(this.tof_fqfn);
