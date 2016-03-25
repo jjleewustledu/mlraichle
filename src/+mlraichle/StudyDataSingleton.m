@@ -10,7 +10,7 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
  	
 
     properties (SetAccess = protected)
-        raichleTrunk = '/Volumes/SeagateBP4/raichle/PPGdata'
+        raichleTrunk = fullfile(getenv('RAICHLE'), 'PPGdata', '')
     end
     
 	properties (Dependent)
@@ -20,7 +20,7 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
     
     methods %% GET
         function g = get.subjectsDir(this)
-            g = fullfile(this.raichleTrunk, 'idaif', '');
+            g = fullfile(this.raichleTrunk, 'jjlee', '');
         end
         function g = get.loggingPath(this)
             g = this.raichleTrunk;

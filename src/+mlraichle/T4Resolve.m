@@ -53,9 +53,15 @@ classdef T4Resolve
             this.frameLength_ = ip.Results.frameLength;
         end
         
-        function this = parseLog(this, fqfn)
-            assert(lexist(fqfn, 'file'));
-            this.imgregLog_ = mlio.LogParser.load(fqfn);
+        function this     = parseLog(this, varargin)
+            ip = inputParser;
+            addRequired(ip, 'fqfn', @(x) lexist(x, 'file'));
+            addParameter(ip, 'frameLength', this.frameLength_, @isnumeric);
+            addParameter(ip, 'shiftFrames', 0, @isnumeric);
+            parse(ip, varargin{:});
+            
+            this.imgregLog_ = mlio.LogParser.load(ip.Results.fqfn);
+            this.frameLength_ = ip.Results.frameLength;
             
             idx = 1;
             this.etas_   = cell(this.frameLength, this.frameLength);
@@ -74,8 +80,12 @@ classdef T4Resolve
                     return
                 end
             end
+            
+            if (ip.Results.shiftFrames > 0)
+                this = this.shiftFrames(ip.Results.shiftFrames);
+            end
         end
-        function [fr,idx] = frameNum(this, idx)   
+        function [fr,idx] = frameNum(this, idx)
             [str,idx] = this.imgregLog_.rightSideChar('Reading image:', idx);
             names = regexp(str, '\S+frame(?<fr>\d+)\S+', 'names');
             fr    = str2double(names.fr);
@@ -113,6 +123,10 @@ classdef T4Resolve
         function t4r      = report(this)
             t4r = mlraichle.T4ResolveReport(this);
         end
+        function this     = shiftFrames(this, S)
+            this.etas_   = this.resizeCellGrid(this.etas_, S);
+            this.curves_ = this.resizeCellGrid(this.curves_, S);
+        end
     end
 
     %% PROTECTED
@@ -123,6 +137,20 @@ classdef T4Resolve
         frameLength_
         etas_
         curves_
+    end
+    
+    methods (Static, Access = protected)        
+        function grid = resizeCellGrid(grid, S)
+            M     = size(grid,1);
+            N     = size(grid,2);
+            cache = cell(M+S,N+S);
+            for m = 1:M
+                for n = 1:N
+                    cache{m+S,n+S} = grid{m,n};
+                end
+            end
+            grid = cache;
+        end
     end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

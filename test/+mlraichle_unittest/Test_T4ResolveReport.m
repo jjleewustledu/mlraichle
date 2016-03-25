@@ -16,21 +16,63 @@ classdef Test_T4ResolveReport < matlab.unittest.TestCase
 	properties
  		registry
  		testObj
+        frame_reg_fdgv1_log   = 'frame_reg_fdgv1_20160302T194001.log'
+        frame_reg_fdgv1r1_log = 'frame_reg_fdgv1r1_20160303T010324.log'
+        frame_reg_fdgv1r2_log = 'frame_reg_.sh_fdgv1r2_20160310T20171457662635.log' % w/o frame 20
  	end
 
 	methods (Test)
-		function test_afun(this)
- 			import mlraichle.*;
- 			this.assumeEqual(1,1);
- 			this.verifyEqual(1,1);
- 			this.assertEqual(1,1);
- 		end
+		function test_report(this)
+            r = this.testObj.report;
+            r.pcolor('z(etas)',   this.testObj);
+            %r.pcolor('z(curves)', this.testObj);
+        end
+        function test_report1(this)          
+            r = this.testObj.report;
+            t4r = mlraichle.T4Resolve('sessionData', this.testObj.sessionData);
+            t4r = t4r.parseLog( ...
+                fullfile(t4r.sessionData.sessionPath, 'V1', this.frame_reg_fdgv1r1_log), ...
+                'frameLength', 28);
+            t4r = t4r.shiftFrames(3);
+            r.pcolor('z(etas)',   t4r);
+            %r.pcolor('z(curves)', t4r);
+        end
+        function test_report2(this)          
+            r = this.testObj.report;
+            t4r = mlraichle.T4Resolve('sessionData', this.testObj.sessionData);
+            t4r = t4r.parseLog( ...
+                fullfile(t4r.sessionData.sessionPath, 'V1', this.frame_reg_fdgv1r2_log), ...
+                'frameLength', 27);
+            t4r = t4r.shiftFrames(3);
+            r.pcolor('z(etas)',   t4r);
+            %r.pcolor('z(curves)', t4r);
+        end
+%         function test_reportD(this)  
+%             r = this.testObj.report;
+%             t4r = mlraichle.T4Resolve('sessionData', this.testObj.sessionData);
+%             t4r = t4r.parseLog( ...
+%                 fullfile(t4r.sessionData.sessionPath, 'V1', 'frame_reg_fdgv1r2_20160303T201053.log'), ...
+%                 'frameLength', 28);
+%             t4r = t4r.shiftFrames(3);
+%             r.d('z(etas)',   t4r, this.testObj);
+%             r.d('z(curves)', t4r, this.testObj);
+%         end
 	end
 
  	methods (TestClassSetup)
-		function setupT4ResolveReport(this)
+		function setupT4ResolveReport(this)            
  			import mlraichle.*;
- 			this.testObj_ = T4ResolveReport;
+            studyd = mlpipeline.StudyDataSingletons.instance('test_raichle');
+            sessd = SessionData( ...
+                'studyData',   studyd, ...
+                'sessionPath', fullfile(studyd.subjectsDir, 'NP995_09'), ...
+                'snumber',     1, ...
+                'vnumber',     1);
+ 			this.testObj_ = T4Resolve('sessionData', sessd);
+            this.testObj_ = this.testObj_.parseLog( ...
+                fullfile(this.testObj_.sessionData.sessionPath, 'V1', this.frame_reg_fdgv1_log), ...
+                'frameLength', 31);            
+            %this.testObj_ = this.testObj_.shiftFrames(3);
  		end
 	end
 
