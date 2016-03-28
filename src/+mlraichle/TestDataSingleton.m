@@ -45,7 +45,7 @@ classdef TestDataSingleton < mlraichle.StudyDataSingleton
                 case 'innominate.local'
                     this.raichleTrunk = '/Volumes/InnominateHD3/Local/test/raichle/PPGdata';
                 case 'touch3'
-                    this.raichleTrunk = '/data/nil-bluearc/raichle/PPGdata/proc/NP995_09/REG_TEST2';
+                    this.raichleTrunk = '/data/nil-bluearc/raichle/PPGdata';
                 otherwise
                     error('mlraichle:unsupportedSwitchCase', 'TestDataSingleton.ctor.hn->%s is not supported', hn);
             end
