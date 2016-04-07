@@ -42,7 +42,7 @@ classdef TestDataSingleton < mlraichle.StudyDataSingleton
             
             [~,hn] = mlbash('hostname');
             switch (strtrim(hn))
-                case 'innominate.local'
+                case {'innominate' 'innominate.local'}
                     this.raichleTrunk = '/Volumes/InnominateHD3/Local/test/raichle/PPGdata';
                 case 'touch3'
                     this.raichleTrunk = '/data/nil-bluearc/raichle/PPGdata';

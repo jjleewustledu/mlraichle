@@ -58,7 +58,7 @@ classdef IdaifKinetics
                             assert(logical(exist('AIF1', 'var')));
                             assert(logical(exist('WB',   'var')));
                             assert(logical(exist('t',    'var')));
-                            [kminutes,k1k3overk2k3,fdgk] = mlkinetics.F18DeoxyGlucoseKinetics.runYi(AIF1, t, WB, dt.fns{dtidx});
+                            [fdgk,kminutes,k1k3overk2k3] = mlkinetics.F18DeoxyGlucoseKinetics.runYi(AIF1, t, WB, dt.fns{dtidx});
                             
                             matfile = strtok(dt.fns{dtidx}, '.');
                             session.(visits{v}).(matfile).kminutes     = kminutes;
