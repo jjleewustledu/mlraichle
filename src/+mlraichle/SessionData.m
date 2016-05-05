@@ -20,7 +20,9 @@ classdef SessionData < mlpipeline.SessionData
         tof_fqfn
         toffov_fqfn
         T1_fqfn
-        wmparc_fqfn
+        wmparc_fqfn        
+        
+        petBlur
     end
     
     methods %% GET 
@@ -91,6 +93,11 @@ classdef SessionData < mlpipeline.SessionData
         end
         function g = get.wmparc_fqfn(this)
             g = fullfile(this.mriPath, 'wmparc.mgz');
+        end
+        
+        function g = get.petBlur(~)
+            g = mlpet.MMRRegistry.instance.petPointSpread;
+            g = mean(g);
         end
     end
 

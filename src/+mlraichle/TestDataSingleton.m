@@ -46,25 +46,11 @@ classdef TestDataSingleton < mlraichle.StudyDataSingleton
                     this.raichleTrunk = '/Volumes/InnominateHD3/Local/test/raichle/PPGdata';
                 case 'touch3'
                     this.raichleTrunk = '/data/nil-bluearc/raichle/PPGdata';
+                case 'vertebral'
+                    this.raichleTrunk = '/mnt/hgfs/InnominateHD3/Local/test/raichle/PPGdata';
                 otherwise
                     error('mlraichle:unsupportedSwitchCase', 'TestDataSingleton.ctor.hn->%s is not supported', hn);
             end
-            
-            dt = mlsystem.DirTools(this.subjectsDir);
-            fqdns = {};
-            for di = 1:length(dt.dns)
-                if (strcmp(dt.dns{di}(1),   'p')  || ...
-                    strcmp(dt.dns{di}(1:2), 'NP') || ...
-                    strcmp(dt.dns{di}(1:2), 'TW') || ...
-                    strcmp(dt.dns{di}(1:5), 'HYGLY'))
-                    fqdns = [fqdns dt.fqdns(di)];
-                end
-            end
-            this.sessionDataComposite_ = ...
-                mlpatterns.CellComposite( ...
-                    cellfun(@(x) mlraichle.SessionData('studyData', this, 'sessionPath', x), ...
-                    fqdns, 'UniformOutput', false));                
-            this.registerThis;
  		end
         function registerThis(this)
             mlpipeline.StudyDataSingletons.register('test_raichle', this);

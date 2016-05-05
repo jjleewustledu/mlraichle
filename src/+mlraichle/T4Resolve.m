@@ -46,7 +46,7 @@ classdef T4Resolve
  			%  @params 'sessionData' obj is an instance of mlraichle.SessionData
 
             ip = inputParser;
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlraichle.SessionData'));
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
             addParameter(ip, 'frameLength', [], @isnumeric);
             parse(ip, varargin{:});
             this.sessionData_ = ip.Results.sessionData;
