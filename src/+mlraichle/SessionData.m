@@ -10,22 +10,30 @@ classdef SessionData < mlpipeline.SessionData
  	
 
 	properties (Dependent)
+        T1_fqfn
         aparcA2009sAseg_fqfn
         brain_fqfn
+        ct_fqfn
+        ct_fqfp
         ep2d_fqfn
         mpr_fqfn
+        mpr_fqfp
         orig_fqfn
         pet_fqfns
         petfov_fqfn
         tof_fqfn
         toffov_fqfn
-        T1_fqfn
-        wmparc_fqfn        
+        umap_fqfn
+        umap_fqfp
+        wmparc_fqfn
         
         petBlur
     end
     
     methods %% GET 
+        function g = get.T1_fqfn(this)
+            g = fullfile(this.mriPath, 'T1.mgz');
+        end
         function g = get.aparcA2009sAseg_fqfn(this)
             g = fullfile(this.mriPath, 'aparc.a2009s+aseg.mgz');
             if (2 ~= exist(g, 'file'))
@@ -36,9 +44,15 @@ classdef SessionData < mlpipeline.SessionData
         function g = get.brain_fqfn(this)
             g = fullfile(this.mriPath, 'brain.mgz');
         end
+        function g = get.ct_fqfn(this)
+            g = fullfile(this.petPath, sprintf('%s_ct.4dfp.img', this.sessionFolder));
+        end
+        function g = get.ct_fqfp(this)            
+            [pth,fp] = myfileparts(this.ct_fqfn);
+            g = fullfile(pth, fp);
+        end
         function g = get.ep2d_fqfn(this)
             g = fullfile(this.fslPath, this.studyData_.ep2d_fn(this));
-            g = this.ensureNIFTI_GZ(g);
             if (2 ~= exist(g, 'file'))
                 g = '';
                 return
@@ -46,11 +60,14 @@ classdef SessionData < mlpipeline.SessionData
         end
         function g = get.mpr_fqfn(this)
             g = fullfile(this.fslPath, this.studyData_.mpr_fn(this));
-            g = this.ensureNIFTI_GZ(g);
             if (2 ~= exist(g, 'file'))
                 g = '';
                 return
             end
+        end
+        function g = get.mpr_fqfp(this)
+            [pth,fp] = myfileparts(this.mpr_fqfn);
+            g = fullfile(pth, fp);
         end
         function g = get.orig_fqfn(this)
             g = fullfile(this.mriPath, 'orig.mgz');
@@ -66,7 +83,6 @@ classdef SessionData < mlpipeline.SessionData
         end
         function g = get.petfov_fqfn(this)
             g = fullfile(this.petPath, this.studyData_.petfov_fn(this.suffix));
-            g = this.ensureNIFTI_GZ(g);
             if (2 ~= exist(g, 'file'))
                 g = '';
                 return
@@ -74,7 +90,6 @@ classdef SessionData < mlpipeline.SessionData
         end
         function g = get.tof_fqfn(this)
             g = fullfile(this.petPath, 'fdg', 'pet_proc', this.studyData_.tof_fn(this.suffix));
-            g = this.ensureNIFTI_GZ(g);
             if (2 ~= exist(g, 'file'))
                 g = '';
                 return
@@ -82,14 +97,17 @@ classdef SessionData < mlpipeline.SessionData
         end
         function g = get.toffov_fqfn(this)
             g = fullfile(this.petPath, 'fdg', 'pet_proc', this.studyData_.toffov_fn(this.suffix));
-            g = this.ensureNIFTI_GZ(g);
             if (2 ~= exist(g, 'file'))
                 g = '';
                 return
             end
         end
-        function g = get.T1_fqfn(this)
-            g = fullfile(this.mriPath, 'T1.mgz');
+        function g = get.umap_fqfn(this)
+            g = fullfile(this.petPath, sprintf('%sFDG%s_umap.4dfp.img', this.sessionFolder, this.suffix));
+        end
+        function g = get.umap_fqfp(this)            
+            [pth,fp] = myfileparts(this.umap_fqfn);
+            g = fullfile(pth, fp);
         end
         function g = get.wmparc_fqfn(this)
             g = fullfile(this.mriPath, 'wmparc.mgz');
@@ -107,7 +125,17 @@ classdef SessionData < mlpipeline.SessionData
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})
             
-            f = this.fullfile(this.petPath, sprintf('%sfdg%s%s', this.sessionFolder, this.suffix, ip.Results.suff));
+            f = this.fullfile(this.petPath, sprintf('%sFDG%s%s', this.sessionFolder, this.suffix, ip.Results.suff));
+        end
+        function f = fdg_fqfp(this, varargin)
+            [pth,fp] = myfileparts(this.fdg_fqfn(varargin{:}));
+            f = fullfile(pth, fp);
+        end
+        function f = fdgSumtBlurred_fqfn(this, varargin)
+            f = [this.fdgSumtBlurred_fqfp(varargin{:}) '.4dfp.img'];
+        end
+        function f = fdgSumtBlurred_fqfp(this, varargin)            
+            f = sprintf('%s_sumt_b%i', this.fdg_fqfp(varargin{:}), floor(10*max(this.petBlur)));
         end
         function f = ho_fqfn(this, varargin)
             ip = inputParser;
@@ -129,8 +157,7 @@ classdef SessionData < mlpipeline.SessionData
             parse(ip, varargin{:})
             
             f = this.fullfile(this.petPath, sprintf('%soo%i%s%s', this.sessionFolder, this.snumber, this.suffix, ip.Results.suff));
-        end
-        
+        end        
         function g = aparcA2009sAseg(this)
             g = mlmr.MRImagingContext(this.aparcA2009sAseg_fqfn);
         end
@@ -223,6 +250,7 @@ classdef SessionData < mlpipeline.SessionData
  			%  Usage:  this = SessionData()
 
  			this = this@mlpipeline.SessionData(varargin{:});
+            this.suffix = sprintf('_v%i_NAC', this.vnumber);
         end
 %         function disp(this)
 %             disp@mlpipeline.SessionData(this);

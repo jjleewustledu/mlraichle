@@ -53,66 +53,66 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
     end
     
     methods
-        function f = fslFolder(~, sessDat)
-            f = sprintf('V%i', sessDat.vnumber);
+        function f = fslFolder(~, ~)
+            f = 'NAC';
         end
-        function f = hdrinfoFolder(~, sessDat)
-            f = sprintf('V%i', sessDat.vnumber);
+        function f = hdrinfoFolder(~, ~)
+            f = 'NAC';
         end
-        function f = mriFolder(~, sessDat)
-            f = sprintf('V%i', sessDat.vnumber);
+        function f = mriFolder(~, ~)
+            f = 'NAC';
         end
-        function f = petFolder(~, sessDat)
-            f = sprintf('V%i', sessDat.vnumber);
+        function f = petFolder(~, ~)
+            f = 'NAC';
         end      
         
         function fn = fdg_fn(~, sessDat, varargin)            
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})  
-            fn = sprintf('%sfdg%s.4dfp.nii.gz', sessDat.sessionFolder, ip.Results.suff);
+            fn = sprintf('%sFDG%s.4dfp.hdr', sessDat.sessionFolder, ip.Results.suff);
         end
         function fn = ho_fn(~, sessDat, varargin)
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})
-            fn = sprintf('%sho%i%s.4dfp.nii.gz', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
+            fn = sprintf('%sHO%i%s.4dfp.hdr', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
         end
         function fn = mpr_fn(~, sessDat, varargin)
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})
-            fn = sprintf('%s_mpr%s.4dfp.nii.gz', sessDat.sessionFolder, ip.Results.suff);
+            fn = sprintf('%s_mpr%s.4dfp.hdr', sessDat.sessionFolder, ip.Results.suff);
         end
         function fn = oc_fn(~, sessDat, varargin)
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})
-            fn = sprintf('%soc%i%s.4dfp.nii.gz', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
+            fn = sprintf('%sOC%i%s.4dfp.hdr', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
         end
         function fn = oo_fn(~, sessDat, varargin)
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})
-            fn = sprintf('%soo%i%s.4dfp.nii.gz', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
+            fn = sprintf('%sOO%i%s.4dfp.hdr', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
         end
         function fn = petfov_fn(~, varargin)
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})
-            fn = sprintf('PETFOV%s.4dfp.nii.gz', ip.Results.suff);
+            fn = sprintf('PETFOV%s.4dfp.hdr', ip.Results.suff);
         end
         function fn = tof_fn(~, varargin)
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})
-            fn = sprintf('TOF_ART%s.4dfp.nii.gz', ip.Results.suff);
+            fn = sprintf('TOF_ART%s.4dfp.hdr', ip.Results.suff);
         end
         function fn = toffov_fn(~, varargin)
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})
-            fn = sprintf('AIFFOV%s.4dfp.nii.gz', ip.Results.suff);
+            fn = sprintf('AIFFOV%s.4dfp.hdr', ip.Results.suff);
         end
     end
     

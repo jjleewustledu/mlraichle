@@ -9,27 +9,27 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
  	%% It was developed on Matlab 9.0.0.341360 (R2016a) for MACI64.
  	
     
-    properties (Dependent)	
+    properties (Dependent)
         blurArg
         gaussArg
     end
     
     methods % GET
         function g = get.blurArg(this)
-            g = 1.5*this.petBlur;
+            g = this.petBlur;
         end
         function g = get.gaussArg(this)
-            g = 3*this.F_HALF_x_FWHM/this.petBlur;
+            g = this.F_HALF_x_FWHM/this.petBlur;
         end
     end
     
-	properties 	
+	properties
         atlasTag  = 'TRIO_Y_NDC'
         firstCrop = 0.5
         initialT4 = fullfile(getenv('RELEASE'), 'S_t4')        
  	end
 
-	methods 		
+	methods
         function this = t4ResolveSubject(this)
             this.sourceImage = this.sessionData.pet;
             this = this.t4ResolvePET;
