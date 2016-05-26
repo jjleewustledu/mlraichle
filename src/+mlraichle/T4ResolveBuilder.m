@@ -41,7 +41,44 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
 
             this.sourceImage = mlfourd.ImagingContext({pet mr});
             this = this.t4ResolveMultispectral;
-        end        
+        end  
+        function this = t4ResolvePET2(this)
+            subject = 'HYGLY09';
+            convdir = fullfile(getenv('PPG'), 'converted', subject, 'V1', '');
+            nacdir  = this.sessionData.petPath;
+            mpr     = [subject '_mpr'];
+
+            mprImg = [mpr '.4dfp.img'];
+            if (~lexist(mprImg, 'file'))
+                if (lexist(fullfile(convdir, mprImg)))
+                    this.buildVisitor.lns_4dfp(fullfile(convdir, mpr));
+                elseif (lexist(fullfile(convdir, 'V1', mprImg)))
+                    this.buildVisitor.lns_4dfp(fullfile(convdir, 'V1', mpr));
+                elseif (lexist(fullfile(convdir, 'V2', mprImg)))
+                    this.buildVisitor.lns_4dfp(fullfile(convdir, 'V2', mpr));
+                else
+                    error('mlfourdfp:fileNotFound', 'T4ResolveBuilder.t4ResolvePET:  could not find %s', mprImg);
+                end
+            end
+            if (~lexist([mpr '_to_' this.atlasTag '_t4']))
+                this.msktgenMprage(mpr, this.atlasTag);
+            end
+
+            tracer = 'fdg';
+            for visit = 1:1 %2
+                tracerdir = fullfile(nacdir, sprintf('%s_v%i', upper(tracer), visit));
+                if (~isdir(tracerdir))
+                    mkdir(tracerdir);
+                end
+                cd(tracerdir);
+                this.buildVisitor.lns(     fullfile(nacdir, [mpr '_to_' this.atlasTag '_t4']));
+                this.buildVisitor.lns_4dfp(fullfile(convdir,  mpr));
+                fdfp0 = sprintf('%sv%i_AC_frames1to31', tracer, visit);
+                this.buildVisitor.lns_4dfp(fullfile(nacdir, fdfp0));
+                fdfp1 = sprintf('%sv%i', tracer, visit);
+                this.t4ResolveIterative(fdfp0, fdfp1, mpr);
+            end
+        end
         function this = t4ResolvePET(this)
 
             subject = 'HYGLY09';

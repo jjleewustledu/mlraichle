@@ -26,6 +26,18 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
             disp(this.sessd);
             disp(this.testObj);
         end
+        function test_t4ResolvePET2(this)
+            this.testObj = this.testObj.t4ResolvePET2;
+        end
+        function test_pasteFramesAC(this)
+            cd(fullfile(this.sessd.petPath, 'V1', ''));
+            ipr = struct( ...
+                'fdfp0',  'fdgv1_AC', ...
+                'fdfp1',  'fdgv1_AC', ...
+                'frame0',  1, ...
+                'frameF',  31);
+            this.testObj = this.testObj.pasteFramesAC(ipr);
+        end
         function test_transverseMpr(this)
             mpr = this.testObj.transverseMpr;
             this.verifyTrue(strcmp(mpr, fullfile(pwd, 'HYGLY09_mpr_trans')));
@@ -66,7 +78,7 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
 
  	methods (TestClassSetup)
 		function setupT4ResolveBuilder(this)
-            this.studyd = mlpipeline.StudyDataSingletons.instance('test_raichle');
+            this.studyd = mlpipeline.StudyDataSingletons.instance('raichle');
             this.sessd = mlraichle.SessionData( ...
                 'studyData', this.studyd, 'sessionPath', fullfile(this.studyd.subjectsDir, 'HYGLY09', ''));            
             this.testObj_ = mlraichle.T4ResolveBuilder('sessionData', this.sessd);
