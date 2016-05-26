@@ -43,11 +43,11 @@ classdef TestDataSingleton < mlraichle.StudyDataSingleton
             [~,hn] = mlbash('hostname');
             switch (strtrim(hn))
                 case {'innominate' 'innominate.local'}
-                    this.raichleTrunk = '/Volumes/InnominateHD3/Local/test/raichle/PPGdata';
+                    this.raichleTrunk = fullfile(getenv('UNITTESTS'), 'raichle/PPGdata', '');
                 case 'touch3'
-                    this.raichleTrunk = '/data/nil-bluearc/raichle/PPGdata';
+                    this.raichleTrunk = fullfile(getenv('RAICHLE'), 'PPGdata', '');
                 case 'vertebral'
-                    this.raichleTrunk = '/mnt/hgfs/InnominateHD3/Local/test/raichle/PPGdata';
+                    this.raichleTrunk = fullfile(getenv('UNITTESTS'), 'raichle/PPGdata', '');
                 otherwise
                     error('mlraichle:unsupportedSwitchCase', 'TestDataSingleton.ctor.hn->%s is not supported', hn);
             end
