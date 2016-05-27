@@ -26,6 +26,13 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
             disp(this.sessd);
             disp(this.testObj);
         end
+        function test_t4ResolvePET3(this)
+            this.sessd = mlraichle.SessionData( ...
+                'studyData', this.studyd, 'sessionPath', fullfile(this.studyd.subjectsDir, 'NP995_09', ''));            
+            this.testObj = mlraichle.T4ResolveBuilder('sessionData', this.sessd);
+            cd(fullfile(this.sessd.sessionPath, 'V1', ''));
+            this.testObj = this.testObj.t4ResolvePET3;
+        end
         function test_t4ResolvePET2(this)
             this.testObj = this.testObj.t4ResolvePET2;
         end
