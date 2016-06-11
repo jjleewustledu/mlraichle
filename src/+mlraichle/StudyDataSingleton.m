@@ -10,20 +10,16 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
  	
 
     properties (SetAccess = protected)
-        raichleTrunk = fullfile(getenv('RAICHLE'), 'PPGdata', '')
+        raichleTrunk = fullfile(getenv('RAICHLE'), 'PPGdata', 'jjlee', '')
     end
     
 	properties (Dependent)
         subjectsDir
-        loggingPath
     end
     
     methods %% GET
         function g = get.subjectsDir(this)
-            g = fullfile(this.raichleTrunk, 'jjlee', '');
-        end
-        function g = get.loggingPath(this)
-            g = this.raichleTrunk;
+            g = fullfile(this.raichleTrunk, '');
         end
     end
 
@@ -53,20 +49,48 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
     end
     
     methods
+        function loc  = loggingLocation(this, varargin)
+            ip = inputParser;
+            addParameter(ip, 'type', 'path', @(x) this.isLocationType(x));
+            parse(ip, varargin{:});
+            
+            switch (ip.Results.type)
+                case 'folder'
+                    [~,loc] = fileparts(this.raichleTrunk);
+                case 'path'
+                    loc = this.raichleTrunk;
+                otherwise
+                    error('mlpipeline:insufficientSwitchCases', ...
+                          'StudyDataSingleton.loggingLocation.ip.Results.type->%s not recognized', ip.Results.type);
+            end
+        end   
+        function sess = sessionData(varargin)
+            %% SESSIONDATA
+            %  @param parameter names and values expected by mlraichle.SessionData;
+            %  'studyData' and this are implicitly supplied.
+            %  @returns mlraichle.SessionData object
+            
+            sess = mlraichle.SessionData('studyData', this, varargin{:});
+        end     
+    end
+    
+    %% DEPRECATED, HIDDEN
+    
+    methods (Hidden)
         function f = fslFolder(~, ~)
-            f = 'NAC';
+            f = 'V1';
         end
         function f = hdrinfoFolder(~, ~)
-            f = 'NAC';
+            f = 'V1';
         end
         function f = mriFolder(~, ~)
-            f = 'NAC';
+            f = 'V1';
         end
         function f = petFolder(~, ~)
-            f = 'NAC';
+            f = 'V1';
         end      
         
-        function fn = fdg_fn(~, sessDat, varargin)            
+        function fn = fdg_fn(~, sessDat, varargin)
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})  
