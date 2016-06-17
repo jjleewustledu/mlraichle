@@ -32,6 +32,17 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
     end
 
     methods (Static)
+        function this = runRaichle(sessPth, v, s)
+            studyd = mlpipeline.StudyDataSingletons.instance('raichle');
+            sessd = mlraichle.SessionData( ...
+                'studyData', studyd, ...
+                'sessionPath', sessPth, ...
+                'vnumber', v, ...
+                'snumber', s);
+            this = mlraichle.T4ResolveBuilder('sessionData', sessd);
+            this = this.mhdrTo4dfp;
+            this = this.t4ResolvePET3;
+        end
         function this = testCompiler
             studyd = mlpipeline.StudyDataSingletons.instance('raichle');            
             sessd = mlraichle.SessionData( ...
@@ -56,6 +67,12 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             this.sourceImage = mlfourd.ImagingContext({pet mr});
             this = this.t4ResolveMultispectral;
         end  
+        function this = mhdrTo4dfp(this)
+            cd(this.sessionData.fdgNac('path'));
+            if (~lexist([this.sessionData.fdgNac('fqfp') '.mhdr'], 'file'))
+                this.buildVisitor.sif_4dfp([this.sessionData.fdgNac('fqfp') '.mhdr']);
+            end
+        end
         function this = t4ResolvePET3(this)
 
             mprDir  = this.sessionData.vLocation('path');
@@ -63,43 +80,40 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             workDir = this.sessionData.vLocation('path');
             mpr     = 'mpr';
 
-            mprImg = [mpr '.4dfp.img'];
-            if (~lexist(mprImg, 'file'))
-                this.buildVisitor.lns_4dfp(fullfile(mprDir, mpr));
-            end
+            cd(this.sessionData.vLocation('path'));
+            
+            assert(lexist(this.sessionData.mpr('fqfn'), 'file'));
             if (~lexist([mpr '_to_' this.atlasTag '_t4']))
-                this.msktgenMprage(mpr, this.atlasTag);
+                this.msktgenMprage(this.sessionData.mpr('fp'), this.atlasTag);
             end
 
             tracer = 'fdg';
-            for visit = 1:1 %2
-                tracerdir = fullfile(workDir, sprintf('%s_V%i-Resolved', upper(tracer), visit));
-                if (~isdir(tracerdir))
-                    mkdir(tracerdir);
-                end
-                cd(tracerdir);
-                fdfp0 = this.sessionData.fdgNac('fp');
-                fdfp1 = sprintf('%sv%i', tracer, visit);
-                this.buildVisitor.lns(     fullfile(workDir, [mpr '_to_' this.atlasTag '_t4']));
-                this.buildVisitor.lns_4dfp(fullfile(mprDir,  mpr));
-                this.buildVisitor.lns_4dfp(fullfile(nacDir, fdfp0));
-                this.t4ResolveIterative(fdfp0, fdfp1, mpr);
+            tracerdir = fullfile(workDir, sprintf('%s_V%i-Resolved', upper(tracer), this.sessionData.vnumber));
+            if (~isdir(tracerdir))
+                mkdir(tracerdir);
             end
+            cd(tracerdir);
+            fdfp0 = this.sessionData.fdgNac('fp');
+            fdfp1 = sprintf('%sv%i', tracer, this.sessionData.vnumber);
+            this.buildVisitor.lns(     fullfile(workDir, [mpr '_to_' this.atlasTag '_t4']));
+            this.buildVisitor.lns_4dfp(fullfile(mprDir,  mpr));
+            this.buildVisitor.lns_4dfp(fullfile(nacDir, fdfp0));
+            this.t4ResolveIterative(fdfp0, fdfp1, mpr);
         end
         function this = t4ResolvePET2(this)
-            subject = 'HYGLY09';
-            convdir = fullfile(getenv('PPG'), 'converted', subject, 'V1', '');
-            nacdir  = this.sessionData.petPath;
+            subject = 'NP995_09';
+            convdir = fullfile(getenv('PPG'), 'converted', subject, '');
+            workdir = fullfile(getenv('PPG'), 'jjlee', subject, 'V2', '');
             mpr     = [subject '_mpr'];
 
             mprImg = [mpr '.4dfp.img'];
             if (~lexist(mprImg, 'file'))
                 if (lexist(fullfile(convdir, mprImg)))
                     this.buildVisitor.lns_4dfp(fullfile(convdir, mpr));
-                elseif (lexist(fullfile(convdir, 'V1', mprImg)))
-                    this.buildVisitor.lns_4dfp(fullfile(convdir, 'V1', mpr));
-                elseif (lexist(fullfile(convdir, 'V2', mprImg)))
-                    this.buildVisitor.lns_4dfp(fullfile(convdir, 'V2', mpr));
+                elseif (lexist(fullfile(workdir, 'V1', mprImg)))
+                    this.buildVisitor.lns_4dfp(fullfile(workdir, 'V1', mpr));
+                elseif (lexist(fullfile(workdir, 'V2', mprImg)))
+                    this.buildVisitor.lns_4dfp(fullfile(workdir, 'V2', mpr));
                 else
                     error('mlfourdfp:fileNotFound', 'T4ResolveBuilder.t4ResolvePET:  could not find %s', mprImg);
                 end
@@ -109,16 +123,16 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             end
 
             tracer = 'fdg';
-            for visit = 1:1 %2
-                tracerdir = fullfile(nacdir, sprintf('%s_v%i', upper(tracer), visit));
+            for visit = 2:2
+                tracerdir = fullfile(workdir, sprintf('%s_v%i', upper(tracer), visit));
                 if (~isdir(tracerdir))
                     mkdir(tracerdir);
                 end
                 cd(tracerdir);
-                this.buildVisitor.lns(     fullfile(nacdir, [mpr '_to_' this.atlasTag '_t4']));
-                this.buildVisitor.lns_4dfp(fullfile(convdir,  mpr));
-                fdfp0 = sprintf('%sv%i_AC_frames1to31', tracer, visit);
-                this.buildVisitor.lns_4dfp(fullfile(nacdir, fdfp0));
+                this.buildVisitor.lns(     fullfile(workdir, [mpr '_to_' this.atlasTag '_t4']));
+                this.buildVisitor.lns_4dfp(fullfile(workdir,  mpr));
+                fdfp0 = sprintf('%s%s_v%i', subject, tracer, visit);
+                this.buildVisitor.lns_4dfp(fullfile(workdir, fdfp0));
                 fdfp1 = sprintf('%sv%i', tracer, visit);
                 this.t4ResolveIterative(fdfp0, fdfp1, mpr);
             end

@@ -34,6 +34,12 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
             this.testObj = this.testObj.t4ResolvePET3;
         end
         function test_t4ResolvePET2(this)
+            this.sessd = mlraichle.SessionData( ...
+                'studyData', this.studyd, ...
+                'sessionPath', fullfile(this.studyd.subjectsDir, 'NP995_09', ''), ...
+                'vnumber', 1);  
+            this.testObj = mlraichle.T4ResolveBuilder('sessionData', this.sessd);
+            cd(fullfile(this.sessd.sessionPath, 'V2', ''));
             this.testObj = this.testObj.t4ResolvePET2;
         end
         function test_pasteFramesAC(this)
@@ -87,7 +93,7 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
 		function setupT4ResolveBuilder(this)
             this.studyd = mlpipeline.StudyDataSingletons.instance('raichle');
             this.sessd = mlraichle.SessionData( ...
-                'studyData', this.studyd, 'sessionPath', fullfile(this.studyd.subjectsDir, 'HYGLY09', ''));            
+                'studyData', this.studyd, 'sessionPath', fullfile(this.studyd.subjectsDir, 'NP995_09', ''));            
             this.testObj_ = mlraichle.T4ResolveBuilder('sessionData', this.sessd);
             setenv('DEBUG', '');
  		end
@@ -96,7 +102,6 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
  	methods (TestMethodSetup)
 		function setupT4ResolveBuilderTest(this)
  			this.testObj = this.testObj_;            
-            cd(fullfile(this.sessd.sessionPath, 'NAC', ''));
  			this.addTeardown(@this.cleanFiles);
  		end
 	end

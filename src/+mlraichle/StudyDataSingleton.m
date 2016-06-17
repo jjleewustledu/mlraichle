@@ -64,7 +64,7 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
                           'StudyDataSingleton.loggingLocation.ip.Results.type->%s not recognized', ip.Results.type);
             end
         end   
-        function sess = sessionData(varargin)
+        function sess = sessionData(this, varargin)
             %% SESSIONDATA
             %  @param parameter names and values expected by mlraichle.SessionData;
             %  'studyData' and this are implicitly supplied.
