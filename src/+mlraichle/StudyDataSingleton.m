@@ -7,19 +7,24 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.0.0.307022 (R2016a) Prerelease for MACI64.
- 	
+    
 
     properties (SetAccess = protected)
         raichleTrunk = fullfile(getenv('RAICHLE'), 'PPGdata', 'jjlee', '')
+        tracerPrefixes = { 'FDG' 'HO' 'OO' 'OC' }
     end
     
 	properties (Dependent)
         subjectsDir
     end
     
-    methods %% GET
+    methods %% GET/SET
         function g = get.subjectsDir(this)
-            g = fullfile(this.raichleTrunk, '');
+            g = this.subjectsDir_;
+        end
+        function this = set.subjectsDir(this, sd)
+            assert(isdir(sd));
+            this.subjectsDir_ = sd;
         end
     end
 
@@ -142,10 +147,15 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
     
     %% PROTECTED
     
+    properties (Access = protected)
+        subjectsDir_
+    end
+    
 	methods (Access = protected)   
  		function this = StudyDataSingleton(varargin)
  			this = this@mlpipeline.StudyDataSingleton(varargin{:});
             
+            this.subjectsDir_ = this.raichleTrunk;
             dt = mlsystem.DirTools(this.subjectsDir);
             fqdns = {};
             for di = 1:length(dt.dns)

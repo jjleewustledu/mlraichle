@@ -30,11 +30,11 @@ classdef Test_SessionData < matlab.unittest.TestCase
             ic.view;
         end
         function test_IPETData(this)            
-            this.verifyEqual(this.testObj.fdgNac('fqfn'), ...
+            this.verifyEqual(this.testObj.fdgNAC('fqfn'), ...
                 fullfile(this.testObj.fdgListmodeLocation('path'), 'FDG_V1-LM-00-OP.4dfp.img'));
-            ic = this.testObj.fdgNac('imagingContext');
+            ic = this.testObj.fdgNAC('imagingContext');
             this.verifyClass(ic, 'mlfourd.ImagingContext');
-            fprintf('test_IPETData:  viewing %s ..........\n', this.testObj.fdgNac('fqfn'));
+            fprintf('test_IPETData:  viewing %s ..........\n', this.testObj.fdgNAC('fqfn'));
             ic.view;
             
 %             this.verifyEqual(this.testObj.ho('fqfn'), ...

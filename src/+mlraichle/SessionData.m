@@ -45,9 +45,9 @@ classdef SessionData < mlpipeline.SessionData
             g = fullfile(this.mriPath, 'brain.mgz');
         end
         function g = get.ct_fqfn(this)
-            g = fullfile(this.petPath, sprintf('%s_ct.4dfp.img', this.sessionFolder));
+            g = fullfile(this.petPath, 'ct.4dfp.img');
         end
-        function g = get.ct_fqfp(this)            
+        function g = get.ct_fqfp(this)
             [pth,fp] = myfileparts(this.ct_fqfn);
             g = fullfile(pth, fp);
         end
@@ -103,9 +103,9 @@ classdef SessionData < mlpipeline.SessionData
             end
         end
         function g = get.umap_fqfn(this)
-            g = fullfile(this.petPath, sprintf('%sFDG%s_umap.4dfp.img', this.sessionFolder, this.tag));
+            g = fullfile(this.petPath, 'umap.4dfp.img');
         end
-        function g = get.umap_fqfp(this)            
+        function g = get.umap_fqfp(this)
             [pth,fp] = myfileparts(this.umap_fqfn);
             g = fullfile(pth, fp);
         end
@@ -127,11 +127,11 @@ classdef SessionData < mlpipeline.SessionData
             %         'sessionPath' is a path to the session data
             %         'rnumber'     is numeric
             %         'snumber'     is numeric
+            %         'tracer'      is char
             %         'vnumber'     is numeric
             %         'tag'         is appended to the fileprefix
 
  			this = this@mlpipeline.SessionData(varargin{:});
-            this.tag = sprintf('_v%i_NAC', this.vnumber);
         end
         
         %% IMRData
@@ -176,6 +176,9 @@ classdef SessionData < mlpipeline.SessionData
         function obj  = localizer(~) %#ok<STOUT>
         end
         function obj  = mpr(this, typ)
+            obj = this.mprage(typ);
+        end
+        function obj  = mprage(this, typ)
             obj = this.studyData_.imagingType(typ, ...
                 fullfile(this.vLocation('path'), 'mpr.4dfp.img'));
         end
@@ -197,37 +200,62 @@ classdef SessionData < mlpipeline.SessionData
                 
         %% IPETData
         
+        function loc = fdgACLocation(this, typ)
+            loc = this.studyData_.locationType(typ, ...
+                fullfile(this.vLocation('path'), ...
+                sprintf('FDG_V%i-AC', this.vnumber), ''));
+        end
         function loc  = fdgListmodeLocation(this, typ)
-            loc = this.studyData_.imagingType(typ, ...
+            loc = this.studyData_.locationType(typ, ...
                 fullfile(this.vLocation('path'), ...
                 sprintf('FDG_V%i-Converted', this.vnumber), ...
                 sprintf('FDG_V%i-LM-00', this.vnumber), ''));
         end
+        function loc = fdgNACLocation(this, typ)
+            loc = this.studyData_.locationType(typ, ...
+                fullfile(this.vLocation('path'), ...
+                sprintf('FDG_V%i-NAC', this.vnumber), ''));
+        end        
         function loc  = hdrinfoLocation(this, typ)
             loc = this.studyData_.locationType(typ, ...
-                this.vLocation('path'), 'hdr_backup', '');
+                fullfile(this.vLocation('path'), 'hdr_backup', ''));
         end
         function loc  = petLocation(this, typ)
-            loc = this.studyData_.locationType(typ, ...
-                this.vLocation('path'), '');
+            loc = this.vLocation(typ);
         end
         
         function obj  = ct(this, typ)
             obj = this.studyData_.imagingType(typ, ...
                 fullfile(this.vLocation('path'), 'ct.4dfp.img'));
         end
-        function obj  = fdgNac(this, typ)
-            obj = this.studyData_.imagingType(typ, ...
-                fullfile(this.fdgListmodeLocation('path'), ...
-                sprintf('FDG_V%i-LM-00-OP.4dfp.img', this.vnumber)));
-        end
-        function obj  = fdgNacResolved(this, typ)
-            obj = this.studyData_.imagingType(typ, ...
-                fullfile(this.vLocation('path'), 'fdgNacResolved.4dfp.img'));
-        end
         function obj  = fdg(this, typ)
             obj = this.studyData_.imagingType(typ, ...
                 fullfile(this.vLocation('path'), 'fdg.4dfp.img'));
+        end
+        function obj  = fdgAC(this, typ)
+            obj = this.studyData_.imagingType(typ, ...
+                fullfile(this.fdgACLocation('path'), ...
+                sprintf('FDG_V%i-LM-00-OP.4dfp.img', this.vnumber)));
+        end
+        function obj  = fdgNAC(this, typ)
+            obj = this.studyData_.imagingType(typ, ...
+                fullfile(this.fdgNACLocation('path'), ...
+                sprintf('FDG_V%i-LM-00-OP.4dfp.img', this.vnumber)));
+        end
+        function obj  = fdgNACResolved0(this, typ, varargin)
+            ip = inputParser;
+            addParameter(ip, 'frame0', nan, @isnumeric);
+            addParameter(ip, 'frameF', nan, @isnumeric);
+            parse(ip, varargin{:});
+            
+            obj = this.studyData_.imagingType(typ, ...
+                fullfile(this.fdgNACLocation('path'), ...
+                sprintf('fdgv%ir%i_frames%ito%i_resolved.4dfp.img', this.vnumber, this.rnumber, ip.Results.frame0, ip.Results.frameF)));
+        end
+        function obj  = fdgNACResolved(this, typ)            
+            obj = this.studyData_.imagingType(typ, ...
+                fullfile(this.fdgNACLocation('path'), ...
+                sprintf('fdgv%ir%i_resolved.4dfp.img', this.vnumber, this.rnumber)));
         end
         function obj  = gluc(~) %#ok<STOUT>
         end
@@ -238,9 +266,12 @@ classdef SessionData < mlpipeline.SessionData
         function obj  = oo(~) %#ok<STOUT>
         end
         function obj  = tr(~) %#ok<STOUT>
-        end
-        function obj  = umap(~) %#ok<STOUT>
         end        
+        function obj  = umapSiemens(this, typ)
+            obj = this.studyData_.imagingType(typ, ...
+                fullfile(this.fdgNACLocation('path'), ...
+                sprintf('FDG_V%i-LM-00-umap.v', this.vnumber)));
+        end      
         
         function p = petPointSpread(~)
             %% PETPOINTSPREAD

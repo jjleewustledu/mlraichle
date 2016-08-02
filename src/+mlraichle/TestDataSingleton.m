@@ -44,10 +44,13 @@ classdef TestDataSingleton < mlraichle.StudyDataSingleton
             switch (strtrim(hn))
                 case {'innominate' 'innominate.local'}
                     this.raichleTrunk = fullfile(getenv('UNITTESTS'), 'raichle/PPGdata', '');
+                    this.subjectsDir  = fullfile(this.raichleTrunk, 'jjlee');
                 case 'touch3'
-                    this.raichleTrunk = fullfile(getenv('RAICHLE'), 'PPGdata', '');
+                    this.raichleTrunk = fullfile(getenv('UNITTESTS'), 'raichle/PPGdata', '');
+                    this.subjectsDir  = fullfile(this.raichleTrunk, 'jjlee');
                 case 'vertebral'
                     this.raichleTrunk = fullfile(getenv('UNITTESTS'), 'raichle/PPGdata', '');
+                    this.subjectsDir  = fullfile(this.raichleTrunk, 'jjlee');
                 otherwise
                     error('mlraichle:unsupportedSwitchCase', 'TestDataSingleton.ctor.hn->%s is not supported', hn);
             end
