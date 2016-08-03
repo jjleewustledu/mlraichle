@@ -45,8 +45,8 @@ classdef TestDataSingleton < mlraichle.StudyDataSingleton
                 case {'innominate' 'innominate.local'}
                     this.raichleTrunk = fullfile(getenv('UNITTESTS'), 'raichle/PPGdata', '');
                     this.subjectsDir  = fullfile(this.raichleTrunk, 'jjlee');
-                case 'touch3'
-                    this.raichleTrunk = fullfile(getenv('UNITTESTS'), 'raichle/PPGdata', '');
+                case {'touch3' 'william' 'maulinux1'}
+                    this.raichleTrunk = fullfile(getenv('PPG'), '');
                     this.subjectsDir  = fullfile(this.raichleTrunk, 'jjlee');
                 case 'vertebral'
                     this.raichleTrunk = fullfile(getenv('UNITTESTS'), 'raichle/PPGdata', '');
