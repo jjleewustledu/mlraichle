@@ -26,8 +26,17 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
             disp(this.sessd);
             disp(this.testObj);
         end
+        function test_runSingleOnConvertedNAC_SYNTH09(this)
+            synthd = mlraichle.SynthDataSingleton.instance;
+            mlraichle.T4ResolveBuilder.runSingleOnConvertedNAC( ...
+                'studyData', synthd, 'sessionFolder', 'SYNTH09', 'visitFolder', 'V1', 'frames', [1 1]);
+        end
+        function test_runSingleOnConvertedNAC_HYGLY09(this)
+            mlraichle.T4ResolveBuilder.runSingleOnConvertedNAC( ...
+                'sessionFolder', 'HYGLY09', 'visitFolder', 'V1', 'frames', this.testingFrames, 'NRevisions', 3);
+        end
         function test_triggeringOnConvertedNAC(this)
-            mlraichle.T4ResolveBuilder.triggeringOnConvertedNAC;            
+            mlraichle.T4ResolveBuilder.triggeringOnConvertedNAC;
         end
         function test_t4ResolvePET3(this)
             this.sessd = mlraichle.SessionData( ...
@@ -109,6 +118,10 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
 	methods (Access = private)
 		function cleanFiles(this)
  		end
+        function frms = testingFrames(this)
+            frms = zeros(1,72);
+            frms(13) = 1; frms(72) = 1;
+        end
 	end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

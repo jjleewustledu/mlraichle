@@ -9,8 +9,7 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
  	%% It was developed on Matlab 9.0.0.341360 (R2016a) for MACI64.
  	
         
-	properties
-        firstCrop = 0.5   
+	properties 
         recoverNACFolder = false 
     end
 
@@ -63,7 +62,6 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                                     'tracer',      T4ResolveBuilder.tracerPrefix(eTracer.dns{iTracer}), ...
                                     'vnumber',     T4ResolveBuilder.visitNumber(eVisit.dns{iVisit}));
                                 this = T4ResolveBuilder('sessionData', sessd);
-                                this = this.arrangeMR;
                                 this = this.t4ResolveConvertedNAC;   
                                 these{iSess,iVisit} = this;
                             catch ME
@@ -79,14 +77,18 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             studyd = mlraichle.StudyDataSingleton.instance;
 
             ip = inputParser;
+            addParameter(ip, 'NRevisions', 2, @isnumeric);
+            addParameter(ip, 'studyData', studyd, @(x) isa(x, 'mlpipeline.StudyDataSingleton'));
             addParameter(ip, 'subjectsDir', studyd.subjectsDir, @isdir);
-            addParameter(ip, 'sessionFolder', 'HYGLY24', @ischar);
-            addParameter(ip, 'visitFolder', 'V1', @ischar);
-            addParameter(ip, 'tracerFolder', 'FDG_V1-NAC', @ischar);            
+            addParameter(ip, 'sessionFolder', '', @ischar);
+            addParameter(ip, 'visitFolder', '', @ischar);
+            addParameter(ip, 'tracerFolder', 'FDG_V1-NAC', @ischar); 
+            addParameter(ip, 'frames', [], @isnumeric);
             parse(ip, varargin{:});
+            studyd = ip.Results.studyData;
             studyd.subjectsDir = ip.Results.subjectsDir;
 
-            pth = fullfile(ip.Results.subjectsDir, ip.Results.sessionFolder, ip.Results. visitFolder, ip.Results.tracerFolder);
+            pth = fullfile(ip.Results.subjectsDir, ip.Results.sessionFolder, ip.Results.visitFolder, ip.Results.tracerFolder);
             this = [pth ' was skipped'];
             import mlraichle.*;
             if ( T4ResolveBuilder.isVisit(pth) && ...
@@ -101,8 +103,7 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                         'snumber',     T4ResolveBuilder.scanNumber(     ip.Results.tracerFolder), ...
                         'tracer',      T4ResolveBuilder.tracerPrefix(   ip.Results.tracerFolder), ...
                         'vnumber',     T4ResolveBuilder.visitNumber(    ip.Results.visitFolder));
-                    this = T4ResolveBuilder('sessionData', sessd);
-                    this = this.arrangeMR;
+                    this = T4ResolveBuilder('sessionData', sessd, 'frames', ip.Results.frames, 'NRevisions', ip.Results.NRevisions);
                     this = this.t4ResolveConvertedNAC;
                 catch ME
                     handwarning(ME);
@@ -120,29 +121,30 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                 studyd.subjectsDir = ip.Results.subjectsDir;
             end
             
-            import mlsystem.* mlraichle.* mlraichle.T4ResolveBuilder.*;
+            import mlsystem.* mlraichle.* ;
             eSess = DirTool(ip.Results.subjectsDir);
             for iSess = 1:length(eSess.fqdns)
                 
                 eVisit = DirTool(eSess.fqdns{iSess});
                 for iVisit = 1:length(eVisit.fqdns)
                     
-                    if (isVisit(eVisit.fqdns{iVisit}))
+                    if (T4ResolveBuilder.isVisit(eVisit.fqdns{iVisit}))
                         
                         eTracer = DirTool(eVisit.fqdns{iVisit});
                         for iTracer = 1:length(eTracer.fqdns)
 
                             pth = eTracer.fqdns{iTracer};
-                            if (isTracer(pth) && isConverted(pth) && ~isEmpty(pth))
+                            if (T4ResolveBuilder.isTracer(pth) && ...
+                                T4ResolveBuilder.isConverted(pth) && ...
+                               ~T4ResolveBuilder.isEmpty(pth))
                                 try
                                     sessd = SessionData( ...
                                         'studyData',   studyd, ...
                                         'sessionPath', eSess.fqdns{iSess}, ...
-                                        'snumber',     scanNumber(eTracer.dns{iTracer}), ...
-                                        'tracer',      tracerPrefix(eTracer.dns{iTracer}), ...
-                                        'vnumber',     visitNumber(eVisit.dns{iVisit}));
+                                        'snumber',     T4ResolveBuilder.scanNumber(eTracer.dns{iTracer}), ...
+                                        'tracer',      T4ResolveBuilder.tracerPrefix(eTracer.dns{iTracer}), ...
+                                        'vnumber',     T4ResolveBuilder.visitNumber(eVisit.dns{iVisit}));
                                     this = T4ResolveBuilder('sessionData', sessd);
-                                    this = this.arrangeMR;
                                     this = this.t4ResolveConvertedNAC;   
                                 catch ME
                                     handwarning(ME);
@@ -214,9 +216,29 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
     end
     
 	methods
-        function this = arrangeMR(this)
-        end
         function this = t4ResolveConvertedNAC(this)
+            this = this.arrangeNACFolder;
+            this = this.arrangeMR;
+            
+            cd(this.sessionData.fdgNAC('path'));
+            this = this.resolve( ...
+                'dest', sprintf('fdgv%i', this.sessionData.vnumber), ...
+                'source', this.sessionData.fdgNAC('fp'), ...
+                'firstCrop', this.firstCrop, ...
+                'frames', this.frames);
+        end
+ 		function this = T4ResolveBuilder(varargin)
+ 			%% T4RESOLVEBUILDER
+ 			%  Usage:  this = T4ResolveBuilder()
+
+ 			this = this@mlfourdfp.T4ResolveBuilder(varargin{:});
+ 		end
+    end 
+    
+    %% PROTECTED
+    
+    methods (Access = protected)
+        function this = arrangeNACFolder(this)
             if (this.recoverNACFolder)
                 movefile([this.sessionData.fdgNACLocation('path') '-Backup'], this.sessionData.fdgNACLocation('path'));
             else
@@ -226,38 +248,32 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                     assert(isdir(this.sessionData.fdgNACLocation('path')));
                 end
             end
-            
             if (~lexist(this.sessionData.fdgNAC('fqfn'), 'file'))
                 cd(this.sessionData.fdgNAC('path'));
-                this.buildVisitor.sif_4dfp([this.sessionData.fdgNAC('fqfp') '.mhdr']);
+                this.buildVisitor.sif_4dfp(this.sessionData.fdgNAC('fqfp'));
             end
-            
+        end
+        function this = arrangeMR(this)
             assert(lexist(this.sessionData.mprage('fqfn'), 'file'));
-            mpr_ = this.sessionData.mprage('fp');
-            if (~lexist(fullfile(this.sessionData.mprage('path'), [mpr_ '_to_' this.atlasTag '_t4'])))
+            assert(lexist(this.sessionData.atlas('fqfn'), 'file'));
+            mprFp = this.sessionData.mprage('fp');
+            atlFp = this.sessionData.atlas('fp');
+            mprToAtlT4 = [mprFp '_to_' atlFp '_t4'];
+            
+            if (~lexist(fullfile(this.sessionData.mprage('path'), mprToAtlT4)))
                 cd(this.sessionData.mprage('path'));
-                this.msktgenMprage(this.sessionData.mprage('fp'), this.atlasTag);
+                this.msktgenMprage(mprFp, atlFp);
             end
 
             cd(this.sessionData.fdgNAC('path'));
-            fdfp1 = sprintf('fdgv%i', this.sessionData.vnumber);
-            this.buildVisitor.lns(fullfile(this.sessionData.vLocation('path'), [mpr_ '_to_' this.atlasTag '_t4']));
+            this.buildVisitor.lns(fullfile(this.sessionData.vLocation('path'), mprToAtlT4));
             this.buildVisitor.lns_4dfp(this.sessionData.mprage('fqfp'));
-            if (lstrfind(this.sessionData.subjectsDir, 'Synth'))
-                this.framesToSkip = 0;
-            end
-            this.t4ResolveIterative(this.sessionData.fdgNAC('fp'), fdfp1, mpr_);
         end
-        function this = resolve(this)
-            this.sourceImage = this.sessionData.pet;
-            this = this.t4ResolvePET;
-            pet  = this.product;
-
-            this.sourceImage = this.sessionData.mr;
-            mr   = this.product;            
-
-            this.sourceImage = mlfourd.ImagingContext({pet mr});
-        end  
+    end
+    
+    %% HIDDEN & DEPRECATED
+    
+    methods (Hidden)
         function this = t4ResolvePET3(this)
 
             mprDir  = this.sessionData.vLocation('path');
@@ -374,15 +390,8 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
 %                     end
 %                 end
 %             end
-        end
-        
- 		function this = T4ResolveBuilder(varargin)
- 			%% T4RESOLVEBUILDER
- 			%  Usage:  this = T4ResolveBuilder()
-
- 			this = this@mlfourdfp.T4ResolveBuilder(varargin{:});
- 		end
- 	end 
+        end        
+    end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end

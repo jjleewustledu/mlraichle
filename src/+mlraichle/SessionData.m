@@ -161,6 +161,10 @@ classdef SessionData < mlpipeline.SessionData
         end
         function obj  = asl(~) %#ok<STOUT>
         end
+        function obj  = atlas(this, typ)
+            obj = this.studyData_.imagingType(typ, ...
+                fullfile(getenv('REFDIR'), 'TRIO_Y_NDC.4dfp.img'));
+        end
         function obj  = bold(~) %#ok<STOUT>
         end
         function obj  = brain(this, typ)
@@ -214,7 +218,7 @@ classdef SessionData < mlpipeline.SessionData
         function loc = fdgNACLocation(this, typ)
             loc = this.studyData_.locationType(typ, ...
                 fullfile(this.vLocation('path'), ...
-                sprintf('FDG_V%i-Resolved', this.vnumber), ''));
+                sprintf('FDG_V%i-NAC', this.vnumber), ''));
         end        
         function loc  = hdrinfoLocation(this, typ)
             loc = this.studyData_.locationType(typ, ...
