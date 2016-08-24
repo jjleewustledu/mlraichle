@@ -26,16 +26,35 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
             disp(this.sessd);
             disp(this.testObj);
         end
-        function test_runSingleOnConvertedNAC_SYNTH09(this)
-            synthd = mlraichle.SynthDataSingleton.instance;
-            mlraichle.T4ResolveBuilder.runSingleOnConvertedNAC( ...
-                'studyData', synthd, 'sessionFolder', 'SYNTH09', 'visitFolder', 'V1', 'frames', [1 1]);
+        function test_resolve_SYNTH09(~)
+            studyd_ = mlraichle.SynthDataSingleton.instance;
+            sessd_  = mlraichle.SessionSynthData( ...
+                'studyData', studyd_, ...
+                'sessionPath', fullfile(studyd_.subjectsDir, 'SYNTH09', ''), ...
+                'tracer', 'FDG', ...
+                'vnumber', 1);
+            t4rb = mlraichle.T4ResolveBuilder( ...
+                'sessionData', sessd_, ...
+                'frames', [1 1], ...
+                'NRevisions', 3);  
+            t4rb = t4rb.arrangeMR;
+            cd(fullfile(sessd_.fdgNACLocation('path')));
+            t4rb.resolve( ...
+                'dest', 'fdgv1r1', ...
+                'source', 'FDG_V1-LM-00-OP_meant_x2', ...
+                'firstCrop', 0.5, ...
+                'frames', [1 1], ...
+                'mprage', 'mpr');
         end
         function test_runSingleOnConvertedNAC_HYGLY09(this)
             mlraichle.T4ResolveBuilder.runSingleOnConvertedNAC( ...
-                'sessionFolder', 'HYGLY09', 'visitFolder', 'V1', 'frames', this.testingFrames, 'NRevisions', 3);
+                'sessionFolder', 'HYGLY09', 'visitFolder', 'V1', 'frames', [zeros(1,12) ones(1,60)], 'NRevisions', 2);
         end
-        function test_triggeringOnConvertedNAC(this)
+        function test_runSingleOnConvertedNAC_HYGLY09_small(this)
+            mlraichle.T4ResolveBuilder.runSingleOnConvertedNAC( ...
+                'sessionFolder', 'HYGLY09', 'visitFolder', 'V1', 'frames', this.testingFrames, 'NRevisions', 2);
+        end
+        function test_triggeringOnConvertedNAC(~)
             mlraichle.T4ResolveBuilder.triggeringOnConvertedNAC;
         end
         function test_t4ResolvePET3(this)
@@ -116,9 +135,9 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
  	end
 
 	methods (Access = private)
-		function cleanFiles(this)
+		function cleanFiles(~)
  		end
-        function frms = testingFrames(this)
+        function frms = testingFrames(~)
             frms = zeros(1,72);
             frms(13) = 1; frms(72) = 1;
         end

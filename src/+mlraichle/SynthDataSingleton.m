@@ -42,6 +42,15 @@ classdef SynthDataSingleton < mlpipeline.StudyDataSingleton
             end
             this = instance_;
         end
+        function        register(varargin)
+            %% REGISTER
+            %  @param []:  if this class' persistent instance
+            %  has not been registered, it will be registered via instance() call to the ctor; if it
+            %  has already been registered, it will not be re-registered.
+            %  @param ['initialize']:  any registrations made by the ctor will be repeated.
+            
+            mlraichle.SynthDataSingleton.instance(varargin{:});
+        end
     end
     
     methods

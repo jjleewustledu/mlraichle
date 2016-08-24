@@ -216,28 +216,6 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
     end
     
 	methods
-        function this = t4ResolveConvertedNAC(this)
-            this = this.arrangeNACFolder;
-            this = this.arrangeMR;
-            
-            cd(this.sessionData.fdgNAC('path'));
-            this = this.resolve( ...
-                'dest', sprintf('fdgv%i', this.sessionData.vnumber), ...
-                'source', this.sessionData.fdgNAC('fp'), ...
-                'firstCrop', this.firstCrop, ...
-                'frames', this.frames);
-        end
- 		function this = T4ResolveBuilder(varargin)
- 			%% T4RESOLVEBUILDER
- 			%  Usage:  this = T4ResolveBuilder()
-
- 			this = this@mlfourdfp.T4ResolveBuilder(varargin{:});
- 		end
-    end 
-    
-    %% PROTECTED
-    
-    methods (Access = protected)
         function this = arrangeNACFolder(this)
             if (this.recoverNACFolder)
                 movefile([this.sessionData.fdgNACLocation('path') '-Backup'], this.sessionData.fdgNACLocation('path'));
@@ -268,6 +246,23 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             cd(this.sessionData.fdgNAC('path'));
             this.buildVisitor.lns(fullfile(this.sessionData.vLocation('path'), mprToAtlT4));
             this.buildVisitor.lns_4dfp(this.sessionData.mprage('fqfp'));
+        end
+        function this = t4ResolveConvertedNAC(this)
+            this = this.arrangeNACFolder;
+            this = this.arrangeMR;
+            
+            cd(this.sessionData.fdgNAC('path'));
+            this = this.resolve( ...
+                'dest', sprintf('fdgv%i', this.sessionData.vnumber), ...
+                'source', this.sessionData.fdgNAC('fp'), ...
+                'firstCrop', this.firstCrop, ...
+                'frames', this.frames);
+        end
+ 		function this = T4ResolveBuilder(varargin)
+ 			%% T4RESOLVEBUILDER
+ 			%  Usage:  this = T4ResolveBuilder()
+
+ 			this = this@mlfourdfp.T4ResolveBuilder(varargin{:});
         end
     end
     

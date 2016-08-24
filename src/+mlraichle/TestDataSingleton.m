@@ -40,20 +40,8 @@ classdef TestDataSingleton < mlraichle.StudyDataSingleton
  		function this = TestDataSingleton(varargin)
  			this = this@mlraichle.StudyDataSingleton(varargin{:});
             
-            [~,hn] = mlbash('hostname');
-            switch (strtrim(hn))
-                case {'innominate' 'innominate.local'}
-                    this.raichleTrunk = fullfile(getenv('UNITTESTS'), 'raichle/PPGdata', '');
-                    this.subjectsDir  = fullfile(this.raichleTrunk, 'jjlee');
-                case {'touch3' 'william' 'maulinux1'}
-                    this.raichleTrunk = fullfile(getenv('PPG'), '');
-                    this.subjectsDir  = fullfile(this.raichleTrunk, 'jjlee');
-                case 'vertebral'
-                    this.raichleTrunk = fullfile(getenv('UNITTESTS'), 'raichle/PPGdata', '');
-                    this.subjectsDir  = fullfile(this.raichleTrunk, 'jjlee');
-                otherwise
-                    error('mlraichle:unsupportedSwitchCase', 'TestDataSingleton.ctor.hn->%s is not supported', hn);
-            end
+            this.raichleTrunk = fullfile(getenv('PPG'), '');
+            this.subjectsDir  = fullfile(this.raichleTrunk, 'jjleeSynth');
  		end
         function registerThis(this)
             mlpipeline.StudyDataSingletons.register('test_raichle', this);
