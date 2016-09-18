@@ -48,11 +48,11 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
         end
         function test_runSingleOnConvertedNAC_HYGLY09(this)
             mlraichle.T4ResolveBuilder.runSingleOnConvertedNAC( ...
-                'sessionFolder', 'HYGLY09', 'visitFolder', 'V1', 'frames', [zeros(1,12) ones(1,60)], 'NRevisions', 2);
+                'sessionFolder', 'HYGLY09', 'visitFolder', 'V2', 'tracerFolder', 'FDG_V2-NAC', 'frames', [zeros(1,12) ones(1,60)], 'NRevisions', 2);
         end
         function test_runSingleOnConvertedNAC_HYGLY09_small(this)
             mlraichle.T4ResolveBuilder.runSingleOnConvertedNAC( ...
-                'sessionFolder', 'HYGLY09', 'visitFolder', 'V1', 'frames', this.testingFrames, 'NRevisions', 2);
+                'sessionFolder', 'HYGLY09', 'visitFolder', 'V1', 'frames', this.testingFrames, 'NRevisions', 1);
         end
         function test_triggeringOnConvertedNAC(~)
             mlraichle.T4ResolveBuilder.triggeringOnConvertedNAC;

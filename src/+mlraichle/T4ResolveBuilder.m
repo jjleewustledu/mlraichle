@@ -9,6 +9,10 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
  	%% It was developed on Matlab 9.0.0.341360 (R2016a) for MACI64.
  	
         
+    properties (Constant)        
+        Nframes = 72
+    end
+    
 	properties 
         recoverNACFolder = false 
     end
@@ -22,13 +26,28 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                 end
             end
         end
+        function revertToLM00(nacPth)
+            if (~isdir(nacPth))
+                return
+            end
+            vPth = fileparts(nacPth);
+            [~,vFold] = fileparts(vPth);
+            tracerFold = ['FDG_' vFold];
+            lm00Pth = fullfile(vPth, [tracerFold '-Converted'], [tracerFold '-LM-00'], '');
+            if (lexist(fullfile(nacPth, ['fdg' lower(vFold) 'r2_resolved.4dfp.img'])))
+                return
+            end
+            if (~isdir(lm00Pth))
+                movefile(nacPth, lm00Pth);
+            end
+        end
         function these = parTriggeringOnConvertedNAC(varargin)
 
             studyd = mlraichle.StudyDataSingleton.instance;
 
             ip = inputParser;
             addParameter(ip, 'subjectsDir', studyd.subjectsDir, @isdir);
-            addParameter(ip, 'iVisit', 2, @isnumeric);
+            addParameter(ip, 'iVisit', 1, @isnumeric);
             parse(ip, varargin{:});
             if (~strcmp(ip.Results.subjectsDir, studyd.subjectsDir))
                 studyd.subjectsDir = ip.Results.subjectsDir;
@@ -38,6 +57,7 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             import mlsystem.* mlraichle.*;
             eSess = DirTool(ip.Results.subjectsDir);
             eSessFqdns = eSess.fqdns;
+            fprintf('mlraichle.T4ResolveBuilder.parTriggeringOnConvertedNAC.eSessFqdns->\n%s\n', cell2str(eSessFqdns));
             these = cell(length(eSessFqdns), 2);
             parfor iSess = 1:length(eSessFqdns)
 
@@ -52,7 +72,8 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                         these{iSess,iVisit} = [pth ' was skipped'];
                         if ( T4ResolveBuilder.isTracer(pth) && ...
                              T4ResolveBuilder.isNAC(pth) && ...
-                            ~T4ResolveBuilder.isEmpty(pth))
+                            ~T4ResolveBuilder.hasNACFolder(pth) && ...
+                             T4ResolveBuilder.hasOP(pth, T4ResolveBuilder.Nframes)) %% && ~T4ResolveBuilder.isEmpty(pth)
 
                             try
                                 sessd = SessionData( ...
@@ -88,13 +109,14 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             studyd = ip.Results.studyData;
             studyd.subjectsDir = ip.Results.subjectsDir;
 
-            pth = fullfile(ip.Results.subjectsDir, ip.Results.sessionFolder, ip.Results.visitFolder, ip.Results.tracerFolder);
-            this = [pth ' was skipped'];
             import mlraichle.*;
+            pth = fullfile(ip.Results.subjectsDir, ip.Results.sessionFolder, ip.Results.visitFolder, ip.Results.tracerFolder);
+            mlraichle.T4ResolveBuilder.revertToLM00(pth);
+            this = [pth ' was skipped'];
             if ( T4ResolveBuilder.isVisit(pth) && ...
                  T4ResolveBuilder.isTracer(pth) && ...
                  T4ResolveBuilder.isNAC(pth) && ...
-                ~T4ResolveBuilder.isEmpty(pth))
+                ~T4ResolveBuilder.hasNACFolder(pth)) % && T4ResolveBuilder.hasOP(pth, length(ip.Results.frames))) % && ~T4ResolveBuilder.isEmpty(pth)                 
 
                 try
                     sessd = SessionData( ...
@@ -154,6 +176,20 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                     end
                 end                
             end            
+        end
+        function tf = hasNACFolder(pth)
+            visitPth = fileparts(pth);
+            [~,visit] = fileparts(visitPth);
+            tf = isdir(fullfile(visitPth, ['FDG_' visit '-NAC'], ''));
+        end
+        function tf = hasOP(pth, lastFrame)
+            lastFrame = lastFrame - 1; % Siemens tags frames starting with 09
+            visitPth = fileparts(pth);
+            [~,visit] = fileparts(visitPth);
+            tf = lexist(fullfile(visitPth, ...
+                                 ['FDG_' visit '-Converted'],...
+                                 ['FDG_' visit '-LM-00'], ...
+                                 sprintf('FDG_%s-LM-00-OP_%03i_000.v', visit, lastFrame)), 'file');
         end
         function tf = isConverted(pth)
             [~,fldr] = fileparts(pth);

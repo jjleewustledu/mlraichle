@@ -232,6 +232,10 @@ classdef SessionData < mlpipeline.SessionData
             obj = this.studyData_.imagingType(typ, ...
                 fullfile(this.vLocation('path'), 'ct.4dfp.img'));
         end
+        function obj  = ctMasked(this, typ)
+            obj = this.studyData_.imagingType(typ, ...
+                fullfile(this.vLocation('path'), 'ctMasked.4dfp.img'));
+        end
         function obj  = fdg(this, typ)
             obj = this.studyData_.imagingType(typ, ...
                 fullfile(this.vLocation('path'), 'fdg.4dfp.img'));
@@ -250,16 +254,21 @@ classdef SessionData < mlpipeline.SessionData
             ip = inputParser;
             addParameter(ip, 'frame0', nan, @isnumeric);
             addParameter(ip, 'frameF', nan, @isnumeric);
+            addParameter(ip, 'rnumber', this.rnumber, @isnumeric);
             parse(ip, varargin{:});
             
             obj = this.studyData_.imagingType(typ, ...
                 fullfile(this.fdgNACLocation('path'), ...
-                sprintf('fdgv%ir%i_frames%ito%i_resolved.4dfp.img', this.vnumber, this.rnumber, ip.Results.frame0, ip.Results.frameF)));
+                sprintf('fdgv%ir%i_frames%ito%i_resolved.4dfp.img', this.vnumber, ip.Results.rnumber, ip.Results.frame0, ip.Results.frameF)));
         end
-        function obj  = fdgNACResolved(this, typ)            
+        function obj  = fdgNACResolved(this, typ, varargin)            
+            ip = inputParser;
+            addParameter(ip, 'rnumber', this.rnumber, @isnumeric);
+            parse(ip, varargin{:});
+            
             obj = this.studyData_.imagingType(typ, ...
                 fullfile(this.fdgNACLocation('path'), ...
-                sprintf('fdgv%ir%i_resolved.4dfp.img', this.vnumber, this.rnumber)));
+                sprintf('fdgv%ir%i_resolved.4dfp.img', this.vnumber, ip.Results.rnumber)));
         end
         function obj  = gluc(~) %#ok<STOUT>
         end

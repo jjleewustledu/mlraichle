@@ -11,7 +11,7 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
 
     properties (SetAccess = protected)
         raichleTrunk = fullfile(getenv('RAICHLE'), 'PPGdata', 'jjlee', '')
-        tracerPrefixes = { 'FDG' 'HO' 'OO' 'OC' }
+        tracerPrefixes = { 'FDG' } % 'HO' 'OO' 'OC' }
     end
     
 	properties (Dependent)
