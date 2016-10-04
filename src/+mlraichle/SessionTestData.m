@@ -1,8 +1,8 @@
-classdef SessionSynthData < mlraichle.SessionData
-	%% SESSIONSYNTHDATA  
+classdef SessionTestData < mlraichle.SessionData
+	%% SESSIONTESTDATA  
 
 	%  $Revision$
- 	%  was created 09-Aug-2016 21:30:50
+ 	%  was created 03-Oct-2016 17:50:31
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
@@ -14,7 +14,7 @@ classdef SessionSynthData < mlraichle.SessionData
  	end
 
 	methods		  
- 		function this = SessionSynthData(varargin)
+ 		function this = SessionTestData(varargin)
  			%% SESSIONSYNTHDATA
  			%  Usage:  this = SessionSynthData()
 

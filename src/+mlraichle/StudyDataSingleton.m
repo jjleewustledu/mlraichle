@@ -10,172 +10,151 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
     
 
     properties (SetAccess = protected)
-        raichleTrunk = fullfile(getenv('RAICHLE'), 'PPGdata', 'jjlee', '')
-        tracerPrefixes = { 'FDG' } % 'HO' 'OO' 'OC' }
-    end
-    
-	properties (Dependent)
-        subjectsDir
-    end
-    
-    methods %% GET/SET
-        function g = get.subjectsDir(this)
-            g = this.subjectsDir_;
-        end
-        function this = set.subjectsDir(this, sd)
-            assert(isdir(sd));
-            this.subjectsDir_ = sd;
-        end
+        dicomExtension = 'dcm'
     end
 
     methods (Static)
-        function this = instance(qualifier)
-            persistent instance_            
-            if (exist('qualifier','var'))
-                assert(ischar(qualifier));
-                if (strcmp(qualifier, 'initialize'))
-                    instance_ = [];
-                end
-            end            
+        function d    = freesurfersDir
+            d = fullfile(getenv('PPG'), 'freesurfer', '');
+        end
+        function this = instance(varargin)
+            persistent instance_
+            if (~isempty(varargin))
+                instance_ = [];
+            end
             if (isempty(instance_))
-                instance_ = mlraichle.StudyDataSingleton();
+                instance_ = mlraichle.StudyDataSingleton(varargin{:});
             end
             this = instance_;
         end
-        function        register(varargin)
-            %% REGISTER
-            %  @param []:  if this class' persistent instance
-            %  has not been registered, it will be registered via instance() call to the ctor; if it
-            %  has already been registered, it will not be re-registered.
-            %  @param ['initialize']:  any registrations made by the ctor will be repeated.
-            
-            mlraichle.StudyDataSingleton.instance(varargin{:});
+        function d    = rawdataDir
+            d = fullfile(getenv('PPG'), 'rawdata', '');
+        end
+        function d    = subjectsDir
+            d = fullfile(getenv('PPG'), 'jjlee', '');
         end
     end
     
     methods
-        function loc  = loggingLocation(this, varargin)
-            ip = inputParser;
-            addParameter(ip, 'type', 'path', @(x) this.isLocationType(x));
-            parse(ip, varargin{:});
+        function        register(this, varargin)
+            %% REGISTER this class' persistent instance with mlpipeline.StudyDataSingletons
+            %  using the latter class' register methods.
+            %  @param key is any registration key stored by mlpipeline.StudyDataSingletons; default 'derdeyn'.
             
-            switch (ip.Results.type)
-                case 'folder'
-                    [~,loc] = fileparts(this.raichleTrunk);
-                case 'path'
-                    loc = this.raichleTrunk;
-                otherwise
-                    error('mlpipeline:insufficientSwitchCases', ...
-                          'StudyDataSingleton.loggingLocation.ip.Results.type->%s not recognized', ip.Results.type);
-            end
-        end   
+            ip = inputParser;
+            addOptional(ip, 'key', 'raichle', @ischar);
+            parse(ip, varargin{:});
+            mlpipeline.StudyDataSingletons.register(ip.Results.key, this);
+        end
+        function this = replaceSessionData(this, varargin)
+            %% REPLACESESSIONDATA
+            %  @param [parameter name,  parameter value, ...] as expected by mlraichle.SessionData are optional;
+            %  'studyData' and this are always internally supplied.
+            %  @returns this.
+
+            this.sessionDataComposite_ = mlpatterns.CellComposite({ ...
+                mlraichle.SessionData('studyData', this, varargin{:})});
+        end
         function sess = sessionData(this, varargin)
             %% SESSIONDATA
-            %  @param parameter names and values expected by mlraichle.SessionData;
-            %  'studyData' and this are implicitly supplied.
-            %  @returns mlraichle.SessionData object
+            %  @param [parameter name,  parameter value, ...] as expected by mlraichle.SessionData are optional;
+            %  'studyData' and this are always internally supplied.
+            %  @returns for empty param:  mlpatterns.CellComposite object or it's first element when singleton, 
+            %  which are instances of mlraichle.SessionData.
+            %  @returns for non-empty param:  instance of mlraichle.SessionData corresponding to supplied params.
             
+            if (isempty(varargin))
+                sess = this.sessionDataComposite_;
+                if (1 == length(sess))
+                    sess = sess.get(1);
+                end
+                return
+            end
             sess = mlraichle.SessionData('studyData', this, varargin{:});
-        end     
+        end  
+        function f    = subjectsDirFqdns(this)
+            dt = mlsystem.DirTools(this.subjectsDir);
+            f = {};
+            for di = 1:length(dt.dns)
+                if (strcmp(dt.dns{di}(1:2), 'NP') || ...
+                    strcmp(dt.dns{di}(1:5), 'HYGLY'))
+                    f = [f dt.fqdns(di)]; %#ok<AGROW>
+                end
+            end
+        end   
+    end
+    
+    %% PROTECTED
+    
+	methods (Access = protected)   
+ 		function this = StudyDataSingleton(varargin)
+ 			this = this@mlpipeline.StudyDataSingleton(varargin{:});
+        end
+        function this = assignSessionDataCompositeFromPaths(this, varargin)
+            if (isempty(this.sessionDataComposite_))
+                for v = 1:length(varargin)
+                    if (ischar(varargin{v}) && isdir(varargin{v}))                    
+                        this.sessionDataComposite_ = ...
+                            this.sessionDataComposite_.add( ...
+                                mlraichle.SessionData('studyData', this, 'sessionPath', varargin{v}));
+                    end
+                end
+            end
+        end
     end
     
     %% DEPRECATED, HIDDEN
     
-    methods (Hidden)
-        function f = fslFolder(~, ~)
-            f = 'V1';
-        end
-        function f = hdrinfoFolder(~, ~)
-            f = 'V1';
-        end
-        function f = mriFolder(~, ~)
-            f = 'V1';
-        end
-        function f = petFolder(~, ~)
-            f = 'V1';
-        end      
-        
+    methods (Hidden)        
         function fn = fdg_fn(~, sessDat, varargin)
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})  
-            fn = sprintf('%sFDG%s.4dfp.hdr', sessDat.sessionFolder, ip.Results.suff);
+            fn = sprintf('%sFDG%s.4dfp.ifh', sessDat.sessionFolder, ip.Results.suff);
         end
         function fn = ho_fn(~, sessDat, varargin)
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})
-            fn = sprintf('%sHO%i%s.4dfp.hdr', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
+            fn = sprintf('%sHO%i%s.4dfp.ifh', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
         end
         function fn = mpr_fn(~, sessDat, varargin)
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})
-            fn = sprintf('%s_mpr%s.4dfp.hdr', sessDat.sessionFolder, ip.Results.suff);
+            fn = sprintf('%s_mpr%s.4dfp.ifh', sessDat.sessionFolder, ip.Results.suff);
         end
         function fn = oc_fn(~, sessDat, varargin)
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})
-            fn = sprintf('%sOC%i%s.4dfp.hdr', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
+            fn = sprintf('%sOC%i%s.4dfp.ifh', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
         end
         function fn = oo_fn(~, sessDat, varargin)
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})
-            fn = sprintf('%sOO%i%s.4dfp.hdr', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
+            fn = sprintf('%sOO%i%s.4dfp.ifh', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
         end
         function fn = petfov_fn(~, varargin)
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})
-            fn = sprintf('PETFOV%s.4dfp.hdr', ip.Results.suff);
+            fn = sprintf('PETFOV%s.4dfp.ifh', ip.Results.suff);
         end
         function fn = tof_fn(~, varargin)
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})
-            fn = sprintf('TOF_ART%s.4dfp.hdr', ip.Results.suff);
+            fn = sprintf('TOF_ART%s.4dfp.ifh', ip.Results.suff);
         end
         function fn = toffov_fn(~, varargin)
             ip = inputParser;
             addOptional(ip, 'suff', '', @ischar);
             parse(ip, varargin{:})
-            fn = sprintf('AIFFOV%s.4dfp.hdr', ip.Results.suff);
+            fn = sprintf('AIFFOV%s.4dfp.ifh', ip.Results.suff);
         end
-    end
-    
-    %% PROTECTED
-    
-    properties (Access = protected)
-        subjectsDir_
-    end
-    
-	methods (Access = protected)   
- 		function this = StudyDataSingleton(varargin)
- 			this = this@mlpipeline.StudyDataSingleton(varargin{:});
-            
-            this.subjectsDir_ = this.raichleTrunk;
-            dt = mlsystem.DirTools(this.subjectsDir);
-            fqdns = {};
-            for di = 1:length(dt.dns)
-                if (strcmp(dt.dns{di}(1),   'p')  || ...
-                    strcmp(dt.dns{di}(1:2), 'NP') || ...
-                    strcmp(dt.dns{di}(1:2), 'TW') || ...
-                    strcmp(dt.dns{di}(1:5), 'HYGLY'))
-                    fqdns = [fqdns dt.fqdns(di)];
-                end
-            end
-            this.sessionDataComposite_ = ...
-                mlpatterns.CellComposite( ...
-                    cellfun(@(x) mlraichle.SessionData('studyData', this, 'sessionPath', x), ...
-                    fqdns, 'UniformOutput', false));            
-            this.registerThis;
-        end
-        function registerThis(this)
-            mlpipeline.StudyDataSingletons.register('raichle', this);
-        end
-    end     
+    end    
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end

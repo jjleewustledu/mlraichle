@@ -71,7 +71,7 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                         pth = eTracer.fqdns{iTracer};
                         these{iSess,iVisit} = [pth ' was skipped'];
                         if ( T4ResolveBuilder.isTracer(pth) && ...
-                             T4ResolveBuilder.isNAC(pth) && ...
+                             T4ResolveBuilder.isConvertedC(pth) && ...
                             ~T4ResolveBuilder.hasNACFolder(pth) && ...
                              T4ResolveBuilder.hasOP(pth, T4ResolveBuilder.Nframes)) %% && ~T4ResolveBuilder.isEmpty(pth)
 
@@ -158,7 +158,8 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                             pth = eTracer.fqdns{iTracer};
                             if (T4ResolveBuilder.isTracer(pth) && ...
                                 T4ResolveBuilder.isConverted(pth) && ...
-                               ~T4ResolveBuilder.isEmpty(pth))
+                               ~T4ResolveBuilder.isEmpty(pth) && ...
+                                T4ResolveBuilder.hasOP(pth, length(mlraichle.T4ResolveBuilder.Nframes)))
                                 try
                                     sessd = SessionData( ...
                                         'studyData',   studyd, ...
@@ -167,7 +168,8 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                                         'tracer',      T4ResolveBuilder.tracerPrefix(eTracer.dns{iTracer}), ...
                                         'vnumber',     T4ResolveBuilder.visitNumber(eVisit.dns{iVisit}));
                                     this = T4ResolveBuilder('sessionData', sessd);
-                                    this = this.t4ResolveConvertedNAC;   
+                                    this = this.build4dfp;
+                                    %this = this.t4ResolveConvertedNAC;   
                                 catch ME
                                     handwarning(ME);
                                 end
@@ -206,21 +208,32 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
         function tf = isVisit(fldr)
             tf = ~isempty(regexp(fldr, 'V[0-9]', 'once'));
         end
-        function tf = isTracer(pth)
+        function tf = isTracer(varargin)
+            ip = inputParser;
+            addRequired(ip, 'path', @isdir);
+            addOptional(ip, 'tracers', 'FDG', @ischar);
+            parser(ip, varargin{:});
+            
             import mlraichle.*;
-            [~,fldr] = fileparts(pth);
-            tf = lstrfind(fldr, StudyDataSingleton.instance.tracerPrefixes);
+            [~,fldr] = fileparts(ip.Results.path);
+            tf = lstrfind(fldr, ip.Results.tracers);
         end
         function s = scanNumber(fldr)
             idx = regexp(fldr, 'FDG|HO|OO|OC', 'end');
             s = str2double(fldr(idx+1));
         end
-        function t = tracerPrefix(fldr)
+        function t = tracerPrefix(varargin)
+            ip = inputParser;
+            addRequired( ip, 'folder', @isdir);
+            addOptional( ip, 'tracers', {'FDG' 'HO' 'OO' 'OC'}, @(x) ischar(x) || iscell(x));
+            addParameter(ip, 'prefixRegexp', 'FDG|HO|OO|OC', @ischar);
+            parser(ip, varargin{:});
+            
             import mlraichle.*;
             t = 'unknownTracer';
-            if (lstrfind(fldr, StudyDataSingleton.instance.tracerPrefixes))
-                idx = regexp(fldr, 'FDG|HO|OO|OC', 'end');
-                t = fldr(1:idx);
+            if (lstrfind(ip.Results.folder, ip.Results.tracers))
+                idx = regexp(ip.Results.folder, ip.Results.prefixRegexp, 'end');
+                t = ip.Results.folder(1:idx);
             end
         end
         function v = visitNumber(str)
@@ -282,6 +295,14 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             cd(this.sessionData.fdgNAC('path'));
             this.buildVisitor.lns(fullfile(this.sessionData.vLocation('path'), mprToAtlT4));
             this.buildVisitor.lns_4dfp(this.sessionData.mprage('fqfp'));
+        end
+        function this = build4dfp(this)
+            target = fullfile(this.sessionData.fdgListmodeLocation('path'), this.sessionData.fdgNAC('fp'));
+            if (~mlfourdfp.FourdfpVisitor.lexist_4dfp(target))
+                cd(fileparts(target));
+                fprintf('mlraichle.T4ResolveBuilder.build4dfp:  working in %s\n', pwd);
+                this.buildVisitor.sif_4dfp(target);
+            end
         end
         function this = t4ResolveConvertedNAC(this)
             this = this.arrangeNACFolder;

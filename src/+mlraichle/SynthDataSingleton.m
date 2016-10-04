@@ -1,4 +1,4 @@
-classdef SynthDataSingleton < mlpipeline.StudyDataSingleton
+classdef SynthDataSingleton < mlraichle.StudyDataSingleton
 	%% SYNTHDATASINGLETON  
 
 	%  $Revision$
@@ -9,103 +9,52 @@ classdef SynthDataSingleton < mlpipeline.StudyDataSingleton
  	%% It was developed on Matlab 9.0.0.341360 (R2016a) for MACI64.
  	
 
-    properties (SetAccess = protected)
-        raichleTrunk = fullfile(getenv('RAICHLE'), 'PPGdata', 'jjleeSynth', '')
-        tracerPrefixes = { 'FDG' 'HO' 'OO' 'OC' }
-    end
-    
-	properties (Dependent)
-        subjectsDir
-    end
-    
-    methods %% GET/SET
-        function g = get.subjectsDir(this)
-            g = this.subjectsDir_;
-        end
-        function this = set.subjectsDir(this, sd)
-            assert(isdir(sd));
-            this.subjectsDir_ = sd;
-        end
-    end
-
     methods (Static)
-        function this = instance(qualifier)
-            persistent instance_            
-            if (exist('qualifier','var'))
-                assert(ischar(qualifier));
-                if (strcmp(qualifier, 'initialize'))
-                    instance_ = [];
-                end
-            end            
+        function this = instance(varargin)
+            persistent instance_
+            if (~isempty(varargin))
+                instance_ = [];
+            end
             if (isempty(instance_))
-                instance_ = mlraichle.SynthDataSingleton();
+                instance_ = mlraichle.SynthDataSingleton(varargin{:});
             end
             this = instance_;
         end
-        function        register(varargin)
-            %% REGISTER
-            %  @param []:  if this class' persistent instance
-            %  has not been registered, it will be registered via instance() call to the ctor; if it
-            %  has already been registered, it will not be re-registered.
-            %  @param ['initialize']:  any registrations made by the ctor will be repeated.
-            
-            mlraichle.SynthDataSingleton.instance(varargin{:});
+        function d    = subjectsDir
+            d = fullfile(getenv('PPG'), 'jjleeSynth', '');
         end
     end
     
-    methods
-        function loc  = loggingLocation(this, varargin)
+    methods        
+        function register(this, varargin)
+            %% REGISTER this class' persistent instance with mlpipeline.StudyDataSingletons
+            %  using the latter class' register methods.
+            %  @param key is any registration key stored by mlpipeline.StudyDataSingletons; default 'synth_raichle'.
+            
             ip = inputParser;
-            addParameter(ip, 'type', 'path', @(x) this.isLocationType(x));
+            addOptional(ip, 'key', 'synth_raichle', @ischar);
             parse(ip, varargin{:});
-            
-            switch (ip.Results.type)
-                case 'folder'
-                    [~,loc] = fileparts(this.raichleTrunk);
-                case 'path'
-                    loc = this.raichleTrunk;
-                otherwise
-                    error('mlpipeline:insufficientSwitchCases', ...
-                          'SynthDataSingleton.loggingLocation.ip.Results.type->%s not recognized', ip.Results.type);
-            end
-        end   
-        function sess = sessionData(this, varargin)
-            %% SESSIONDATA
-            %  @param parameter names and values expected by mlraichle.SessionData;
-            %  'studyData' and this are implicitly supplied.
-            %  @returns mlraichle.SessionData object
-            
-            sess = mlraichle.SessionData('studyData', this, varargin{:});
-        end 
+            mlpipeline.StudyDataSingletons.register(ip.Results.key, this);
+        end
     end
     
     %% PROTECTED
     
-    properties (Access = protected)
-        subjectsDir_
-    end
-    
-	methods (Access = protected)
-		  
+	methods (Access = protected)		  
  		function this = SynthDataSingleton(varargin)
- 			this = this@mlpipeline.StudyDataSingleton(varargin{:});
-            
-            this.subjectsDir_ = this.raichleTrunk;
-            dt = mlsystem.DirTools(this.subjectsDir);
-            fqdns = {};
-            for di = 1:length(dt.dns)
-                if (strcmp(dt.dns{di}(1),   'p')  || ...
-                    strcmp(dt.dns{di}(1:2), 'NP') || ...
-                    strcmp(dt.dns{di}(1:2), 'TW') || ...
-                    strcmp(dt.dns{di}(1:5), 'HYGLY'))
-                    fqdns = [fqdns dt.fqdns(di)];
+ 			this = this@mlraichle.StudyDataSingleton(varargin{:});
+ 		end
+        function this = assignSessionDataCompositeFromPaths(this, varargin)
+            if (isempty(this.sessionDataComposite_))
+                for v = 1:length(varargin)
+                    if (ischar(varargin{v}) && isdir(varargin{v}))                    
+                        this.sessionDataComposite_ = ...
+                            this.sessionDataComposite_.add( ...
+                                mlraichle.SessionSynthData('studyData', this, 'sessionPath', varargin{v}));
+                    end
                 end
             end
-            this.sessionDataComposite_ = ...
-                mlpatterns.CellComposite( ...
-                    cellfun(@(x) mlraichle.SessionData('studyData', this, 'sessionPath', x), ...
-                    fqdns, 'UniformOutput', false));            
- 		end
+        end
  	end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

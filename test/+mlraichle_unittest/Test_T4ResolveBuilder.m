@@ -54,9 +54,6 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
             mlraichle.T4ResolveBuilder.runSingleOnConvertedNAC( ...
                 'sessionFolder', 'HYGLY09', 'visitFolder', 'V1', 'frames', this.testingFrames, 'NRevisions', 1);
         end
-        function test_triggeringOnConvertedNAC(~)
-            mlraichle.T4ResolveBuilder.triggeringOnConvertedNAC;
-        end
         function test_t4ResolvePET3(this)
             this.sessd = mlraichle.SessionData( ...
                 'studyData', this.studyd, 'sessionPath', fullfile(this.studyd.subjectsDir, 'NP995_09', ''));  
@@ -81,11 +78,6 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
         end
         function test_buildUmapOnSumt(this)
             this.testObj = this.testObj.buildUmapOnSumt;
-        end
-        function test_buildUmapFromCt(this)
-            this.testObj = this.testObj.buildUmapFromCt( ...
-                [this.sessd.ct_fqfp '_on_' mybasename(this.sessd.fdgSumtBlurred_fqfp)], ...
-                 this.sessd.umap_fqfp);
         end
         function test_buildUmapFrames(this)
             cd(fullfile(this.sessd.sessionPath, 'V1', 'FDG_V1-AC', ''));

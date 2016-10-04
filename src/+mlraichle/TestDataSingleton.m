@@ -10,44 +10,53 @@ classdef TestDataSingleton < mlraichle.StudyDataSingleton
  	
 
     methods (Static)
-        function this = instance(qualifier)
-            persistent instance_            
-            if (exist('qualifier','var'))
-                assert(ischar(qualifier));
-                if (strcmp(qualifier, 'initialize'))
-                    instance_ = [];
-                end
-            end            
+        function this = instance(varargin)
+            persistent instance_
+            if (~isempty(varargin))
+                instance_ = [];
+            end
             if (isempty(instance_))
-                instance_ = mlraichle.TestDataSingleton();
+                instance_ = mlraichle.TestDataSingleton(varargin{:});
             end
             this = instance_;
         end
-        function        register(varargin)
-            %% REGISTER
-            %  @param []:  if this class' persistent instance
-            %  has not been registered, it will be registered via instance() call to the ctor; if it
-            %  has already been registered, it will not be re-registered.
-            %  @param ['initialize']:  any registrations made by the ctor will be repeated.
-            
-            mlraichle.TestDataSingleton.instance(varargin{:});
+        function d    = subjectsDir
+            d = fullfile(getenv('PPG'), 'jjleeSynth', '');
         end
-    end  
-
+    end
+    
+    methods        
+        function register(this, varargin)
+            %% REGISTER this class' persistent instance with mlpipeline.StudyDataSingletons
+            %  using the latter class' register methods.
+            %  @param key is any registration key stored by mlpipeline.StudyDataSingletons; default 'synth_raichle'.
+            
+            ip = inputParser;
+            addOptional(ip, 'key', 'test_raichle', @ischar);
+            parse(ip, varargin{:});
+            mlpipeline.StudyDataSingletons.register(ip.Results.key, this);
+        end
+    end
+    
     %% PROTECTED
     
 	methods (Access = protected)
  		function this = TestDataSingleton(varargin)
- 			this = this@mlraichle.StudyDataSingleton(varargin{:});
-            
-            this.raichleTrunk = fullfile(getenv('PPG'), '');
-            this.subjectsDir  = fullfile(this.raichleTrunk, 'jjleeSynth');
+ 			this = this@mlraichle.StudyDataSingleton(varargin{:}); 
  		end
-        function registerThis(this)
-            mlpipeline.StudyDataSingletons.register('test_raichle', this);
+        function this = assignSessionDataCompositeFromPaths(this, varargin)
+            if (isempty(this.sessionDataComposite_))
+                for v = 1:length(varargin)
+                    if (ischar(varargin{v}) && isdir(varargin{v}))                    
+                        this.sessionDataComposite_ = ...
+                            this.sessionDataComposite_.add( ...
+                                mlraichle.SessionTestData('studyData', this, 'sessionPath', varargin{v}));
+                    end
+                end
+            end
         end
  	end 
-
+    
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end
 
