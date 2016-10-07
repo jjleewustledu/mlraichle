@@ -247,9 +247,9 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                 'vnumber', v, ...
                 'snumber', s);
             this = mlraichle.T4ResolveBuilder('sessionData', sessd);            
-            cd(this.sessionData.fdgNAC('path'));
-            if (~lexist([this.sessionData.fdgNAC('fqfp') '.mhdr'], 'file'))
-                this.buildVisitor.sif_4dfp([this.sessionData.fdgNAC('fqfp') '.mhdr']);
+            cd(this.sessionData.fdgNAC);
+            if (~lexist(this.sessionData.fdgNAC('typ', 'mhdr'), 'file'))
+                this.buildVisitor.sif_4dfp([this.sessionData.fdgNAC('typ', 'fqfp') '.mhdr']);
             end
             this = this.t4ResolvePET3;
         end
@@ -267,17 +267,17 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
 	methods
         function this = arrangeNACFolder(this)
             if (this.recoverNACFolder)
-                movefile([this.sessionData.fdgNACLocation('path') '-Backup'], this.sessionData.fdgNACLocation('path'));
+                movefile([this.sessionData.fdgNACLocation '-Backup'], this.sessionData.fdgNACLocation);
             else
-                if (isdir(this.sessionData.fdgListmodeLocation('path')))
-                    this.safeMovefile(this.sessionData.fdgListmodeLocation('path'), this.sessionData.fdgNACLocation('path'));
+                if (isdir(this.sessionData.fdgListmodeLocation))
+                    this.safeMovefile(this.sessionData.fdgListmodeLocation, this.sessionData.fdgNACLocation);
                 else
-                    assert(isdir(this.sessionData.fdgNACLocation('path')));
+                    assert(isdir(this.sessionData.fdgNACLocation));
                 end
             end
-            if (~lexist(this.sessionData.fdgNAC('fqfn'), 'file'))
-                cd(this.sessionData.fdgNAC('path'));
-                this.buildVisitor.sif_4dfp(this.sessionData.fdgNAC('fqfp'));
+            if (~lexist(this.sessionData.fdgNAC('typ', 'fqfn'), 'file'))
+                cd(this.sessionData.fdgNAC);
+                this.buildVisitor.sif_4dfp(this.sessionData.fdgNAC('typ', 'fqfp'));
             end
         end
         function this = arrangeMR(this)
@@ -287,17 +287,17 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             atlFp = this.sessionData.atlas('fp');
             mprToAtlT4 = [mprFp '_to_' atlFp '_t4'];
             
-            if (~lexist(fullfile(this.sessionData.mprage('path'), mprToAtlT4)))
-                cd(this.sessionData.mprage('path'));
+            if (~lexist(fullfile(this.sessionData.mprage, mprToAtlT4)))
+                cd(this.sessionData.mprage);
                 this.msktgenMprage(mprFp, atlFp);
             end
 
-            cd(this.sessionData.fdgNAC('path'));
-            this.buildVisitor.lns(fullfile(this.sessionData.vLocation('path'), mprToAtlT4));
+            cd(this.sessionData.fdgNAC);
+            this.buildVisitor.lns(fullfile(this.sessionData.vLocation, mprToAtlT4));
             this.buildVisitor.lns_4dfp(this.sessionData.mprage('fqfp'));
         end
         function this = build4dfp(this)
-            target = fullfile(this.sessionData.fdgListmodeLocation('path'), this.sessionData.fdgNAC('fp'));
+            target = fullfile(this.sessionData.fdgListmodeLocation, this.sessionData.fdgNAC('typ', 'fp'));
             if (~mlfourdfp.FourdfpVisitor.lexist_4dfp(target))
                 cd(fileparts(target));
                 fprintf('mlraichle.T4ResolveBuilder.build4dfp:  working in %s\n', pwd);
@@ -308,10 +308,10 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             this = this.arrangeNACFolder;
             this = this.arrangeMR;
             
-            cd(this.sessionData.fdgNAC('path'));
+            cd(this.sessionData.fdgNAC);
             this = this.resolve( ...
                 'dest', sprintf('fdgv%i', this.sessionData.vnumber), ...
-                'source', this.sessionData.fdgNAC('fp'), ...
+                'source', this.sessionData.fdgNAC('typ', 'fp'), ...
                 'firstCrop', this.firstCrop, ...
                 'frames', this.frames);
         end
@@ -328,11 +328,11 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
     methods (Hidden)
         function this = t4ResolvePET3(this)
 
-            mprDir  = this.sessionData.vLocation('path');
-            nacDir  = this.sessionData.fdgListmodeLocation('path');
-            workDir = this.sessionData.vLocation('path');
+            mprDir  = this.sessionData.vLocation;
+            nacDir  = this.sessionData.fdgListmodeLocation;
+            workDir = this.sessionData.vLocation;
 
-            cd(this.sessionData.vLocation('path'));
+            cd(this.sessionData.vLocation);
             
             assert(lexist(this.sessionData.mprage('fqfn'), 'file'));
             mpr_ = this.sessionData.mprage('fp');
@@ -346,7 +346,7 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                 mkdir(tracerdir);
             end
             cd(tracerdir);
-            fdfp0 = this.sessionData.fdgNAC('fp');
+            fdfp0 = this.sessionData.fdgNAC('typ', 'fp');
             fdfp1 = sprintf('%sv%i', tracer_, this.sessionData.vnumber);
             this.buildVisitor.lns(     fullfile(workDir, [mpr_ '_to_' this.atlasTag '_t4']));
             this.buildVisitor.lns_4dfp(fullfile(mprDir,  mpr_));

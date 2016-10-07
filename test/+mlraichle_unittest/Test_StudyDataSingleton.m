@@ -111,7 +111,7 @@ classdef Test_StudyDataSingleton < matlab.unittest.TestCase
 	end
 
  	methods (TestClassSetup)
-		function setupStudyDataSingletons(this)
+		function setupStudyDataSingletons(this) %#ok<MANU>
  		end
 	end
 

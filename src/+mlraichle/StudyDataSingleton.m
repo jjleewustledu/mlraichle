@@ -12,6 +12,9 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
     properties (SetAccess = protected)
         dicomExtension = 'dcm'
     end
+    
+    methods %% GET
+    end
 
     methods (Static)
         function d    = freesurfersDir
@@ -54,6 +57,11 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
 
             this.sessionDataComposite_ = mlpatterns.CellComposite({ ...
                 mlraichle.SessionData('studyData', this, varargin{:})});
+        end
+        function a    = seriesDicomAsterisk(this, fqdn)
+            assert(isdir(fqdn));
+            assert(isdir(fullfile(fqdn, 'DICOM')));
+            a = fullfile(fqdn, 'DICOM', ['*.' this.dicomExtension]);
         end
         function sess = sessionData(this, varargin)
             %% SESSIONDATA
@@ -101,60 +109,7 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
                 end
             end
         end
-    end
-    
-    %% DEPRECATED, HIDDEN
-    
-    methods (Hidden)        
-        function fn = fdg_fn(~, sessDat, varargin)
-            ip = inputParser;
-            addOptional(ip, 'suff', '', @ischar);
-            parse(ip, varargin{:})  
-            fn = sprintf('%sFDG%s.4dfp.ifh', sessDat.sessionFolder, ip.Results.suff);
-        end
-        function fn = ho_fn(~, sessDat, varargin)
-            ip = inputParser;
-            addOptional(ip, 'suff', '', @ischar);
-            parse(ip, varargin{:})
-            fn = sprintf('%sHO%i%s.4dfp.ifh', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
-        end
-        function fn = mpr_fn(~, sessDat, varargin)
-            ip = inputParser;
-            addOptional(ip, 'suff', '', @ischar);
-            parse(ip, varargin{:})
-            fn = sprintf('%s_mpr%s.4dfp.ifh', sessDat.sessionFolder, ip.Results.suff);
-        end
-        function fn = oc_fn(~, sessDat, varargin)
-            ip = inputParser;
-            addOptional(ip, 'suff', '', @ischar);
-            parse(ip, varargin{:})
-            fn = sprintf('%sOC%i%s.4dfp.ifh', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
-        end
-        function fn = oo_fn(~, sessDat, varargin)
-            ip = inputParser;
-            addOptional(ip, 'suff', '', @ischar);
-            parse(ip, varargin{:})
-            fn = sprintf('%sOO%i%s.4dfp.ifh', sessDat.sessionFolder, sessDat.snumber, ip.Results.suff);
-        end
-        function fn = petfov_fn(~, varargin)
-            ip = inputParser;
-            addOptional(ip, 'suff', '', @ischar);
-            parse(ip, varargin{:})
-            fn = sprintf('PETFOV%s.4dfp.ifh', ip.Results.suff);
-        end
-        function fn = tof_fn(~, varargin)
-            ip = inputParser;
-            addOptional(ip, 'suff', '', @ischar);
-            parse(ip, varargin{:})
-            fn = sprintf('TOF_ART%s.4dfp.ifh', ip.Results.suff);
-        end
-        function fn = toffov_fn(~, varargin)
-            ip = inputParser;
-            addOptional(ip, 'suff', '', @ischar);
-            parse(ip, varargin{:})
-            fn = sprintf('AIFFOV%s.4dfp.ifh', ip.Results.suff);
-        end
-    end    
+    end   
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end
