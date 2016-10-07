@@ -69,20 +69,11 @@ classdef SessionData < mlpipeline.SessionData
         function obj  = dwi(this, varargin)
             obj = this.mrObject('ep2d_diff_26D_lgfov_nopat_TRACEW', varargin{:});
         end
-        function obj  = mprage(this, varargin)
-            obj = this.mrObject('t1_mprage_sag', varargin{:});
-        end
         function obj  = perf(this, varargin)
             obj = this.mrObject('ep2d_perf', varargin{:});
         end
-        function obj  = t2(this, varargin)
-            obj = this.mrObject('', varargin{:});
-            
-            obj = this.studyData_.imagingType(typ, ...
-                fullfile(this.fourdfpLocation, ['t2_spc_sag' this.filetypeExt]));
-        end
         function obj  = tof(this, varargin)
-            obj = this.mrObject('TOF_ART', varargin{:});
+            obj = this.mrObject('tof', varargin{:});
         end
         function obj  = toffov(this, varargin)
             fqfn = fullfile(this.petLocation, sprintf('AIFFOV%s%s', ip.Results.suffix, this.filetypeExt));
@@ -121,10 +112,10 @@ classdef SessionData < mlpipeline.SessionData
         end  
         
         function obj  = ct(this, varargin)
-            obj = this.ctObject('AC_CT', varargin{:});
+            obj = this.ctObject('ct', varargin{:});
         end
         function obj  = ctMasked(this, varargin)
-            fqfn = fullfile(this.sessionLocation, sprintf('AC_CT_masked%s', this.filetypeExt));
+            fqfn = fullfile(this.sessionLocation, sprintf('ctMasked%s', this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = fdgAC(this, varargin)
