@@ -30,6 +30,21 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
             end
             this = instance_;
         end
+        function d    = RawDataDir(sessFold)
+            %% RAWDATADIR            
+            %  @param sessFold is the name of the folder in rawdataDir that contains session data.
+            %  @returns a path to the session data ending in 'RawData' or the empty string on failures.
+            
+            import mlraichle.*;
+            assert(ischar(sessFold));
+            d = fullfile(StudyDataSingleton.rawdataDir, sessFold, 'RESOURCES', 'RawData', '');
+            if (~isdir(d))
+                d = fullfile(StudyDataSingleton.rawdataDir, sessFold, 'resources', 'RawData', '');
+            end
+            if (~isdir(d))
+                d = '';
+            end
+        end
         function d    = rawdataDir
             d = fullfile(getenv('PPG'), 'rawdata', '');
         end
@@ -50,8 +65,8 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
             mlpipeline.StudyDataSingletons.register(ip.Results.key, this);
         end
         function this = replaceSessionData(this, varargin)
-            %% REPLACESESSIONDATA
-            %  @param [parameter name,  parameter value, ...] as expected by mlraichle.SessionData are optional;
+            %% REPLACESESSIONDATA completely replaces this.sessionDataComposite_.
+            %  @param must satisfy parameter requirements of mlraichle.SessionData;
             %  'studyData' and this are always internally supplied.
             %  @returns this.
 
@@ -85,7 +100,7 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
             f = {};
             for di = 1:length(dt.dns)
                 if (strcmp(dt.dns{di}(1:2), 'NP') || ...
-                    strcmp(dt.dns{di}(1:5), 'HYGLY'))
+                    strcmp(dt.dns{di}(1:2), 'HY'))
                     f = [f dt.fqdns(di)]; %#ok<AGROW>
                 end
             end
@@ -99,13 +114,14 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
  			this = this@mlpipeline.StudyDataSingleton(varargin{:});
         end
         function this = assignSessionDataCompositeFromPaths(this, varargin)
-            if (isempty(this.sessionDataComposite_))
-                for v = 1:length(varargin)
-                    if (ischar(varargin{v}) && isdir(varargin{v}))                    
-                        this.sessionDataComposite_ = ...
-                            this.sessionDataComposite_.add( ...
-                                mlraichle.SessionData('studyData', this, 'sessionPath', varargin{v}));
-                    end
+            %% ASSIGNSESSIONDATACOMPOSITEFROMPATHS
+            %  @param [1...N] that is dir, add to this.sessionDataComposite_.
+            
+            for v = 1:length(varargin)
+                if (ischar(varargin{v}) && isdir(varargin{v}))                    
+                    this.sessionDataComposite_ = ...
+                        this.sessionDataComposite_.add( ...
+                            mlraichle.SessionData('studyData', this, 'sessionPath', varargin{v}));
                 end
             end
         end
