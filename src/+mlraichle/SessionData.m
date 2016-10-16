@@ -76,8 +76,7 @@ classdef SessionData < mlpipeline.SessionData
             obj = this.mrObject('tof', varargin{:});
         end
         function obj  = toffov(this, varargin)
-            fqfn = fullfile(this.petLocation, sprintf('AIFFOV%s%s', ip.Results.suffix, this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+            obj = this.mrObject('AIFFOV%s%s', varargin{:});
         end
                 
         %% IPETData
@@ -115,15 +114,26 @@ classdef SessionData < mlpipeline.SessionData
             obj = this.ctObject('ct', varargin{:});
         end
         function obj  = ctMasked(this, varargin)
-            fqfn = fullfile(this.sessionLocation, sprintf('ctMasked%s', this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+            obj = this.ctObject('ctMasked', varargin{:});
         end
         function obj  = fdgAC(this, varargin)
-            fqfn = fullfile(this.fdgACLocation, sprintf('FDG_V%i-LM-00-OP.4dfp.img', this.vnumber));
+            fqfn = fullfile(this.fdgACLocation, sprintf('FDG_V%i-LM-00-OP.4dfp.ifh', this.vnumber));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = fdgLM(this, varargin)
+            fqfn = fullfile(this.fdgListmodeLocation, sprintf('FDG_V%i-LM-00-OP.4dfp.ifh', this.vnumber));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = fdgLMFrame(this, frame, varargin)
+            ip = inputParser;
+            addRequired(ip, 'frame', @isnumeric);
+            parse(ip, frame);
+            
+            fqfn = fullfile(this.fdgListmodeLocation, sprintf('FDG_V%i-LM-00-OP_%03i_000.v', this.vnumber, ip.Results.frame));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = fdgNAC(this, varargin)
-            fqfn = fullfile(this.fdgNACLocation, sprintf('FDG_V%i-LM-00-OP.4dfp.img', this.vnumber));
+            fqfn = fullfile(this.fdgNACLocation, sprintf('FDG_V%i-LM-00-OP.4dfp.ifh', this.vnumber));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = fdgNACResolved(this, varargin)
@@ -131,15 +141,14 @@ classdef SessionData < mlpipeline.SessionData
             addParameter(ip, 'rnumber', this.rnumber, @isnumeric);
             parse(ip, varargin{:});
             
-            fqfn = fullfile(this.fdgNACLocation, sprintf('fdgv%ir%i_resolved.4dfp.img', this.vnumber, ip.Results.rnumber));            
+            fqfn = fullfile(this.fdgNACLocation, sprintf('fdgv%ir%i_resolved.4dfp.ifh', this.vnumber, ip.Results.rnumber));            
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = petfov(this, varargin)
-            fqfn = fullfile(this.petLocation, sprintf('AIFFOV%s%s', ip.Results.suffix, this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+            obj = this.mrObject('AIFFOV%s%s', varargin{:});
         end
         function obj  = umap(this, varargin)
-            obj = this.mrObject('Head_UTE_AC_only_UMAP', varargin{:});
+            obj = this.mrObject('umap', varargin{:});
         end 
         function obj  = umapJSRecon(this, varargin)
             fqfn = fullfile(this.fdgNACLocation, sprintf('FDG_V%i-LM-00-umap.v', this.vnumber));
@@ -147,7 +156,8 @@ classdef SessionData < mlpipeline.SessionData
         end      
         
         function p    = petPointSpread(varargin)
-            p = mlpet.MMRRegistry.instance.petPointSpread(varargin{:});
+            inst = mlpet.MMRRegistry.instance;
+            p    = inst.petPointSpread(varargin{:});
         end
     end
     
@@ -169,14 +179,18 @@ classdef SessionData < mlpipeline.SessionData
         function       ensureCTFqfilename(~, fqfn)
             assert(lexist(fqfn, 'file'));
         end
-        function       ensureMRFqfilename(~, fqfn)
+        function       ensureMRFqfilename(this, fqfn)
             if (~lexist(fqfn, 'file'))
-                import mlfourdfp.*;
-                srcPath = this.findRawdataSession;
-                destPath = this.fourdfpLocation;
-                DicomSorter.session_to_4dfp( ...
-                    srcPath, destPath, ...
-                    'studyData', this.studyData_, 'filter', mybasename(fqfn), 'preferredName', mybasename(fqfn));
+                try
+                    import mlfourdfp.*;
+                    srcPath = DicomSorter.findRawdataSession(this);
+                    destPath = this.fourdfpLocation;
+                    DicomSorter.session_to_4dfp( ...
+                        srcPath, destPath, ...
+                        'studyData', this.studyData_, 'filter', mybasename(fqfn), 'preferredName', mybasename(fqfn));
+                catch ME
+                    handexcept(ME);
+                end
             end
         end
         function       ensurePETFqfilename(~, fqfn)
@@ -187,7 +201,7 @@ classdef SessionData < mlpipeline.SessionData
         end
         function obj = fqfilenameObject(this, varargin)
             ip = inputParser;
-            addRequired( ip, 'fqfn', @(x) lexist(x, 'file'));
+            addRequired( ip, 'fqfn', @ischar);
             addParameter(ip, 'suffix', '', @ischar);
             addParameter(ip, 'typ', 'fqfn', @ischar);
             parse(ip, varargin{:});

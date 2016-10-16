@@ -15,14 +15,16 @@ classdef Test_SessionData < matlab.unittest.TestCase
 
 	properties 		
         sessionPath = fullfile(getenv('PPG'), 'jjlee', 'HYGLY09', '')
+        vPath       = fullfile(getenv('PPG'), 'jjlee', 'HYGLY09', 'V1', '') 
         studyData
  		testObj
         view = true
  	end
 
 	methods (Test)
-        function test_(this)
-        end
+        
+        %% TOP-LEVEL
+        
         function test_freesurfersDir(this)
             this.verifyEqual(this.testObj.freesurfersDir, ...
                 fullfile(getenv('PPG'), 'freesurfer', ''));
@@ -44,39 +46,41 @@ classdef Test_SessionData < matlab.unittest.TestCase
         function test_vLocation(this)
             this.verifyEqual(this.testObj.vLocation, fullfile(this.sessionPath, 'V1'));
         end
+        
+        %% IMRData
+        
         function test_fourdfpLocation(this)
             this.verifyEqual(this.testObj.fourdfpLocation, fullfile(this.sessionPath, 'V1'));
         end
+        function test_freesurferLocation(this)
+            this.verifyEqual(this.testObj.freesurferLocation, fullfile(getenv('PPG'), 'freesurfer', ''));
+        end
         function test_fslLocation(this)
-            this.verifyEqual(this.testObj.fslLocation, fullfile(this.sessionPath, 'V1', 'fsl', ''));
+            this.verifyEqual(this.testObj.fslLocation, fullfile(this.vPath, 'fsl', ''));
         end
         function test_mriLocation(this)
             this.verifyEqual(this.testObj.mriLocation, ...
                 fullfile(getenv('PPG'), 'freesurfer', 'HYGLY09_V1', 'mri', ''));
-        end
-        function test_hdrinfoLocation(this)
-            this.verifyEqual(this.testObj.hdrinfoLocation, fullfile(this.sessionPath, 'V1'));
-        end
-        function test_petLocation(this)
-            this.verifyEqual(this.testObj.petLocation, fullfile(this.sessionPath, 'V1'));
-        end
-        function test_scanLocation(this)
-            this.verifyEqual(this.testObj.scanLocation, fullfile(this.sessionPath, 'V1'));
-        end
-        
+        end        
         function test_aparcA2009sAseg(this)
+            this.verifyEqual(this.testObj.aparcA2009sAseg('typ', 'fqfn'), ...
+                fullfile(getenv('PPG'), 'freesurfer', 'HYGLY09_V1', 'mri', 'aparc.a2009s.aseg.mgz'));
         end
         function test_atlas(this)
-        end
-        function test_boldResting(this)
+            this.verifyEqual(this.testObj.atlas('typ', 'fqfn'), ...
+                fullfile(getenv('REFDIR'), 'TRIO_Y_NDC.4dfp.ifh'));
         end
         function test_mpr_path(this)
+            this.verifyEqual(this.testObj.mpr('typ', 'fqfp'), ...
+                fullfile(this.vPath, ''));
         end
         function test_mpr_fqfp(this)
+            this.verifyEqual(this.testObj.mpr('typ', 'fqfp'), ...
+                fullfile(this.vPath, 'mpr'));
         end
         function test_mpr_4dfpIfh(this)
             this.verifyEqual(this.testObj.mpr('typ', '.4dfp.ifh'), ...
-                fullfile(this.sessionPath, 'V1', 't1_mprage_sag.4dfp.img'));
+                fullfile(this.vPath, 'mpr.4dfp.ifh'));
         end
         function test_mpr_niiGz(this)
         end
@@ -88,12 +92,33 @@ classdef Test_SessionData < matlab.unittest.TestCase
             fprintf('test_IMRData:  viewing %s ..........\n', this.testObj.mpr('typ', 'fqfn'));
             ic.view;
         end
+        function test_ensureMRFqfilename(this)
+            delete(this.testObj.t2);
+        end
+        
+        %% IPETData
+        
+        function test_hdrinfoLocation(this)
+            this.verifyEqual(this.testObj.hdrinfoLocation, fullfile(this.vPath));
+        end
+        function test_petLocation(this)
+            this.verifyEqual(this.testObj.petLocation, fullfile(this.vPath));
+        end
+        function test_scanLocation(this)
+            this.verifyEqual(this.testObj.scanLocation, fullfile(this.vPath));
+        end        
         function test_ct(this)
+            this.verifyEqual(this.testObj.ct('typ', 'fqfp'), ...
+                fullfile(this.vPath, 'ct'));
         end
         function test_fdg(this)
         end
+        function test_ho(this)
+        end 
+        function test_oc(this)
+        end      
         function test_oo(this)
-        end        
+        end   
         function test_umap(this)
         end
         

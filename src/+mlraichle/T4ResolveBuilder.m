@@ -9,11 +9,13 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
  	%% It was developed on Matlab 9.0.0.341360 (R2016a) for MACI64.
  	
         
-    properties (Constant)        
+    properties (Constant)
+        cluster = 'login.chpc.wustl.edu'
+        clusterSubjectsDir = '/scratch/jjlee/raichle/PPGdata/jjlee'
         Nframes = 72
     end
     
-	properties 
+	properties
         recoverNACFolder = false 
     end
 
@@ -101,17 +103,19 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             addParameter(ip, 'NRevisions', 2, @isnumeric);
             addParameter(ip, 'studyData', studyd, @(x) isa(x, 'mlpipeline.StudyDataSingleton'));
             addParameter(ip, 'subjectsDir', studyd.subjectsDir, @isdir);
-            addParameter(ip, 'sessionFolder', '', @ischar);
-            addParameter(ip, 'visitFolder', '', @ischar);
-            addParameter(ip, 'tracerFolder', 'FDG_V1-NAC', @ischar); 
+            addParameter(ip, 'sessionFolder', '', @(x) ischar(x) && ~isempty(x));
+            addParameter(ip, 'visitFolder', '', @(x) ischar(x) && ~isempty(x));
+            addParameter(ip, 'tracerFolder', '', @(x) ischar(x) && ~isempty(x)); 
             addParameter(ip, 'frames', [], @isnumeric);
             parse(ip, varargin{:});
             studyd = ip.Results.studyData;
-            studyd.subjectsDir = ip.Results.subjectsDir;
+            if (~strcmp(studyd.subjectsDir, ip.Results.subjectsDir))
+                studyd.subjectsDir = ip.Results.subjectsDir;
+            end
 
             import mlraichle.*;
             pth = fullfile(ip.Results.subjectsDir, ip.Results.sessionFolder, ip.Results.visitFolder, ip.Results.tracerFolder);
-            mlraichle.T4ResolveBuilder.revertToLM00(pth);
+            %mlraichle.T4ResolveBuilder.revertToLM00(pth);
             this = [pth ' was skipped'];
             if ( T4ResolveBuilder.isVisit(pth) && ...
                  T4ResolveBuilder.isTracer(pth) && ...
@@ -168,8 +172,55 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                                         'tracer',      T4ResolveBuilder.tracerPrefix(eTracer.dns{iTracer}), ...
                                         'vnumber',     T4ResolveBuilder.visitNumber(eVisit.dns{iVisit}));
                                     this = T4ResolveBuilder('sessionData', sessd);
-                                    this = this.build4dfp;
-                                    %this = this.t4ResolveConvertedNAC;   
+                                    this = this.t4ResolveConvertedNAC;   
+                                catch ME
+                                    handwarning(ME);
+                                end
+                            end
+                        end
+                    end
+                end                
+            end            
+        end
+        function this = triggeringStagingForNAC(varargin)
+            
+            studyd = mlraichle.StudyDataSingleton.instance;
+            
+            ip = inputParser;
+            addParameter(ip, 'subjectsDir', studyd.subjectsDir, @isdir);
+            addParameter(ip, 'tag', '', @ischar);
+            parse(ip, varargin{:});
+            if (~strcmp(ip.Results.subjectsDir, studyd.subjectsDir))
+                studyd.subjectsDir = ip.Results.subjectsDir;
+            end
+            
+            import mlsystem.* mlraichle.* ;
+            eSess = DirTool(ip.Results.subjectsDir);
+            for iSess = 1:length(eSess.fqdns)
+                
+                eVisit = DirTool(eSess.fqdns{iSess});
+                for iVisit = 1:length(eVisit.fqdns)
+                    
+                    if (T4ResolveBuilder.isVisit(eVisit.fqdns{iVisit}))
+                        
+                        eTracer = DirTool(eVisit.fqdns{iVisit});
+                        for iTracer = 1:length(eTracer.fqdns)
+
+                            pth = eTracer.fqdns{iTracer};
+                            if (T4ResolveBuilder.isTracer(pth) && ...
+                                T4ResolveBuilder.isConverted(pth) && ...
+                               ~T4ResolveBuilder.isEmpty(pth) && ...
+                                T4ResolveBuilder.hasOP(pth, length(mlraichle.T4ResolveBuilder.Nframes)) && ...
+                                T4ResolveBuilder.matchesTag(eSess.fqdns{iSess}, ip.Results.tag))
+                                try
+                                    sessd = SessionData( ...
+                                        'studyData',   studyd, ...
+                                        'sessionPath', eSess.fqdns{iSess}, ...
+                                        'snumber',     T4ResolveBuilder.scanNumber(eTracer.dns{iTracer}), ...
+                                        'tracer',      T4ResolveBuilder.tracerPrefix(eTracer.dns{iTracer}), ...
+                                        'vnumber',     T4ResolveBuilder.visitNumber(eVisit.dns{iVisit}));
+                                    this = T4ResolveBuilder('sessionData', sessd);
+                                    this = this.locallyStageFdg;   
                                 catch ME
                                     handwarning(ME);
                                 end
@@ -212,22 +263,62 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             ip = inputParser;
             addRequired(ip, 'path', @isdir);
             addOptional(ip, 'tracers', 'FDG', @ischar);
-            parser(ip, varargin{:});
+            parse(ip, varargin{:});
             
             import mlraichle.*;
             [~,fldr] = fileparts(ip.Results.path);
             tf = lstrfind(fldr, ip.Results.tracers);
         end
-        function s = scanNumber(fldr)
+        function tf = matchesTag(sess, tag)
+            assert(ischar(sess));
+            assert(ischar(tag));
+            
+            if (isempty(tag))
+                tf = true;
+                return
+            end
+            tf = lstrfind(sess, tag);
+        end        
+        function scp(sessFold, visit, files)
+            assert(ischar(sessFold));
+            if (isnumeric(visit))
+                visit = sprintf('V%i', visit);
+            end
+            if (~iscell(files))
+                files = {files};
+            end
+            
+            import mlfourdfp.*;
+            for f = 1:length(files)                
+                try
+                    mlbash(sprintf('scp -qr %s %s:%s', ...
+                        files{f}, ...
+                        T4ResolveBuilder.cluster, ...
+                        fullfile(T4ResolveBuilder.clusterSubjectsDir, sessFold, visit, '')));
+                catch ME
+                    handwarning(ME);
+                end
+            end
+        end
+        function scp_2016oct16
+            T4ResolveBuilder.scp('HYGLY05', 2, 'FDG*NAC');
+            T4ResolveBuilder.scp('HYGLY08', 2, 'FDG*NAC');
+            T4ResolveBuilder.scp('HYGLY14', 1, '*');
+            T4ResolveBuilder.scp('HYGLY23', 2, 'FDG*NAC');
+            T4ResolveBuilder.scp('HYGLY25', 1, '*');
+            T4ResolveBuilder.scp('HYGLY28', 2, 'FDG*NAC');
+            T4ResolveBuilder.scp('HYGLY30', 1, 'FDG*NAC');
+        end
+        function s  = scanNumber(fldr)
             idx = regexp(fldr, 'FDG|HO|OO|OC', 'end');
             s = str2double(fldr(idx+1));
         end
-        function t = tracerPrefix(varargin)
+        function t  = tracerPrefix(varargin)
             ip = inputParser;
-            addRequired( ip, 'folder', @isdir);
+            addRequired( ip, 'folder', @ischar);
             addOptional( ip, 'tracers', {'FDG' 'HO' 'OO' 'OC'}, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'prefixRegexp', 'FDG|HO|OO|OC', @ischar);
-            parser(ip, varargin{:});
+            parse(ip, varargin{:});
             
             import mlraichle.*;
             t = 'unknownTracer';
@@ -236,9 +327,10 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                 t = ip.Results.folder(1:idx);
             end
         end
-        function v = visitNumber(str)
+        function v  = visitNumber(str)
             v = str2double(str(2:end));            
         end
+        
         function this = runRaichle(sessPth, v, s)
             studyd = mlpipeline.StudyDataSingletons.instance('raichle');
             sessd = mlraichle.SessionData( ...
@@ -265,50 +357,110 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
     end
     
 	methods
-        function this = arrangeNACFolder(this)
+        function this = buildFdgNAC(this)
+            %% BUILD4DFP builds 4dfp formatted fdg NAC images; use to prep data before conveying to clusters.
+            
+            ori = this.sessionData.fdgLMFrame(this.Nframes-1, 'typ', 'fqfn');
+            lm  = this.sessionData.fdgLM( 'typ', 'fqfp');
+            nac = this.sessionData.fdgNAC('typ', 'fqfp');
+            
+            if (this.buildVisitor.lexist_4dfp(nac))
+                return
+            end
+            if (~this.buildVisitor.lexist_4dfp(ori))
+                error('mlfourdfp:processingStreamFailure', 'T4ResolveBuilder.buildFdgNAC could not find %s', ori);
+            end
+            if (~this.buildVisitor.lexist_4dfp(lm))
+                fprintf('mlraichle.T4ResolveBuilder.buildFdgNAC:  building %s\n', lm);
+                cd(fileparts(lm));
+                this.buildVisitor.sif_4dfp(lm);
+            end
+            assert(isdir(this.sessionData.fdgNACLocation));
+            movefile([lm '.4dfp.*'], this.sessionData.fdgNACLocation);
+        end
+        function        ensureFdgSymlinks(this)
+            sessd = this.sessionData;
+            mprAtlT4 = [sessd.mpr('typ', 'fp') '_to_' sessd.atlas('typ', 'fp') '_t4'];
+            fqMprAtlT4 = fullfile(sessd.mpr('typ', 'path'), mprAtlT4);
+            
+            assert(lexist(fqMprAtlT4, 'file'));
+            assert(this.buildVisitor.lexist_4dfp(sessd.mpr('typ', 'fqfp')));
+            assert(this.buildVisitor.lexist_4dfp(sessd.ct( 'typ', 'fqfp')));
+            assert(isdir(sessd.fdgNACLocation));
+            
+            cd(sessd.fdgNACLocation);
+            if (~lexist(mprAtlT4))
+                this.buildVisitor.lns_4dfp(fqMprAtlT4);
+            end
+            if (~lexist(sessd.mpr('typ', 'fqfn')))
+                this.buildVisitor.lns_4dfp(sessd.mpr('typ', 'fqfp'));
+            end
+            if (~lexist(sessd.ct('typ', 'fqfn')))
+                this.buildVisitor.lns_4dfp(sessd.ct('typ', 'fqfp'));
+            end
+        end
+        function this = locallyStageFdg(this)
+            this.prepareFdgNACLocation;         
+            this.buildFdgNAC;
+            this.prepareMR;
+            this.scpFdg;
+        end
+        function        prepareFdgNACLocation(this)
+            %% PREPAREFDGNACLOCATION recovers the NAC location from backup or creates it de novo.
+            
             if (this.recoverNACFolder)
                 movefile([this.sessionData.fdgNACLocation '-Backup'], this.sessionData.fdgNACLocation);
-            else
-                if (isdir(this.sessionData.fdgListmodeLocation))
-                    this.safeMovefile(this.sessionData.fdgListmodeLocation, this.sessionData.fdgNACLocation);
-                else
-                    assert(isdir(this.sessionData.fdgNACLocation));
+                return
+            end            
+            if (~isdir(this.sessionData.fdgNACLocation))
+                mkdir(this.sessionData.fdgNACLocation);
+            end            
+        end
+        function        prepareMR(this)
+            %% PREPAREMR runs msktgenMprage as needed for use by resolve.
+            
+            sessd      = this.sessionData;
+            mpr        = sessd.mprage('typ', 'fp');
+            atl        = sessd.atlas('typ', 'fp');
+            mprToAtlT4 = [mpr '_to_' atl '_t4'];            
+            if (~lexist(fullfile(sessd.mprage('typ', 'path'), mprToAtlT4)))
+                cd(sessd.mprage('typ', 'path'));
+                this.msktgenMprage(mpr, atl);
+            end
+        end
+        function        scpFdg(this)
+            cd(fullfile(this.sessionData.sessionPath));
+            lists = {'ct.4dfp.*'};
+            for ils = 1:length(lists)
+                try
+                    mlbash(sprintf('scp -qr %s %s:%s', ...
+                        lists{ils}, this.cluster, fullfile(this.clusterSubjectsDir, this.sessionData.sessionFolder, '')));
+                catch ME
+                    handwarning(ME);
                 end
             end
-            if (~lexist(this.sessionData.fdgNAC('typ', 'fqfn'), 'file'))
-                cd(this.sessionData.fdgNAC);
-                this.buildVisitor.sif_4dfp(this.sessionData.fdgNAC('typ', 'fqfp'));
-            end
-        end
-        function this = arrangeMR(this)
-            assert(lexist(this.sessionData.mprage('fqfn'), 'file'));
-            assert(lexist(this.sessionData.atlas('fqfn'), 'file'));
-            mprFp = this.sessionData.mprage('fp');
-            atlFp = this.sessionData.atlas('fp');
-            mprToAtlT4 = [mprFp '_to_' atlFp '_t4'];
             
-            if (~lexist(fullfile(this.sessionData.mprage, mprToAtlT4)))
-                cd(this.sessionData.mprage);
-                this.msktgenMprage(mprFp, atlFp);
-            end
-
-            cd(this.sessionData.fdgNAC);
-            this.buildVisitor.lns(fullfile(this.sessionData.vLocation, mprToAtlT4));
-            this.buildVisitor.lns_4dfp(this.sessionData.mprage('fqfp'));
-        end
-        function this = build4dfp(this)
-            target = fullfile(this.sessionData.fdgListmodeLocation, this.sessionData.fdgNAC('typ', 'fp'));
-            if (~mlfourdfp.FourdfpVisitor.lexist_4dfp(target))
-                cd(fileparts(target));
-                fprintf('mlraichle.T4ResolveBuilder.build4dfp:  working in %s\n', pwd);
-                this.buildVisitor.sif_4dfp(target);
+            visits = {'V1' 'V2'};
+            for iv = 1:length(visits)                
+                cd(fullfile(this.sessionData.sessionPath, visits{iv}, ''));
+                listv = {'mpr.4dfp.*' '*_t4' 'FDG_*-NAC'};
+                for ilv = 1:length(listv)
+                    try
+                        mlbash(sprintf('scp -qr %s %s:%s', ...
+                            listv{ilv}, ...
+                            this.cluster, ...
+                            fullfile(this.clusterSubjectsDir, this.sessionData.sessionFolder, visits{iv}, '')));
+                    catch ME
+                        handwarning(ME);
+                    end
+                end
             end
         end
         function this = t4ResolveConvertedNAC(this)
-            this = this.arrangeNACFolder;
-            this = this.arrangeMR;
+            %% T4RESOLVECONVERTEDNAC is the principle caller of resolve.
             
-            cd(this.sessionData.fdgNAC);
+            cd(this.sessionData.fdgNAC('typ', 'path'));
+            this.ensureFdgSymlinks;
             this = this.resolve( ...
                 'dest', sprintf('fdgv%i', this.sessionData.vnumber), ...
                 'source', this.sessionData.fdgNAC('typ', 'fp'), ...
