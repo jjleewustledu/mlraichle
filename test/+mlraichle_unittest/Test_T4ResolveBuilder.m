@@ -18,6 +18,7 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
         sessd
         studyd
  		testObj
+        hygly = 'HYGLY14'
  	end
 
 	methods (Test)
@@ -46,13 +47,13 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
                 'frames', [1 1], ...
                 'mprage', 'mpr');
         end
-        function test_runSingleOnConvertedNAC_HYGLY09(this)
+        function test_runSingleOnConvertedNAC_HYGLY(this)
             mlraichle.T4ResolveBuilder.runSingleOnConvertedNAC( ...
-                'sessionFolder', 'HYGLY09', 'visitFolder', 'V2', 'tracerFolder', 'FDG_V2-NAC', 'frames', [zeros(1,12) ones(1,60)], 'NRevisions', 2);
+                'sessionFolder', this.hygly, 'visitFolder', 'V2', 'tracerFolder', 'FDG_V2-NAC', 'frames', [zeros(1,12) ones(1,60)], 'NRevisions', 2);
         end
-        function test_runSingleOnConvertedNAC_HYGLY09_small(this)
+        function test_runSingleOnConvertedNAC_HYGLY_small(this)
             mlraichle.T4ResolveBuilder.runSingleOnConvertedNAC( ...
-                'sessionFolder', 'HYGLY09', 'visitFolder', 'V1', 'frames', this.testingFrames, 'NRevisions', 1);
+                'sessionFolder', this.hygly, 'visitFolder', 'V1', 'tracerFolder', 'FDG_V1-NAC', 'frames', this.testingFrames, 'NRevisions', 2);
         end
         function test_t4ResolvePET3(this)
             this.sessd = mlraichle.SessionData( ...
@@ -74,7 +75,7 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
         end
         function test_transverseMpr(this)
             mpr = this.testObj.transverseMpr;
-            this.verifyTrue(strcmp(mpr, fullfile(pwd, 'HYGLY09_mpr_trans')));
+            this.verifyTrue(strcmp(mpr, fullfile(pwd, [this.hygly '_mpr_trans'])));
         end
         function test_buildUmapOnSumt(this)
             this.testObj = this.testObj.buildUmapOnSumt;
@@ -109,7 +110,7 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
 		function setupT4ResolveBuilder(this)
             this.studyd = mlpipeline.StudyDataSingletons.instance('raichle');
             this.sessd = mlraichle.SessionData( ...
-                'studyData', this.studyd, 'sessionPath', fullfile(this.studyd.subjectsDir, 'HYGLY09', ''));            
+                'studyData', this.studyd, 'sessionPath', fullfile(this.studyd.subjectsDir, this.hygly, ''));            
             this.testObj_ = mlraichle.T4ResolveBuilder('sessionData', this.sessd);
             setenv('DEBUG', '');
  		end
