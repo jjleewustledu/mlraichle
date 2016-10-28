@@ -18,7 +18,7 @@ classdef Test_SessionData < matlab.unittest.TestCase
         vPath       = fullfile(getenv('PPG'), 'jjlee', 'HYGLY09', 'V1', '') 
         studyData
  		testObj
-        view = true
+        view = false
  	end
 
 	methods (Test)
@@ -53,7 +53,7 @@ classdef Test_SessionData < matlab.unittest.TestCase
             this.verifyEqual(this.testObj.fourdfpLocation, fullfile(this.sessionPath, 'V1'));
         end
         function test_freesurferLocation(this)
-            this.verifyEqual(this.testObj.freesurferLocation, fullfile(getenv('PPG'), 'freesurfer', ''));
+            this.verifyEqual(this.testObj.freesurferLocation, fullfile(getenv('PPG'), 'freesurfer', 'HYGLY09_V1'));
         end
         function test_fslLocation(this)
             this.verifyEqual(this.testObj.fslLocation, fullfile(this.vPath, 'fsl', ''));
@@ -64,14 +64,14 @@ classdef Test_SessionData < matlab.unittest.TestCase
         end        
         function test_aparcA2009sAseg(this)
             this.verifyEqual(this.testObj.aparcA2009sAseg('typ', 'fqfn'), ...
-                fullfile(getenv('PPG'), 'freesurfer', 'HYGLY09_V1', 'mri', 'aparc.a2009s.aseg.mgz'));
+                fullfile(getenv('PPG'), 'freesurfer', 'HYGLY09_V1', 'mri', 'aparc.a2009s+aseg.mgz'));
         end
         function test_atlas(this)
             this.verifyEqual(this.testObj.atlas('typ', 'fqfn'), ...
                 fullfile(getenv('REFDIR'), 'TRIO_Y_NDC.4dfp.ifh'));
         end
         function test_mpr_path(this)
-            this.verifyEqual(this.testObj.mpr('typ', 'fqfp'), ...
+            this.verifyEqual(this.testObj.mpr('typ', 'path'), ...
                 fullfile(this.vPath, ''));
         end
         function test_mpr_fqfp(this)
@@ -89,8 +89,10 @@ classdef Test_SessionData < matlab.unittest.TestCase
         function test_mpr_imagingContext(this)
             ic = this.testObj.mpr('typ', 'imagingContext');
             this.verifyClass(ic, 'mlfourd.ImagingContext');
-            fprintf('test_IMRData:  viewing %s ..........\n', this.testObj.mpr('typ', 'fqfn'));
-            ic.view;
+            fprintf('\ntest_mpr_imagingContext:  viewing %s\n', this.testObj.mpr('typ', '4dfp.img'));
+            if (this.view)
+                ic.view;
+            end
         end
         function test_ensureMRFqfilename(this)
             delete(this.testObj.t2);
@@ -106,79 +108,51 @@ classdef Test_SessionData < matlab.unittest.TestCase
         end
         function test_scanLocation(this)
             this.verifyEqual(this.testObj.scanLocation, fullfile(this.vPath));
-        end        
+        end
+        function test_fdgListModeLocation(this)
+            this.verifyEqual( ...
+                this.testObj.fdgListmodeLocation, ...
+                fullfile(this.testObj.sessionPath, 'V1', 'FDG_V1-Converted', 'FDG_V1-LM-00', ''));
+        end
         function test_ct(this)
             this.verifyEqual(this.testObj.ct('typ', 'fqfp'), ...
-                fullfile(this.vPath, 'ct'));
+                fullfile(this.sessionPath, 'ct'));
+        end
+        function test_fdgAC(this)
+            this.verifyEqual( ...
+                this.testObj.fdgAC('typ', 'fqfn'), ...
+                fullfile(this.testObj.sessionPath, 'V1', 'FDG_V1-AC', 'FDG_V1-LM-00-OP.4dfp.ifh'));
+        end
+        function test_fdgLM(this)
+            this.verifyEqual( ...
+                this.testObj.fdgLM('typ', 'fqfn'), ...
+                fullfile(this.testObj.fdgListmodeLocation, 'FDG_V1-LM-00-OP.4dfp.ifh'));
+        end
+        function test_fdgLMFrame(this)
+            this.verifyEqual( ...
+                this.testObj.fdgLMFrame(1, 'typ', 'fqfn'), ...
+                fullfile(this.testObj.fdgListmodeLocation, 'FDG_V1-LM-00-OP_001_000.v'));
+        end
+        function test_fdgNAC(this)
+            this.verifyEqual( ...
+                this.testObj.fdgNAC('typ', 'fqfn'), ...
+                fullfile(this.testObj.sessionPath, 'V1', 'FDG_V1-NAC', 'FDG_V1-LM-00-OP.4dfp.ifh'));
+        end
+        function test_fdgNACResolved(this)
+            this.verifyEqual( ...
+                this.testObj.fdgNACResolved('typ', 'fqfn'), ...
+                fullfile(this.testObj.sessionPath, 'V1', 'FDG_V1-NAC', 'fdgv1r1_resolved.4dfp.ifh'));
+        end
+        function test_fdgUmapLM(this)
+            this.verifyEqual( ...
+                this.testObj.fdgUmapLM('typ', 'fqfn'), ...
+                fullfile(this.testObj.fdgListmodeLocation, 'FDG_V1-LM-00-umap.v'));
         end
         function test_fdg(this)
         end
         function test_ho(this)
         end 
-        function test_oc(this)
-        end      
-        function test_oo(this)
-        end   
-        function test_umap(this)
-        end
         
-%         function test_ho1(this)
-%             this.testObj.snumber = 1;
-%             this.verifyTrue(lexist(this.testObj.ho_fqfn));
-%             ho1 = this.testObj.ho;
-%             if (this.view); ho1.view; end
-%             ho1.save;            
-%             this.verifyTrue(lexist(ho1.fqfilename, 'file'));
-%             %deleteExisting(oc2.fqfilename);
-%         end
-%         function test_oc2(this)
-%             this.testObj.snumber = 2;
-%             this.verifyTrue(lexist(this.testObj.oc_fqfn));
-%             oc2 = this.testObj.oc;
-%             if (this.view); oc2.view; end
-%             oc2.save;            
-%             this.verifyTrue(lexist(oc2.fqfilename, 'file'));
-%             %deleteExisting(oc2.fqfilename);
-%         end
-%         function test_oo2(this)
-%             this.testObj.snumber = 2;
-%             this.verifyTrue(lexist(this.testObj.oo_fqfn));
-%             oo2 = this.testObj.oo;
-%             if (this.view); oo2.view; end
-%             oo2.save;            
-%             this.verifyTrue(lexist(oo2.fqfilename, 'file'));
-%             %deleteExisting(oc2.fqfilename);
-%         end
-%         function test_fdg(this)
-%             fdg = this.testObj.fdg;
-%             this.verifyTrue(lexist(this.testObj.fdg_fqfn));
-%             if (this.view); fdg.view; end
-%             fdg.save;
-%             this.verifyTrue(lexist(fdg.fqfilename, 'file'));
-%             %deleteExisting(fdg.fqfilename);
-%         end
-
-%         function test_IPETData(this)            
-%             this.verifyEqual(this.testObj.fdgNAC('typ', 'fqfn'), ...
-%                 fullfile(this.testObj.fdgListmodeLocation, 'FDG_V1-LM-00-OP.4dfp.img'));
-%             ic = this.testObj.fdgNAC('typ', 'imagingContext');
-%             this.verifyClass(ic, 'mlfourd.ImagingContext');
-%             fprintf('test_IPETData:  viewing %s ..........\n', this.testObj.fdgNAC('typ', 'fqfn'));
-%             ic.view;
-            
-%             this.verifyEqual(this.testObj.ho('fqfn'), ...
-%                 fullfile(this.sessionPath, 'V1/ho1.4dfp.img'));
-%             this.verifyEqual(this.testObj.oc('fqfn'), ...
-%                 fullfile(this.sessionPath, 'V1/oc1.4dfp.img'));
-%             this.verifyEqual(this.testObj.oo('fqfn'), ...
-%                 fullfile(this.sessionPath, 'V1/oo1.4dfp.img'));
-%             this.verifyEqual(this.testObj.ho('fqfn'), ...
-%                 fullfile(this.sessionPath, 'V1/ho2.4dfp.img'));
-%             this.verifyEqual(this.testObj.oc('fqfn'), ...
-%                 fullfile(this.sessionPath, 'V1/oc2.4dfp.img'));
-%             this.verifyEqual(this.testObj.oo('fqfn'), ...
-%                 fullfile(this.sessionPath, 'V1/oo2.4dfp.img'));
-%        end
 	end
 
  	methods (TestClassSetup)
@@ -188,7 +162,7 @@ classdef Test_SessionData < matlab.unittest.TestCase
 
  	methods (TestMethodSetup)
 		function setupSessionDataTest(this)
-            this.studyData = mlraichle.StudyDataSingleton.instance('initialize');
+            this.studyData = mlraichle.StudyData;
  			this.testObj_  = mlraichle.SessionData( ...
                 'studyData', this.studyData, ...
                 'sessionPath', this.sessionPath, ...
