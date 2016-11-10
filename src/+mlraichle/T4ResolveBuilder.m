@@ -1,4 +1,4 @@
-classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
+classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
 	%% T4RESOLVEBUILDER  
 
 	%  $Revision$
@@ -10,13 +10,10 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
  	
         
     properties (Constant)
-        cluster = 'dtn01.chpc.wustl.edu'
-        clusterSubjectsDir = '/scratch/jjlee/raichle/PPGdata/jjlee'
         MinFrames = 64
     end
     
 	properties
-        completedT4s = false
         Nframes = 72
         recoverNACFolder = false 
     end
@@ -74,7 +71,7 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
 
                     import mlraichle.*;
                     eVisit = mlsystem.DirTool(eSessFqdns{iSess});
-                    if (iVisit <= length(eVisit.fqdns))
+                    if (iVisit <= length(eVisit.fqdns) && isdir(eVisit.fqdns{iVisit}))
                         if (T4ResolveBuilder.isVisit(eVisit.fqdns{iVisit}))
 
                             eTracer = mlsystem.DirTool(eVisit.fqdns{iVisit});
@@ -82,27 +79,30 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                                 T4ResolveBuilder.printv('parTriggeringOnConvertedNAC.eTracer{iTracer}:  %s\n', eTracer.fqdns{iTracer});
 
                                 pth = eTracer.fqdns{iTracer};
-                                T4ResolveBuilder.printv('parTriggeringOnConvertedNAC.pth:  %s\n', pth);
-                                these{iSess,iVisit} = [pth ' was skipped'];
-                                if ( T4ResolveBuilder.isTracer(pth) && ...
-                                     T4ResolveBuilder.isNAC(pth) && ...
-                                    ~T4ResolveBuilder.isEmpty(pth) && ...
-                                     T4ResolveBuilder.hasOP(pth) && ...
-                                     T4ResolveBuilder.matchesTag(eSessFqdns{iSess}, tag))
+                                if (isdir(pth))
+                                    T4ResolveBuilder.printv('parTriggeringOnConvertedNAC.pth:  %s\n', pth);
+                                    these{iSess,iVisit} = [pth ' was skipped'];
+                                    if ( T4ResolveBuilder.isTracer(pth) && ...
+                                         T4ResolveBuilder.isNAC(pth) && ...
+                                        ~T4ResolveBuilder.isEmpty(pth) && ...
+                                         T4ResolveBuilder.hasOP(pth) && ...
+                                         T4ResolveBuilder.matchesTag(eSessFqdns{iSess}, tag))
 
-                                    try
-                                        sessd = SessionData( ...
-                                            'studyData',   mlraichle.StudyData, ...
-                                            'sessionPath', eSessFqdns{iSess}, ...
-                                            'snumber',     T4ResolveBuilder.scanNumber(eTracer.dns{iTracer}), ...
-                                            'tracer',      T4ResolveBuilder.tracerPrefix(eTracer.dns{iTracer}), ...
-                                            'vnumber',     T4ResolveBuilder.visitNumber(eVisit.dns{iVisit}));
-                                        this = T4ResolveBuilder('sessionData', sessd);
-                                        this = this.excludeFrames(1); 
-                                        this = this.t4ResolveConvertedNAC;   
-                                        these{iSess,iVisit} = this;
-                                    catch ME
-                                        handwarning(ME);
+                                        try
+                                            fprintf('pwd->%s\n', pwd);
+                                            sessd = SessionData( ...
+                                                'studyData',   mlraichle.StudyData, ...
+                                                'sessionPath', eSessFqdns{iSess}, ...
+                                                'snumber',     T4ResolveBuilder.scanNumber(eTracer.dns{iTracer}), ...
+                                                'tracer',      T4ResolveBuilder.tracerPrefix(eTracer.dns{iTracer}), ...
+                                                'vnumber',     T4ResolveBuilder.visitNumber(eVisit.dns{iVisit}));
+                                            this = T4ResolveBuilder('sessionData', sessd);
+                                            this = this.excludeFrames(1); 
+                                            this = this.t4ResolveConvertedNAC;   
+                                            these{iSess,iVisit} = this;
+                                        catch ME
+                                            handwarning(ME);
+                                        end
                                     end
                                 end
                             end
@@ -115,6 +115,291 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             end
             save(sprintf('mlraichle_T4ResolveBuilder_parTriggerOnConvertedNAC_these_%s.mat', datestr(now, 30)), 'these');
         end
+        function these = parTriggeringOnConvertedNAC2(varargin)
+            
+            setenv('PRINTV', '1');
+            
+            ip = inputParser;
+            addParameter(ip, 'tag', '', @ischar);
+            parse(ip, varargin{:});
+            tag = ip.Results.tag;
+            
+            cd('/scratch/jjlee/raichle/PPGdata/jjlee');
+            eSess = mlsystem.DirTool('/scratch/jjlee/raichle/PPGdata/jjlee');
+            eSessFqdns = eSess.fqdns;
+            T4ResolveBuilder.printv('parTriggeringOnConvertedNAC.eSessFqdns->\n%s\n', cell2str(eSessFqdns));
+            these = cell(length(eSessFqdns), 2);
+            parfor iSess = 1:length(eSessFqdns)
+                
+                try
+                    T4ResolveBuilder.printv('parTriggeringOnConvertedNAC.eSessFqdns{iSess}:  %s\n', eSessFqdns{iSess});
+                    
+                    import mlraichle.*;
+                    eVisit = mlsystem.DirTool(eSessFqdns{iSess});
+                    for iVisit = 1:length(eVisit.fqdns)
+                        eTracer = mlsystem.DirTool(eVisit.fqdns{iVisit});
+                        for iTracer = 1:length(eTracer.fqdns)
+                            T4ResolveBuilder.printv('parTriggeringOnConvertedNAC.eTracer{iTracer}:  %s\n', eTracer.fqdns{iTracer});
+                            
+                            pth = eTracer.fqdns{iTracer};
+                            T4ResolveBuilder.printv('parTriggeringOnConvertedNAC.pth:  %s\n', pth);
+                            %these{iSess,iVisit} = [pth ' was skipped'];
+                            if ( T4ResolveBuilder.isTracer(pth) && ...
+                                    T4ResolveBuilder.isNAC(pth) && ...
+                                    ~T4ResolveBuilder.isEmpty(pth) && ...
+                                    T4ResolveBuilder.hasOP(pth) && ...
+                                    T4ResolveBuilder.matchesTag(eSessFqdns{iSess}, tag))
+                                
+                                try
+                                    fprintf('pwd->%s\n', pwd);
+                                    sessd = SessionData( ...
+                                        'studyData',   mlraichle.StudyData, ...
+                                        'sessionPath', eSessFqdns{iSess}, ...
+                                        'snumber',     T4ResolveBuilder.scanNumber(eTracer.dns{iTracer}), ...
+                                        'tracer',      T4ResolveBuilder.tracerPrefix(eTracer.dns{iTracer}), ...
+                                        'vnumber',     T4ResolveBuilder.visitNumber(eVisit.dns{iVisit}));
+                                    this = T4ResolveBuilder('sessionData', sessd);
+                                    this = this.excludeFrames(1);
+                                    this = this.t4ResolveConvertedNAC; %#ok<NASGU>
+                                    %these{iSess,iVisit} = this;
+                                catch ME
+                                    handwarning(ME);
+                                end
+                            end
+                        end
+                    end
+                catch ME
+                    handwarning(ME);
+                end
+            end
+            save(sprintf('mlraichle_T4ResolveBuilder_parTriggerOnConvertedNAC_these_%s.mat', datestr(now, 30)), 'these');
+        end
+        function jobs  = serialize(c)
+            
+            assert(isa(c, 'parallel.cluster.Generic'));
+            
+            hyglys = { 'HYGLY05' 'HYGLY08' 'HYGLY11' 'HYGLY24' 'HYGLY25' };
+            jobs   = cell(1, length(hyglys));
+            jjlee  = '/scratch/jjlee/raichle/PPGdata/jjlee';
+            eSessFqdns = cellfun(@(x) fullfile(jjlee, x), hyglys, 'UniformOutput', false);
+            
+            for iSess = 1:length(eSessFqdns)                
+                try
+                    jobs{iSess} = c.batch(@mlraichle.T4ResolveBuilder.serialCompletedT4s2, 0, {eSessFqdns{iSess}});                    
+                catch ME
+                    handwarning(ME);
+                end
+            end
+        end
+        function         serialConvertedNAC(varargin)
+            
+            setenv('PRINTV', '1');
+
+            ip = inputParser;
+            addRequired( ip, 'sessPath', @isdir);
+            addParameter(ip, 'iVisit', @isnumeric);
+            parse(ip, varargin{:});
+            iVisit = ip.Results.iVisit;
+            cd(ip.Results.sessPath);
+            T4ResolveBuilder.diaryv('serialConvertedNAC');
+            T4ResolveBuilder.printv('serialConvertedNAC.ip.Results.sessPath->%s\n', ip.Results.sessPath);
+
+            import mlraichle.*;
+            eVisit = mlsystem.DirTool(ip.Results.sessPath);              
+            if (T4ResolveBuilder.isVisit(eVisit.fqdns{iVisit}))
+                eTracer = mlsystem.DirTool(eVisit.fqdns{iVisit});
+                for iTracer = 1:length(eTracer.fqdns)
+                    pth = eTracer.fqdns{iTracer};
+                    T4ResolveBuilder.printv('serialConvertedNAC.pth:  %s\n', pth);
+                    if ( T4ResolveBuilder.isTracer(pth) && ...
+                            T4ResolveBuilder.isNAC(pth) && ...
+                            ~T4ResolveBuilder.isEmpty(pth) && ...
+                            T4ResolveBuilder.hasOP(pth))
+
+                        try
+                            T4ResolveBuilder.printv('serialConvertedNAC:  inner try pwd->%s\n', pwd);
+                            sessd = SessionData( ...
+                                'studyData',   mlraichle.StudyData, ...
+                                'sessionPath', ip.Results.sessPath, ...
+                                'snumber',     T4ResolveBuilder.scanNumber(eTracer.dns{iTracer}), ...
+                                'tracer',      T4ResolveBuilder.tracerPrefix(eTracer.dns{iTracer}), ...
+                                'vnumber',     iVisit);
+                            this = T4ResolveBuilder('sessionData', sessd);
+                            this = this.excludeFrames(1);
+                            this = this.t4ResolveConvertedNAC; %#ok<NASGU>                                    
+                            save(sprintf('mlraichle_T4ResolveBuilder_serialConvertedNAC_this_%s.mat', datestr(now, 30)), 'this');
+                        catch ME
+                            handwarning(ME);
+                        end
+                    end
+                end
+            end
+        end
+        function         serialConvertedNAC2(varargin)
+            
+            setenv('PRINTV', '1');
+
+            ip = inputParser;
+            addRequired( ip, 'sessPath', @isdir);
+            addParameter(ip, 'tag', '', @ischar);
+            parse(ip, varargin{:});
+            cd(ip.Results.sessPath);
+            T4ResolveBuilder.diaryv('serialConvertedNAC2');
+            T4ResolveBuilder.printv('serialConvertedNAC2.ip.Results.sessPath->%s\n', ip.Results.sessPath);
+
+            import mlraichle.*;
+            eVisit = mlsystem.DirTool(ip.Results.sessPath);
+            for iVisit = 1:length(eVisit.fqdns)
+                eTracer = mlsystem.DirTool(eVisit.fqdns{iVisit});
+                for iTracer = 1:length(eTracer.fqdns)
+                    pth = eTracer.fqdns{iTracer};
+                    T4ResolveBuilder.printv('serialConvertedNAC2.pth:  %s\n', pth);
+                    if ( T4ResolveBuilder.isTracer(pth) && ...
+                            T4ResolveBuilder.isNAC(pth) && ...
+                            ~T4ResolveBuilder.isEmpty(pth) && ...
+                            T4ResolveBuilder.hasOP(pth) && ...
+                            T4ResolveBuilder.matchesTag(ip.Results.sessPath, ip.Results.tag))
+
+                        try
+                            T4ResolveBuilder.printv('serialConvertedNAC2:  inner try pwd->%s\n', pwd);
+                            sessd = SessionData( ...
+                                'studyData',   mlraichle.StudyData, ...
+                                'sessionPath', ip.Results.sessPath, ...
+                                'snumber',     T4ResolveBuilder.scanNumber(eTracer.dns{iTracer}), ...
+                                'tracer',      T4ResolveBuilder.tracerPrefix(eTracer.dns{iTracer}), ...
+                                'vnumber',     T4ResolveBuilder.visitNumber(eVisit.dns{iVisit}));
+                            this = T4ResolveBuilder('sessionData', sessd);
+                            this = this.excludeFrames(1);
+                            this = this.t4ResolveConvertedNAC; %#ok<NASGU>                                    
+                            save(sprintf('mlraichle_T4ResolveBuilder_serialConvertedNAC2_this_%s.mat', datestr(now, 30)), 'this');
+                        catch ME
+                            handwarning(ME);
+                        end
+                    end
+                end
+            end
+        end        
+        function         serialCompletedT4s(varargin)
+            
+            setenv('PRINTV', '1');
+
+            ip = inputParser;
+            addRequired( ip, 'sessPath', @isdir);
+            addParameter(ip, 'iVisit', @isnumeric);
+            parse(ip, varargin{:});
+            iVisit = ip.Results.iVisit;
+            cd(ip.Results.sessPath);
+            T4ResolveBuilder.diaryv('serialCompletedT4s');
+            T4ResolveBuilder.printv('serialCompletedT4s.ip.Results.sessPath->%s\n', ip.Results.sessPath);
+
+            import mlraichle.*;
+            eVisit = mlsystem.DirTool(ip.Results.sessPath);              
+            if (T4ResolveBuilder.isVisit(eVisit.fqdns{iVisit}))
+                eTracer = mlsystem.DirTool(eVisit.fqdns{iVisit});
+                for iTracer = 1:length(eTracer.fqdns)
+                    pth = eTracer.fqdns{iTracer};
+                    T4ResolveBuilder.printv('serialCompletedT4s.pth:  %s\n', pth);
+                    if ( T4ResolveBuilder.isTracer(pth) && ...
+                            T4ResolveBuilder.isNAC(pth) && ...
+                            ~T4ResolveBuilder.isEmpty(pth) && ...
+                            T4ResolveBuilder.hasOP(pth))
+
+                        try
+                            T4ResolveBuilder.printv('serialCompletedT4s:  inner try pwd->%s\n', pwd);
+                            sessd = SessionData( ...
+                                'studyData',   mlraichle.StudyData, ...
+                                'sessionPath', ip.Results.sessPath, ...
+                                'snumber',     T4ResolveBuilder.scanNumber(eTracer.dns{iTracer}), ...
+                                'tracer',      T4ResolveBuilder.tracerPrefix(eTracer.dns{iTracer}), ...
+                                'vnumber',     iVisit);
+                            this = T4ResolveBuilder('sessionData', sessd);
+                            this.completedT4s = true;
+                            this = this.excludeFrames([1 2 3]);
+                            this = this.t4ResolveConvertedNAC; %#ok<NASGU>                                    
+                            save(sprintf('mlraichle_T4ResolveBuilder_serialCompletedT4s_this_%s.mat', datestr(now, 30)), 'this');
+                        catch ME
+                            handwarning(ME);
+                        end
+                    end
+                end
+            end
+        end
+        function         serialCompletedT4s2(varargin)
+            
+            import mlraichle.*;
+            setenv('PRINTV', '1');
+
+            ip = inputParser;
+            addRequired( ip, 'sessPath', @isdir);
+            addParameter(ip, 'tag', '', @ischar);
+            parse(ip, varargin{:});
+            cd(ip.Results.sessPath);
+            T4ResolveBuilder.diaryv('serialCompletedT4s2');
+            T4ResolveBuilder.printv('serialCompletedT4s2.ip.Results.sessPath->%s\n', ip.Results.sessPath);
+
+            eVisit = mlsystem.DirTool(ip.Results.sessPath);
+            for iVisit = 1:length(eVisit.fqdns)
+                eTracer = mlsystem.DirTool(eVisit.fqdns{iVisit});
+                for iTracer = 1:length(eTracer.fqdns)
+                    pth = eTracer.fqdns{iTracer};
+                    T4ResolveBuilder.printv('serialCompletedT4s2.pth:  %s\n', pth);
+                    if ( T4ResolveBuilder.isTracer(pth) && ...
+                         T4ResolveBuilder.isNAC(pth) && ...
+                        ~T4ResolveBuilder.isEmpty(pth) && ...
+                         T4ResolveBuilder.hasOP(pth) && ...
+                         T4ResolveBuilder.matchesTag(ip.Results.sessPath, ip.Results.tag))
+
+                        try
+                            T4ResolveBuilder.printv('serialCompletedT4s2:  inner try pwd->%s\n', pwd);
+                            sessd = SessionData( ...
+                                'studyData',   mlraichle.StudyData, ...
+                                'sessionPath', ip.Results.sessPath, ...
+                                'snumber',     T4ResolveBuilder.scanNumber(eTracer.dns{iTracer}), ...
+                                'tracer',      T4ResolveBuilder.tracerPrefix(eTracer.dns{iTracer}), ...
+                                'vnumber',     T4ResolveBuilder.visitNumber(eVisit.dns{iVisit}));
+                            this = T4ResolveBuilder('sessionData', sessd);
+                            this.completedT4s = true;
+                            this = this.excludeFrames([1 2 3]);
+                            this = this.t4ResolveConvertedNAC; %#ok<NASGU>                                    
+                            save(sprintf('mlraichle_T4ResolveBuilder_serialCompletedT4s2_this_%s.mat', datestr(now, 30)), 'this');
+                        catch ME
+                            handwarning(ME);
+                        end
+                    end
+                end
+            end
+        end
+        function         serialValidateForT4Resolve(topPth)
+            
+            import mlraichle.*;
+            
+            cd(topPth);
+            eVisit = mlsystem.DirTool(topPth);
+            for iVisit = 1:length(eVisit.fqdns)
+                eTracer = mlsystem.DirTool(eVisit.fqdns{iVisit});
+                for iTracer = 1:length(eTracer.fqdns)
+
+                    pth = eTracer.fqdns{iTracer};
+                    if ( T4ResolveBuilder.isTracer(pth) && ...
+                         T4ResolveBuilder.isNAC(pth) && ...
+                        ~T4ResolveBuilder.isEmpty(pth) && ...
+                         T4ResolveBuilder.hasOP(pth))
+
+                        try
+                            cd(pth);
+                            delete('T4ResolveBuilder.validateForT4Resolve.*');
+                            if (strcmp(eVisit.dns{iVisit}, 'V2'))
+                                mlraichle.T4ResolveBuilder.validateForT4Resolve('dest', 'fdgv2r1');
+                            else
+                                mlraichle.T4ResolveBuilder.validateForT4Resolve;
+                            end
+                        catch ME
+                            handwarning(ME);
+                        end
+                    end
+                end
+            end
+        end
         function these = serialTriggeringOnConvertedNAC(varargin)
 
             setenv('PRINTV', '1');
@@ -122,19 +407,19 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             ip = inputParser;
             addParameter(ip, 'iVisit', 1, @isnumeric);
             addParameter(ip, 'tag', '', @ischar);
-            addParameter(ip, 'frameRegStartingFrame', 1, @isnumeric);
             parse(ip, varargin{:});
             iVisit = ip.Results.iVisit;
             tag    = ip.Results.tag;
 
-             eSess = mlsystem.DirTool('/scratch/jjlee/raichle/PPGdata/jjlee');
+             eSess = mlsystem.DirTool(fullfile(getenv('PPG'), 'jjlee', ''));
+             cd(fullfile(getenv('PPG'), 'jjlee', ''));
              eSessFqdns = eSess.fqdns;
-             T4ResolveBuilder.printv('parTriggeringOnConvertedNAC.eSessFqdns->\n%s\n', cell2str(eSessFqdns));
+             T4ResolveBuilder.printv('serialTriggeringOnConvertedNAC.eSessFqdns->\n%s\n', cell2str(eSessFqdns));
              these = cell(length(eSessFqdns), 2);
              for iSess = 1:length(eSessFqdns)
 
                 try
-                    T4ResolveBuilder.printv('parTriggeringOnConvertedNAC.eSessFqdns{iSess}:  %s\n', eSessFqdns{iSess});
+                    T4ResolveBuilder.printv('serialTriggeringOnConvertedNAC.eSessFqdns{iSess}:  %s\n', eSessFqdns{iSess});
 
                     import mlraichle.*;
                     eVisit = mlsystem.DirTool(eSessFqdns{iSess});
@@ -143,14 +428,13 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
 
                             eTracer = mlsystem.DirTool(eVisit.fqdns{iVisit});
                             for iTracer = 1:length(eTracer.fqdns)
-                                T4ResolveBuilder.printv('parTriggeringOnConvertedNAC.eTracer{iTracer}:  %s\n', eTracer.fqdns{iTracer});
+                                T4ResolveBuilder.printv('serialTriggeringOnConvertedNAC.eTracer{iTracer}:  %s\n', eTracer.fqdns{iTracer});
 
                                 pth = eTracer.fqdns{iTracer};
-                                T4ResolveBuilder.printv('parTriggeringOnConvertedNAC.pth:  %s\n', pth);
+                                T4ResolveBuilder.printv('serialTriggeringOnConvertedNAC.pth:  %s\n', pth);
                                 these{iSess,iVisit} = [pth ' was skipped'];
                                 if ( T4ResolveBuilder.isTracer(pth) && ...
                                      T4ResolveBuilder.isNAC(pth) && ...
-                                    ~T4ResolveBuilder.isEmpty(pth) && ...
                                      T4ResolveBuilder.hasOP(pth) && ...
                                      T4ResolveBuilder.matchesTag(eSessFqdns{iSess}, tag))
 
@@ -163,7 +447,6 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                                             'vnumber',     T4ResolveBuilder.visitNumber(eVisit.dns{iVisit}));
                                         this = T4ResolveBuilder('sessionData', sessd);
                                         this = this.excludeFrames(1); 
-                                        this.frameRegStartingFrame = ip.Results.frameRegStartingFrame;
                                         this = this.t4ResolveConvertedNAC;   
                                         these{iSess,iVisit} = this;
                                     catch ME
@@ -296,80 +579,23 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
         function this  = triggeringStagingForNAC(varargin)
             this = mlraichle.T4ResolveBuilder.triggering('locallyStageFdg', varargin{:});                      
         end
-        
-        function tf = hasNACFolder(pth)
-            visitPth = fileparts(pth);
-            [~,visit] = fileparts(visitPth);
-            tf = isdir(fullfile(visitPth, ['FDG_' visit '-NAC'], ''));
-        end
-        function tf = hasOP(pth)
-            visitPth = fileparts(pth);
-            [~,visit] = fileparts(visitPth);
-            tf = lexist(fullfile(visitPth, ...
-                                 ['FDG_' visit '-NAC'],...
-                                 sprintf('FDG_%s-LM-00-OP.4dfp.ifh', visit)), 'file');
-        end
-        function tf = hasOPV(pth, lastFrame)
-            lastFrame = lastFrame - 1; % Siemens tags frames starting with 00
-            visitPth = fileparts(pth);
-            [~,visit] = fileparts(visitPth);
-            tf = lexist(fullfile(visitPth, ...
-                                 ['FDG_' visit '-Converted'],...
-                                 ['FDG_' visit '-LM-00'], ...
-                                 sprintf('FDG_%s-LM-00-OP_%03i_000.v', visit, lastFrame)), 'file');
-        end
-        function tf = isConverted(pth)
-            [~,fldr] = fileparts(pth);
-            tf = ~isempty(regexp(fldr, '-Converted', 'once'));
-        end
-        function tf = isEmpty(pth)
-            dt = mlsystem.DirTool(pth);
-            tf = isempty(dt.dns) && isempty(dt.fqfns);
-        end
-        function tf = isNAC(pth)
-            [~,fldr] = fileparts(pth);
-            tf = ~isempty(regexp(fldr, '-NAC', 'once')) && ...
-                 ~lstrfind(fldr, 'BACKUP');
-        end
-        function tf = isVisit(fldr)
-            tf = ~isempty(regexp(fldr, 'V[0-9]', 'once'));
-        end
-        function tf = isTracer(varargin)
-            ip = inputParser;
-            addRequired(ip, 'path', @isdir);
-            addOptional(ip, 'tracers', 'FDG', @ischar);
-            parse(ip, varargin{:});
-            
-            import mlraichle.*;
-            [~,fldr] = fileparts(ip.Results.path);
-            tf = lstrfind(fldr, ip.Results.tracers);
-        end
-        function tf = matchesTag(sess, tag)
-            assert(ischar(sess));
-            assert(ischar(tag));
-            
-            if (isempty(tag))
-                tf = true;
-                return
-            end
-            tf = lstrfind(sess, tag);
-        end      
-        function      revertToLM00(nacPth)
+          
+        function revertToLM00(nacPth)
             if (~isdir(nacPth))
                 return
             end
             vPth = fileparts(nacPth);
             [~,vFold] = fileparts(vPth);
-            tracerFold = ['FDG_' vFold];
+            tracerFold = [upper(this.tracer) '_' vFold];
             lm00Pth = fullfile(vPth, [tracerFold '-Converted'], [tracerFold '-LM-00'], '');
-            if (lexist(fullfile(nacPth, ['fdg' lower(vFold) 'r2_resolved.4dfp.img'])))
+            if (lexist(fullfile(nacPth, [lower(this.tracer) lower(vFold) 'r2_resolved.4dfp.img'])))
                 return
             end
             if (~isdir(lm00Pth))
                 movefile(nacPth, lm00Pth);
             end
         end  
-        function      scp(sessFold, visit, files)
+        function scp(sessFold, visit, files)
             assert(ischar(sessFold));
             if (isnumeric(visit))
                 visit = sprintf('V%i', visit);
@@ -391,32 +617,11 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                 end
             end
         end
-        function      scp_2016oct16
+        function scp_2016oct16
             import mlraichle.*;
             T4ResolveBuilder.scp('HYGLY25', 1, 'FDG*NAC');
             %T4ResolveBuilder.scp('HYGLY25', 1, 'mpr.4dfp.*');
             T4ResolveBuilder.scp('HYGLY25', 1, '*t4');
-        end
-        function s  = scanNumber(fldr)
-            idx = regexp(fldr, 'FDG|HO|OO|OC', 'end');
-            s = str2double(fldr(idx+1));
-        end
-        function t  = tracerPrefix(varargin)
-            ip = inputParser;
-            addRequired( ip, 'folder', @ischar);
-            addOptional( ip, 'tracers', {'FDG' 'HO' 'OO' 'OC'}, @(x) ischar(x) || iscell(x));
-            addParameter(ip, 'prefixRegexp', 'FDG|HO|OO|OC', @ischar);
-            parse(ip, varargin{:});
-            
-            import mlraichle.*;
-            t = 'unknownTracer';
-            if (lstrfind(ip.Results.folder, ip.Results.tracers))
-                idx = regexp(ip.Results.folder, ip.Results.prefixRegexp, 'end');
-                t = ip.Results.folder(1:idx);
-            end
-        end
-        function v  = visitNumber(str)
-            v = str2double(str(2:end));            
         end
         
         function this = runRaichle(sessPth, v, s)
@@ -427,9 +632,9 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                 'vnumber', v, ...
                 'snumber', s);
             this = mlraichle.T4ResolveBuilder('sessionData', sessd);            
-            cd(this.sessionData.fdgNAC);
-            if (~lexist(this.sessionData.fdgNAC('typ', 'mhdr'), 'file'))
-                this.buildVisitor.sif_4dfp([this.sessionData.fdgNAC('typ', 'fqfp') '.mhdr']);
+            cd(this.sessionData.tracerNAC);
+            if (~lexist(this.sessionData.tracerNAC('typ', 'mhdr'), 'file'))
+                this.buildVisitor.sif_4dfp([this.sessionData.tracerNAC('typ', 'fqfp') '.mhdr']);
             end
             this = this.t4ResolvePET3;
         end
@@ -466,16 +671,6 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             end
             assert(isdir(this.sessionData.fdgNACLocation));
             movefile([lm '.4dfp.*'], this.sessionData.fdgNACLocation);
-        end
-        function this = excludeFrames(this, toExclude)
-            if (isempty(toExclude))
-                return
-            end
-            
-            this.frames_ = this.frames; % read Nframes from data
-            for ie = 1:length(toExclude)
-                this.frames_(toExclude(ie)) = 0;
-            end
         end
         function        ensureFdgSymlinks(this)
             sessd = this.sessionData;
@@ -527,24 +722,70 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                 this.msktgenMprage(mpr, atl);
             end
         end
-        function        retrieveFdg(this)
+        function        retrieveFdg(this, varargin)
+            ip = inputParser;
+            addParameter(ip, 'visits', {'V1' 'V2'}, @iscell);
+            parse(ip, varargin{:});
+            
             cd(fullfile(this.sessionData.sessionPath));
             
-            visits = {'V1' 'V2'};
-            for iv = 1:length(visits)
-                cd(fullfile(this.sessionData.sessionPath, visits{iv}, ...
-                    sprintf('FDG_V%i-NAC', iv), ''));
-                listv = {'fdgv*' 'Log' 'T4'};
+            for iv = 1:length(ip.Results.visits)
+                cd(fullfile(this.sessionData.sessionPath, ip.Results.visits{iv}, ...
+                    sprintf('FDG_%s-NAC', ip.Results.visits{iv}), ''));
+                listv = {'*'}; %{'fdgv*' 'Log' 'T4'};
                 for ilv = 1:length(listv)
                     try
                         mlbash(sprintf('scp -qr %s:%s .', ...
                             this.cluster, ...
                             fullfile( ...
-                            this.clusterSubjectsDir, this.sessionData.sessionFolder, visits{iv}, ...
-                            sprintf('FDG_V%i-NAC', iv), listv{ilv})));                        
+                            this.clusterSubjectsDir, this.sessionData.sessionFolder, ip.Results.visits{iv}, ...
+                            sprintf('FDG_%s-NAC', ip.Results.visits{iv}), listv{ilv})));                        
                     catch ME
                         handwarning(ME);
                     end
+                end
+            end
+        end
+        function        retrieveNAC(this, varargin)
+            ip = inputParser;
+            addParameter(ip, 'visits', {'V1' 'V2'}, @iscell);
+            parse(ip, varargin{:});
+            
+            cd(fullfile(this.sessionData.sessionPath));
+            
+            for iv = 1:length(ip.Results.visits)
+                cd(fullfile(this.sessionData.sessionPath, ip.Results.visits{iv}, ''));
+                try
+                    mlbash(sprintf('scp -qr %s:%s .', ...
+                        this.cluster, ...
+                        fullfile( ...
+                            this.clusterSubjectsDir, this.sessionData.sessionFolder, ip.Results.visits{iv}, ...
+                            sprintf('FDG_%s-NAC', ip.Results.visits{iv}))));                        
+                catch ME
+                    handwarning(ME);
+                end
+            end
+        end
+        function        pushNAC(this, varargin)
+            ip = inputParser;
+            addParameter(ip, 'visits', {'V1' 'V2'}, @iscell);
+            parse(ip, varargin{:});
+            
+            cd(fullfile(this.sessionData.sessionPath));
+            
+            for iv = 1:length(ip.Results.visits)
+                cd(fullfile(this.sessionData.sessionPath, ip.Results.visits{iv}, ...
+                    sprintf('FDG_%s-NAC', ip.Results.visits{iv}), ''));
+                try
+                    mlbash(sprintf('scp -qr %s %s:%s', ...
+                        fullfile( ...
+                            this.sessionData.sessionPath, ip.Results.visits{iv}, ...
+                            sprintf('FDG_%s-NAC', ip.Results.visits{iv})), ...
+                        this.cluster, ...
+                        fullfile( ...
+                            this.clusterSubjectsDir, this.sessionData.sessionFolder, ip.Results.visits{iv}, '') )); 
+                catch ME
+                    handwarning(ME);
                 end
             end
         end
@@ -578,12 +819,12 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
         end
         function this = t4RepairConvertedNAC(this, frame1st, frame2nd)
             
-            cd(this.sessionData.fdgNAC('typ', 'path'));
+            cd(this.sessionData.tracerNAC('typ', 'path'));
             mlraichle.T4ResolveBuilder.printv('t4RepairConvertedNAC.pwd:  %s\n', pwd);
             this.ensureFdgSymlinks;
             this = this.repairSingle( ...
                 frame1st, frame2nd, ...
-                'dest', sprintf('fdgv%ir%i', this.sessionData.vnumber, this.sessionData.rnumber));
+                'dest', sprintf('%sv%ir%i', lower(this.tracer), this.sessionData.vnumber, this.sessionData.rnumber));
         end
         function this = t4ResolveConvertedNAC(this)
             %% T4RESOLVECONVERTEDNAC is the principle caller of resolve.
@@ -593,13 +834,13 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             this.ensureFdgSymlinks;
             if (~this.completedT4s)
                 this = this.resolve( ...
-                    'dest', sprintf('fdgv%i', this.sessionData.vnumber), ...
+                    'dest', sprintf('%sv%i', lower(this.sessionData.tracer), this.sessionData.vnumber), ...
                     'source', this.sessionData.fdgNAC('typ', 'fp'), ...
                     'firstCrop', this.firstCrop, ...
                     'frames', this.frames);
             else
                 this = this.resolveCompletedT4s( ...
-                    'dest', sprintf('fdgv%i', this.sessionData.vnumber), ...
+                    'dest', sprintf('%sv%i', lower(this.sessionData.tracer), this.sessionData.vnumber), ...
                     'source', this.sessionData.fdgNAC('typ', 'fp'), ...
                     'firstCrop', this.firstCrop, ...
                     'frames', this.frames);
@@ -609,59 +850,10 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
  			%% T4RESOLVEBUILDER
  			%  Usage:  this = T4ResolveBuilder()
 
- 			this = this@mlfourdfp.T4ResolveBuilder(varargin{:});
+ 			this = this@mlfourdfp.MMRResolveBuilder(varargin{:});
             if (lstrfind(this.sessionData.sessionFolder, 'HYGLY25') && ...
                          this.sessionData.vnumber == 1)
                 this.Nframes = 64;
-            end
-            
-            if (lstrfind(this.sessionData.sessionFolder, 'HYGLY05') && ...
-                         this.sessionData.vnumber == 2)
-                 this.completedT4s = true;
-            end
-            if (lstrfind(this.sessionData.sessionFolder, 'HYGLY08') && ...
-                         this.sessionData.vnumber == 1)
-                 this.completedT4s = true;
-            end
-            if (lstrfind(this.sessionData.sessionFolder, 'HYGLY09') && ...
-                         this.sessionData.vnumber == 1)
-                 this.frameRegStartingFrame = 71;
-            end
-            if (lstrfind(this.sessionData.sessionFolder, 'HYGLY11') && ...
-                         this.sessionData.vnumber == 1)
-                 this.completedT4s = true;
-            end
-            if (lstrfind(this.sessionData.sessionFolder, 'HYGLY11') && ...
-                         this.sessionData.vnumber == 2)
-                 this.completedT4s = true;
-            end
-            if (lstrfind(this.sessionData.sessionFolder, 'HYGLY16') && ...
-                         this.sessionData.vnumber == 1)
-                 this.completedT4s = true;
-            end
-            if (lstrfind(this.sessionData.sessionFolder, 'HYGLY22') && ...
-                         this.sessionData.vnumber == 1)
-                 this.completedT4s = true;
-            end
-            if (lstrfind(this.sessionData.sessionFolder, 'HYGLY24') && ...
-                         this.sessionData.vnumber == 1)
-                 this.completedT4s = true;
-            end
-            if (lstrfind(this.sessionData.sessionFolder, 'HYGLY24') && ...
-                         this.sessionData.vnumber == 2)
-                 this.completedT4s = true;
-            end
-            if (lstrfind(this.sessionData.sessionFolder, 'HYGLY25') && ...
-                         this.sessionData.vnumber == 2)
-                 this.completedT4s = true;
-            end
-            if (lstrfind(this.sessionData.sessionFolder, 'HYGLY28') && ...
-                         this.sessionData.vnumber == 2)
-                 this.frameRegStartingFrame = 72;
-            end
-            if (lstrfind(this.sessionData.sessionFolder, 'NP995_22') && ...
-                         this.sessionData.vnumber == 1)
-                 this.completedT4s = true;
             end
         end
     end

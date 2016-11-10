@@ -165,6 +165,9 @@ classdef SessionData < mlpipeline.SessionData
         function obj  = fdgNACResolved(this, varargin)
             obj = this.tracerNACResolved('tracer', 'FDG', varargin{:});
         end
+        function obj  = fdgNACRevision(this, varargin)
+            obj = this.tracerNACRevision('tracer', 'FDG', varargin{:});
+        end
         function obj  = fdgUmapLM(this, varargin)
             obj = this.tracerUmapLM('tracer', 'FDG', varargin{:});
         end
@@ -249,6 +252,22 @@ classdef SessionData < mlpipeline.SessionData
             fqfn = fullfile( ...
                 this.tracerNACLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
                 sprintf('%s%sv%ir%i_resolved.4dfp.ifh', lower(ipr.tracer), schar, this.vnumber, ipr.rnumber));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = tracerNACRevision(this, varargin)
+            %  @param named tracer is a string identifier.
+            %  @param named snumber is the scan number; is numeric.
+            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
+            %  See also:  mlpipeline.StudyData.imagingType.
+            %  @param named frame is numeric.
+            %  @param named rnumber is the revision number; is numeric.
+            %  @returns ipr, the struct ip.Results obtained by parse.            
+            %  @returns schr, the s-number as a string.
+            
+            [ipr,schar] = this.iprLocation(varargin{:});
+            fqfn = fullfile( ...
+                this.tracerNACLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
+                sprintf('%s%sv%ir%i.4dfp.ifh', lower(ipr.tracer), schar, this.vnumber, ipr.rnumber));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerUmapLM(this, varargin)
@@ -387,17 +406,21 @@ classdef SessionData < mlpipeline.SessionData
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'tracer', this.tracer, @ischar);
-            addParameter(ip, 'snumber', nan, @isnumeric);
+            addParameter(ip, 'snumber', this.snumber, @isnumeric);
             addParameter(ip, 'typ', 'path', @ischar);
             addParameter(ip, 'frame', nan, @isnumeric);
             addParameter(ip, 'rnumber', this.rnumber, @isnumeric);
-            parse(ip, varargin{:});
-            if (isnan(ip.Results.snumber))
+            parse(ip, varargin{:});            
+            ipr = ip.Results;
+            
+            if (lstrfind(upper(ipr.tracer), 'FDG'))
+                ipr.snumber = nan;
+            end
+            if (isnan(ipr.snumber))
                 schar = '';
             else
                 schar = num2str(ip.Results.snumber);
             end
-            ipr = ip.Results;
         end
     end
     
