@@ -147,7 +147,11 @@ classdef SessionData < mlpipeline.SessionData
             obj = this.ctObject('ctMask', varargin{:});
         end
         function obj  = ctRescaled(this, varargin)
-            obj = this.ctObject('ctRescaled', varargin{:});
+            ipr = this.iprLocation(varargin{:});
+            fqfn = fullfile( ...
+                this.fdgNACLocation('typ', 'path'), ...
+                sprintf('ctRescaledv%i.4dfp.ifh', this.vnumber, ipr.rnumber));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = fdgAC(this, varargin)
             obj = this.tracerAC('tracer', 'FDG', varargin{:});
@@ -287,7 +291,11 @@ classdef SessionData < mlpipeline.SessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = umapSynth(this, varargin)
-            obj = this.ctObject('umapSynth', varargin{:});
+            ipr = this.iprLocation(varargin{:});
+            fqfn = fullfile( ...
+                this.fdgNACLocation('typ', 'path'), ...
+                sprintf('umapSynthv%i.4dfp.ifh', this.vnumber, ipr.rnumber));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         
         function p    = petPointSpread(varargin)

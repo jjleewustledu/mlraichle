@@ -285,7 +285,7 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
 
             ip = inputParser;
             addRequired( ip, 'sessPath', @isdir);
-            addParameter(ip, 'iVisit', @isnumeric);
+            addParameter(ip, 'iVisit', 1, @isnumeric);
             parse(ip, varargin{:});
             iVisit = ip.Results.iVisit;
             cd(ip.Results.sessPath);
@@ -617,27 +617,12 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
                 end
             end
         end
-        function scp_2016oct16
+        function scp_example
             import mlraichle.*;
             T4ResolveBuilder.scp('HYGLY25', 1, 'FDG*NAC');
             %T4ResolveBuilder.scp('HYGLY25', 1, 'mpr.4dfp.*');
             T4ResolveBuilder.scp('HYGLY25', 1, '*t4');
-        end
-        
-        function this = runRaichle(sessPth, v, s)
-            studyd = mlpipeline.StudyDataSingletons.instance('raichle');
-            sessd = mlraichle.SessionData( ...
-                'studyData', studyd, ...
-                'sessionPath', sessPth, ...
-                'vnumber', v, ...
-                'snumber', s);
-            this = mlraichle.T4ResolveBuilder('sessionData', sessd);            
-            cd(this.sessionData.tracerNAC);
-            if (~lexist(this.sessionData.tracerNAC('typ', 'mhdr'), 'file'))
-                this.buildVisitor.sif_4dfp([this.sessionData.tracerNAC('typ', 'fqfp') '.mhdr']);
-            end
-            this = this.t4ResolvePET3;
-        end
+        end        
         function this = testCompiler
             studyd = mlpipeline.StudyDataSingletons.instance('raichle');            
             sessd = mlraichle.SessionData( ...
@@ -925,6 +910,20 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
     %% HIDDEN & DEPRECATED
     
     methods (Hidden)
+        function this = runRaichle(sessPth, v, s)
+            studyd = mlpipeline.StudyDataSingletons.instance('raichle');
+            sessd = mlraichle.SessionData( ...
+                'studyData', studyd, ...
+                'sessionPath', sessPth, ...
+                'vnumber', v, ...
+                'snumber', s);
+            this = mlraichle.T4ResolveBuilder('sessionData', sessd);            
+            cd(this.sessionData.tracerNAC);
+            if (~lexist(this.sessionData.tracerNAC('typ', 'mhdr'), 'file'))
+                this.buildVisitor.sif_4dfp([this.sessionData.tracerNAC('typ', 'fqfp') '.mhdr']);
+            end
+            this = this.t4ResolvePET3;
+        end
         function this = t4ResolvePET3(this)
 
             mprDir  = this.sessionData.vLocation;
