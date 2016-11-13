@@ -1,4 +1,4 @@
-classdef O15T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
+classdef O15T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
 	%% O15T4RESOLVEBUILDER  
 
 	%  $Revision$
@@ -18,13 +18,7 @@ classdef O15T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
  			%% O15T4RESOLVEBUILDER
  			%  Usage:  this = O15T4ResolveBuilder()
 
- 			this = this@mlfourdfp.T4ResolveBuilder(varargin{:});
- 		end
-        function this = locallyStage15O(this)
-            this.prepare15ONACLocation;         
-            this.build15ONAC;
-            this.prepareMR;
-            this.scp15O;
+ 			this = this@mlfourdfp.MMRResolveBuilder(varargin{:});
         end
  	end 
 

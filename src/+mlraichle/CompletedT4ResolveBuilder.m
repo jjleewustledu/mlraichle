@@ -9,19 +9,8 @@ classdef CompletedT4ResolveBuilder < mlfourdfp.MMRResolveBuilder
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
  	
 
-        
-    properties (Constant)
-        MinFrames = 64
-    end
-    
-	properties
-        Nframes = 72
-        recoverNACFolder = false 
-    end
-
-    methods (Static)
-        
-        function         serialCompletedT4s(varargin)
+    methods (Static)        
+        function serialCompletedT4s(varargin)
             
             import mlraichle.*;
             setenv('PRINTV', '1');
@@ -36,26 +25,25 @@ classdef CompletedT4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             T4ResolveBuilder.printv('serialCompletedT4s.ip.Results.sessionPath->%s\n', ip.Results.sessionPath);
 
             eVisit = mlsystem.DirTool(ip.Results.sessionPath);              
-            if (T4ResolveBuilder.isVisit(eVisit.fqdns{iVisit}))
+            if (mlraichle.T4ResolveUtilities.isVisit(eVisit.fqdns{iVisit}))
                 eTracer = mlsystem.DirTool(eVisit.fqdns{iVisit});
                 for iTracer = 1:length(eTracer.fqdns)
                     pth = eTracer.fqdns{iTracer};
                     T4ResolveBuilder.printv('serialCompletedT4s.pth:  %s\n', pth);
-                    if ( T4ResolveBuilder.isTracer(pth) && ...
-                         T4ResolveBuilder.isNAC(pth) && ...
-                        ~T4ResolveBuilder.isEmpty(pth) && ...
-                         T4ResolveBuilder.hasOP(pth))
+                    if ( mlraichle.T4ResolveUtilities.isTracer(pth) && ...
+                         mlraichle.T4ResolveUtilities.isNAC(pth) && ...
+                        ~mlraichle.T4ResolveUtilities.isEmpty(pth) && ...
+                         mlraichle.T4ResolveUtilities.hasOP(pth))
 
                         try
                             T4ResolveBuilder.printv('serialCompletedT4s:  inner try pwd->%s\n', pwd);
                             sessd = SessionData( ...
                                 'studyData',   mlraichle.StudyData, ...
                                 'sessionPath', ip.Results.sessionPath, ...
-                                'snumber',     T4ResolveBuilder.scanNumber(eTracer.dns{iTracer}), ...
-                                'tracer',      T4ResolveBuilder.tracerPrefix(eTracer.dns{iTracer}), ...
+                                'snumber',     mlraichle.T4ResolveUtilities.scanNumber(eTracer.dns{iTracer}), ...
+                                'tracer',      mlfourdfp.T4ResolveUtilities.tracerPrefix(eTracer.dns{iTracer}), ...
                                 'vnumber',     iVisit);
                             this = CompletedT4ResolveBuilder('sessionData', sessd);
-                            this.completedT4s = true;
                             this = this.excludeFrames([1 2 3]);
                             this = this.t4ResolveCompletedNAC; %#ok<NASGU>                                    
                             save(sprintf('mlraichle_T4ResolveBuilder_serialCompletedT4s_this_%s.mat', datestr(now, 30)), 'this');
@@ -110,14 +98,13 @@ classdef CompletedT4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             ipr.mprage = '';            
             
             this.t4ResolveAndPasteLog_ = this.loggerFilename('T4ResolveBuilder_resolve', ipr.dest, 'path', this.sessionData.vLocation);
-            ipr.dest = sprintf('%sr%i', ipr.dest, ip.Results.NRevisions);
-            
+            ipr.dest     = sprintf('%sr%i', ipr.dest, ip.Results.NRevisions);            
             ipr          = this.contractBlurs(ipr);
             ipr          = this.contractFrames(ipr);
             extractedFps = this.extractFrames(ipr);
                            this.lazyBlurredFrames(extractedFps, ipr);
-            ipr = this.t4ResolveAndPaste(ipr); 
-            ipr = this.teardownIterate(ipr);            
+            ipr          = this.t4ResolveAndPaste(ipr); 
+            ipr          = this.teardownIterate(ipr);            
             
             this.buildVisitor.imgblur_4dfp(ipr.resolved, this.blurArg);
             this.product_ = this.fileprefixBlurred(ipr.resolved);
@@ -179,7 +166,7 @@ classdef CompletedT4ResolveBuilder < mlfourdfp.MMRResolveBuilder
                 T4ResolveBuilder.printv('triggering.eVisit:  %s\n', cell2str(eVisit.dns));
                 for iVisit = 1:length(eVisit.fqdns)
                     
-                    if (T4ResolveBuilder.isVisit(eVisit.fqdns{iVisit}))
+                    if (mlraichle.T4ResolveUtilities.isVisit(eVisit.fqdns{iVisit}))
                         
                         eTracer = DirTool(eVisit.fqdns{iVisit});
                         T4ResolveBuilder.printv('triggering.eTracer:  %s\n', cell2str(eTracer.dns));
@@ -187,18 +174,18 @@ classdef CompletedT4ResolveBuilder < mlfourdfp.MMRResolveBuilder
 
                             pth = eTracer.fqdns{iTracer};
                             T4ResolveBuilder.printv('triggering.pth:  %s\n', pth);
-                            if (T4ResolveBuilder.isTracer(pth) && ...
-                                T4ResolveBuilder.isNAC(pth) && ...
-                               ~T4ResolveBuilder.isEmpty(pth) && ...
-                                T4ResolveBuilder.hasOP(pth) && ...
-                                T4ResolveBuilder.matchesTag(eSess.fqdns{iSess}, ip.Results.tag))
+                            if (mlraichle.T4ResolveUtilities.isTracer(pth) && ...
+                                mlraichle.T4ResolveUtilities.isNAC(pth) && ...
+                               ~mlraichle.T4ResolveUtilities.isEmpty(pth) && ...
+                                mlraichle.T4ResolveUtilities.hasOP(pth) && ...
+                                mlraichle.T4ResolveUtilities.matchesTag(eSess.fqdns{iSess}, ip.Results.tag))
                                 try
                                     sessd = SessionData( ...
                                         'studyData',   studyd, ...
                                         'sessionPath', eSess.fqdns{iSess}, ...
-                                        'snumber',     T4ResolveBuilder.scanNumber(eTracer.dns{iTracer}), ...
-                                        'tracer',      T4ResolveBuilder.tracerPrefix(eTracer.dns{iTracer}), ...
-                                        'vnumber',     T4ResolveBuilder.visitNumber(eVisit.dns{iVisit}));                                    
+                                        'snumber',     mlraichle.T4ResolveUtilities.scanNumber(eTracer.dns{iTracer}), ...
+                                        'tracer',      mlraichle.T4ResolveUtilities.tracerPrefix(eTracer.dns{iTracer}), ...
+                                        'vnumber',     mlraichle.T4ResolveUtilities.visitNumber(eVisit.dns{iVisit}));                                    
                                     disp(sessd);
                                     this = T4ResolveBuilder('sessionData', sessd);
                                     disp(this);

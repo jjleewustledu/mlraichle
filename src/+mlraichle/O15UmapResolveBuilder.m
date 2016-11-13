@@ -1,8 +1,8 @@
-classdef UmapResolveBuilder < mlfourdfp.UmapResolveBuilder
-	%% UMAPRESOLVEBUILDER  
+classdef O15UmapResolveBuilder < mlfourdfp.O15UmapResolveBuilder
+	%% O15UMAPRESOLVEBUILDER  
 
 	%  $Revision$
- 	%  was created 11-Nov-2016 16:32:03
+ 	%  was created 11-Nov-2016 16:32:20
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
@@ -15,11 +15,11 @@ classdef UmapResolveBuilder < mlfourdfp.UmapResolveBuilder
 
 	methods 
 		  
- 		function this = UmapResolveBuilder(varargin)
- 			%% UMAPRESOLVEBUILDER
- 			%  Usage:  this = UmapResolveBuilder()
+ 		function this = O15UmapResolveBuilder(varargin)
+ 			%% O15UMAPRESOLVEBUILDER
+ 			%  Usage:  this = O15UmapResolveBuilder()
 
- 			this = this@mlfourdfp.UmapResolveBuilder(varargin{:});
+ 			this = this@mlfourdfp.O15UmapResolveBuilder(varargin{:});
  		end
  	end 
 
