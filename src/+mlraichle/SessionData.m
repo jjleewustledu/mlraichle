@@ -43,6 +43,36 @@ classdef SessionData < mlpipeline.SessionData
 
  			this = this@mlpipeline.SessionData(varargin{:});
         end
+        function [ipr,schar] = iprLocation(this, varargin)
+            %% IPRLOCATION
+            %  @param named tracer is a string identifier.
+            %  @param named snumber is the scan number; is numeric.
+            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
+            %  See also:  mlpipeline.StudyData.imagingType.
+            %  @param named frame is numeric.
+            %  @param named rnumber is the revision number; is numeric.
+            %  @returns ipr, the struct ip.Results obtained by parse.            
+            %  @returns schr, the s-number as a string.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'tracer', this.tracer, @ischar);
+            addParameter(ip, 'snumber', this.snumber, @isnumeric);
+            addParameter(ip, 'typ', 'path', @ischar);
+            addParameter(ip, 'frame', nan, @isnumeric);
+            addParameter(ip, 'rnumber', this.rnumber, @isnumeric);
+            parse(ip, varargin{:});            
+            ipr = ip.Results;
+            
+            if (lstrfind(upper(ipr.tracer), 'FDG'))
+                ipr.snumber = nan;
+            end
+            if (isnan(ipr.snumber))
+                schar = '';
+            else
+                schar = num2str(ip.Results.snumber);
+            end
+        end
         function loc  = vLocation(this, varargin)
             ip = inputParser;
             addParameter(ip, 'typ', 'path', @ischar);
@@ -302,11 +332,9 @@ classdef SessionData < mlpipeline.SessionData
             inst = mlpet.MMRRegistry.instance;
             p    = inst.petPointSpread(varargin{:});
         end
-    end
-    
-    %% PROTECTED
-    
-    methods (Access = protected)
+
+        % previous protected
+        
         function obj = ctObject(this, varargin)
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -400,36 +428,6 @@ classdef SessionData < mlpipeline.SessionData
     %% PRIVATE
     
     methods (Access = private)        
-        function [ipr,schar] = iprLocation(this, varargin)
-            %% IPRLOCATION
-            %  @param named tracer is a string identifier.
-            %  @param named snumber is the scan number; is numeric.
-            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  mlpipeline.StudyData.imagingType.
-            %  @param named frame is numeric.
-            %  @param named rnumber is the revision number; is numeric.
-            %  @returns ipr, the struct ip.Results obtained by parse.            
-            %  @returns schr, the s-number as a string.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'tracer', this.tracer, @ischar);
-            addParameter(ip, 'snumber', this.snumber, @isnumeric);
-            addParameter(ip, 'typ', 'path', @ischar);
-            addParameter(ip, 'frame', nan, @isnumeric);
-            addParameter(ip, 'rnumber', this.rnumber, @isnumeric);
-            parse(ip, varargin{:});            
-            ipr = ip.Results;
-            
-            if (lstrfind(upper(ipr.tracer), 'FDG'))
-                ipr.snumber = nan;
-            end
-            if (isnan(ipr.snumber))
-                schar = '';
-            else
-                schar = num2str(ip.Results.snumber);
-            end
-        end
     end
     
     %% HIDDEN, DEPRECATED

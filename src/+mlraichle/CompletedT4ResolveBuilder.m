@@ -44,7 +44,6 @@ classdef CompletedT4ResolveBuilder < mlfourdfp.MMRResolveBuilder
                                 'tracer',      mlfourdfp.T4ResolveUtilities.tracerPrefix(eTracer.dns{iTracer}), ...
                                 'vnumber',     iVisit);
                             this = CompletedT4ResolveBuilder('sessionData', sessd);
-                            this = this.excludeFrames([1 2 3]);
                             this = this.t4ResolveCompletedNAC; %#ok<NASGU>                                    
                             save(sprintf('mlraichle_T4ResolveBuilder_serialCompletedT4s_this_%s.mat', datestr(now, 30)), 'this');
                         catch ME
@@ -133,74 +132,6 @@ classdef CompletedT4ResolveBuilder < mlfourdfp.MMRResolveBuilder
  		end
     end 
     
-    %% PROTECTED
-    
-    properties (Access = protected)
-    end
-    
-    %% PRIVATE
-    
-    methods (Static, Access = private)
-        function this = triggering(varargin)
-            
-            studyd = mlraichle.StudyData;
-            
-            ip = inputParser;
-            addRequired( ip, 'methodName', @ischar);
-            addParameter(ip, 'excludeFrames', 1, @isnumeric);
-            addParameter(ip, 'subjectsDir', studyd.subjectsDir, @isdir);
-            addParameter(ip, 'tag', '', @ischar);
-            parse(ip, varargin{:});
-            
-            import mlsystem.* mlraichle.* ;
-            T4ResolveBuilder.printv('triggering.ip.Results:  %s\n', struct2str(ip.Results));
-            if (~strcmp(ip.Results.subjectsDir, studyd.subjectsDir))
-                studyd.subjectsDir = ip.Results.subjectsDir;
-            end
-            
-            eSess = DirTool(ip.Results.subjectsDir);
-            T4ResolveBuilder.printv('triggering.eSess:  %s\n', cell2str(eSess.dns));
-            for iSess = 1:length(eSess.fqdns)
-
-                eVisit = DirTool(eSess.fqdns{iSess});
-                T4ResolveBuilder.printv('triggering.eVisit:  %s\n', cell2str(eVisit.dns));
-                for iVisit = 1:length(eVisit.fqdns)
-                    
-                    if (mlraichle.T4ResolveUtilities.isVisit(eVisit.fqdns{iVisit}))
-                        
-                        eTracer = DirTool(eVisit.fqdns{iVisit});
-                        T4ResolveBuilder.printv('triggering.eTracer:  %s\n', cell2str(eTracer.dns));
-                        for iTracer = 1:length(eTracer.fqdns)
-
-                            pth = eTracer.fqdns{iTracer};
-                            T4ResolveBuilder.printv('triggering.pth:  %s\n', pth);
-                            if (mlraichle.T4ResolveUtilities.isTracer(pth) && ...
-                                mlraichle.T4ResolveUtilities.isNAC(pth) && ...
-                               ~mlraichle.T4ResolveUtilities.isEmpty(pth) && ...
-                                mlraichle.T4ResolveUtilities.hasOP(pth) && ...
-                                mlraichle.T4ResolveUtilities.matchesTag(eSess.fqdns{iSess}, ip.Results.tag))
-                                try
-                                    sessd = SessionData( ...
-                                        'studyData',   studyd, ...
-                                        'sessionPath', eSess.fqdns{iSess}, ...
-                                        'snumber',     mlraichle.T4ResolveUtilities.scanNumber(eTracer.dns{iTracer}), ...
-                                        'tracer',      mlraichle.T4ResolveUtilities.tracerPrefix(eTracer.dns{iTracer}), ...
-                                        'vnumber',     mlraichle.T4ResolveUtilities.visitNumber(eVisit.dns{iVisit}));                                    
-                                    disp(sessd);
-                                    this = T4ResolveBuilder('sessionData', sessd);
-                                    disp(this);
-                                    this = this.excludeFrames(ip.Results.excludeFrames); 
-                                    this.(ip.Results.methodName);   
-                                catch ME
-                                    handwarning(ME);
-                                end
-                            end
-                        end
-                    end
-                end                
-            end            
-        end
-    end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end
