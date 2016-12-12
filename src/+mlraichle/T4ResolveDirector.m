@@ -125,7 +125,7 @@ classdef T4ResolveDirector
                     cd(dtFqdns{idt});
                     mlfourdfp.UmapResolveBuilder.serialBuildUmaps(pwd, 'iVisit', v);
                     cd(dtFqdns{idt});
-                    mlfourdfp.O15UmapResolveBuilder.serialBuildO15Umaps(pwd, 'iVisit', v);
+                    mlfourdfp.O15UmapResolveBuilder.buildAllO15Umaps(pwd, 'iVisit', v);
                 end
             end
         end
