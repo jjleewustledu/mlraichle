@@ -73,10 +73,6 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
             cd(fullfile(this.sessd.sessionPath, 'V2', ''));
             this.testObj = this.testObj.t4ResolvePET2;
         end
-        function test_transverseMpr(this)
-            mpr = this.testObj.transverseMpr;
-            this.verifyTrue(strcmp(mpr, fullfile(pwd, [this.hygly '_mpr_trans'])));
-        end
         function test_buildUmapOnSumt(this)
             this.testObj = this.testObj.buildUmapOnSumt;
         end
@@ -112,7 +108,7 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
             this.sessd = mlraichle.SessionData( ...
                 'studyData', this.studyd, 'sessionPath', fullfile(this.studyd.subjectsDir, this.hygly, ''));            
             this.testObj_ = mlraichle.T4ResolveBuilder('sessionData', this.sessd);
-            setenv('DEBUG', '');
+            setenv('DEBUG', ''); % cf. dbbash
  		end
 	end
 

@@ -97,7 +97,7 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
                                                 'tracer',      mlraichle.T4ResolveUtilities.tracerPrefix(eTracer.dns{iTracer}), ...
                                                 'vnumber',     mlraichle.T4ResolveUtilities.visitNumber(eVisit.dns{iVisit}));
                                             this = T4ResolveBuilder('sessionData', sessd);
-                                            this = this.t4ResolveConvertedNAC;   
+                                            this = this.resolveConvertedNAC;   
                                             these{iSess,iVisit} = this;
                                         catch ME
                                             handwarning(ME);
@@ -158,7 +158,7 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
                                         'tracer',      mlraichle.T4ResolveUtilities.tracerPrefix(eTracer.dns{iTracer}), ...
                                         'vnumber',     mlraichle.T4ResolveUtilities.visitNumber(eVisit.dns{iVisit}));
                                     this = T4ResolveBuilder('sessionData', sessd);
-                                    this = this.t4ResolveConvertedNAC; %#ok<NASGU>
+                                    this = this.resolveConvertedNAC; %#ok<NASGU>
                                     %these{iSess,iVisit} = this;
                                 catch ME
                                     handwarning(ME);
@@ -171,23 +171,6 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
                 end
             end
             save(sprintf('mlraichle_T4ResolveBuilder_parTriggerOnConvertedNAC2_these_%s.mat', datestr(now, 30)), 'these');
-        end
-        function jobs  = serialize(c)
-            
-            assert(isa(c, 'parallel.cluster.Generic'));
-            
-            hyglys = { 'HYGLY05' 'HYGLY08' 'HYGLY11' 'HYGLY24' 'HYGLY25' };
-            jobs   = cell(1, length(hyglys));
-            jjlee  = '/scratch/jjlee/raichle/PPGdata/jjlee';
-            eSessFqdns = cellfun(@(x) fullfile(jjlee, x), hyglys, 'UniformOutput', false);
-            
-            for iSess = 1:length(eSessFqdns)                
-                try
-                    jobs{iSess} = c.batch(@mlraichle.T4ResolveBuilder.serialCompletedT4s2, 0, {eSessFqdns{iSess}});                    
-                catch ME
-                    handwarning(ME);
-                end
-            end
         end
         function         serialT4ResolveConvertedNAC(varargin)
             
@@ -230,7 +213,7 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
                                 'tracer',      tracer, ...
                                 'vnumber',     iVisit);
                             this = T4ResolveBuilder('sessionData', sessd);
-                            this = this.t4ResolveConvertedNAC; %#ok<NASGU>                                    
+                            this = this.resolveConvertedNAC; %#ok<NASGU>                                    
                             save(sprintf('mlraichle_T4ResolveBuilder_serialConvertedNAC_this_%s.mat', datestr(now, 30)), 'this');
                         catch ME
                             handwarning(ME);
@@ -273,7 +256,7 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
                                 'tracer',      mlraichle.T4ResolveUtilities.tracerPrefix(eTracer.dns{iTracer}), ...
                                 'vnumber',     mlraichle.T4ResolveUtilities.visitNumber(eVisit.dns{iVisit}));
                             this = T4ResolveBuilder('sessionData', sessd);
-                            this = this.t4ResolveConvertedNAC; %#ok<NASGU>                                    
+                            this = this.resolveConvertedNAC; %#ok<NASGU>                                    
                             save(sprintf('mlraichle_T4ResolveBuilder_serialConvertedNAC2_this_%s.mat', datestr(now, 30)), 'this');
                         catch ME
                             handwarning(ME);
@@ -328,7 +311,7 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
                                             'tracer',      mlraichle.T4ResolveUtilities.tracerPrefix(eTracer.dns{iTracer}), ...
                                             'vnumber',     mlraichle.T4ResolveUtilities.visitNumber(eVisit.dns{iVisit}));
                                         this = T4ResolveBuilder('sessionData', sessd);
-                                        this = this.t4ResolveConvertedNAC;   
+                                        this = this.resolveConvertedNAC;   
                                         these{iSess,iVisit} = this;
                                     catch ME
                                         handwarning(ME);
@@ -390,7 +373,7 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
                                             'tracer',      mlraichle.T4ResolveUtilities.tracerPrefix(eTracer.dns{iTracer}), ...
                                             'vnumber',     mlraichle.T4ResolveUtilities.visitNumber(eVisit.dns{iVisit}));
                                         this = T4ResolveBuilder('sessionData', sessd);
-                                        this = this.t4RepairConvertedNAC( ...
+                                        this = this.repairConvertedNAC( ...
                                             ip.Results.frame1st, ip.Results.frame2nd);
                                     catch ME
                                         handwarning(ME);
@@ -406,7 +389,7 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             end
         end
         function this  = triggeringT4ResolveConvertedNAC(varargin)
-            this = mlraichle.T4ResolveBuilder.triggering('t4ResolveConvertedNAC', varargin{:});          
+            this = mlraichle.T4ResolveBuilder.triggering('resolveConvertedNAC', varargin{:});          
         end
         function this  = triggeringPullTracerNAC(varargin)
             this = mlraichle.T4ResolveBuilder.triggering('pullTracerNAC', varargin{:});                      
@@ -424,14 +407,14 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
                 files = {files};
             end
             
-            import mlraichle.*;
+            import mlfourdfp.*;
             for f = 1:length(files)                
                 try
                     [~,r] = mlbash(sprintf('scp -qr %s %s:%s', ...
                         fullfile(getenv('PPG'), 'jjlee', sessFold, visit, files{f}), ...
-                        T4ResolveBuilder.CLUSTER_HOSTNAME, ...
-                        fullfile(T4ResolveBuilder.CLUSTER_SUBJECTS_DIR, sessFold, visit, '')));
-                    fprintf('mlraichle.T4ResolveBuilder.scp:  %s\n', r);
+                        MMRResolveBuilder.CLUSTER_HOSTNAME, ...
+                        fullfile(MMRResolveBuilder.CLUSTER_SUBJECTS_DIR, sessFold, visit, '')));
+                    fprintf('mlfourdfp.MMRResolveBuilder.scp:  %s\n', r);
                 catch ME
                     handwarning(ME);
                 end
@@ -459,7 +442,7 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
                 'sessionPath', fullfile(studyd.subjectsDir, ip.Results.subject, ''));
             this = mlraichle.T4ResolveBuilder('sessionData', sessd);
             cd(fullfile(sessd.sessionPath, 'V1', ''));
-            this = this.t4ResolveConvertedNAC;
+            this = this.resolveConvertedNAC;
         end
     end
     
@@ -473,21 +456,23 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
         function        prepareNACLocation(this)
             %% PREPARENACLOCATION recovers the NAC location from backup or creates it de novo.
             
+            sessd = this.sessionData;
             if (this.recoverNACFolder)
-                movefile([this.sessionData.tracerNACLocation '-Backup'], this.sessionData.tracerNACLocation);
+                movefile([sessd.tracerNACLocation '-Backup'], sessd.tracerNACLocation);
                 return
             end            
-            if (~isdir(this.sessionData.tracerNACLocation))
-                mkdir(this.sessionData.tracerNACLocation);
+            if (~isdir(sessd.tracerNACLocation))
+                mkdir(sessd.tracerNACLocation);
             end            
         end
         function this = buildTracerNAC(this)
             %% BUILDTRACERNAC builds 4dfp-formatted tracer NAC images; use to prep data before conveying to clusters.
             %  See also:  mlfourdfp.FourdfpVisitor.sif_4dfp.
             
-            ori = this.sessionData.tracerLMFrame('typ', 'fqfn', 'frame', length(this.frames)-1);
-            lm  = this.sessionData.tracerLM( 'typ', 'fqfp');
-            nac = this.sessionData.tracerNAC('typ', 'fqfp');
+            sessd = this.sessionData;
+            ori = sessd.tracerLMFrame('typ', 'fqfn', 'frame', length(this.frames)-1);
+            lm  = sessd.tracerLM( 'typ', 'fqfp');
+            nac = sessd.tracerNAC('typ', 'fqfp');
             
             if (this.buildVisitor.lexist_4dfp(nac))
                 return
@@ -500,10 +485,10 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
                 cd(fileparts(lm));
                 this.buildVisitor.sif_4dfp(lm);
             end
-            if (~isdir(this.sessionData.tracerNACLocation))
-                mkdir(this.sessionData.tracerNACLocation);
+            if (~isdir(sessd.tracerNACLocation))
+                mkdir(sessd.tracerNACLocation);
             end                
-            movefile([lm '.4dfp.*'], this.sessionData.tracerNACLocation);
+            movefile([lm '.4dfp.*'], sessd.tracerNACLocation);
         end
         function        prepareMR(this)
             %% PREPAREMR runs msktgenMprage as needed for use by resolve.
@@ -525,19 +510,20 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             addParameter(ip, 'visits', {'V1' 'V2'}, @iscell);
             parse(ip, varargin{:});
             
-            cd(fullfile(this.sessionData.sessionPath));
+            sessd = this.sessionData;
+            cd(fullfile(sessd.sessionPath));
             
             for iv = 1:length(ip.Results.visits)
-                cd(fullfile(this.sessionData.sessionPath, ip.Results.visits{iv}, ...
-                    sprintf('%s_%s-NAC', upper(this.sessionData.tracer), ip.Results.visits{iv}), ''));
-                listv = {'*'}; % {[lower(this.sessionData.tracer) '*'] 'Log' 'T4'};
+                cd(fullfile(sessd.sessionPath, ip.Results.visits{iv}, ...
+                    sprintf('%s_%s-NAC', upper(sessd.tracer), ip.Results.visits{iv}), ''));
+                listv = {'*'}; 
                 for ilv = 1:length(listv)
                     try
                         mlbash(sprintf('scp -qr %s:%s .', ...
                             this.CLUSTER_HOSTNAME, ...
                             fullfile( ...
-                                this.CLUSTER_SUBJECTS_DIR, this.sessionData.sessionFolder, ip.Results.visits{iv}, ...
-                                sprintf('%s_%s-NAC', upper(this.sessionData.tracer), ip.Results.visits{iv}), listv{ilv})));                        
+                                this.CLUSTER_SUBJECTS_DIR, sessd.sessionFolder, ip.Results.visits{iv}, ...
+                                sprintf('%s_%s-NAC', upper(sessd.tracer), ip.Results.visits{iv}), listv{ilv})));                        
                     catch ME
                         handwarning(ME);
                     end
@@ -552,19 +538,20 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             addParameter(ip, 'visits', {'V1' 'V2'}, @iscell);
             parse(ip, varargin{:});
             
-            cd(fullfile(this.sessionData.sessionPath));
+            sessd = this.sessionData;
+            cd(fullfile(sessd.sessionPath));
             
             for iv = 1:length(ip.Results.visits)
-                cd(fullfile(this.sessionData.sessionPath, ip.Results.visits{iv}, ...
-                    sprintf('%s_%s-NAC', upper(this.sessionData.tracer), ip.Results.visits{iv}), ''));
+                cd(fullfile(sessd.sessionPath, ip.Results.visits{iv}, ...
+                    sprintf('%s_%s-NAC', upper(sessd.tracer), ip.Results.visits{iv}), ''));
                 try
                     mlbash(sprintf('scp -qr %s %s:%s', ...
                         fullfile( ...
-                            this.sessionData.sessionPath, ip.Results.visits{iv}, ...
-                            sprintf('%s_%s-NAC', upper(this.sessionData.tracer), ip.Results.visits{iv})), ...
+                            sessd.sessionPath, ip.Results.visits{iv}, ...
+                            sprintf('%s_%s-NAC', upper(sessd.tracer), ip.Results.visits{iv})), ...
                         this.CLUSTER_HOSTNAME, ...
                         fullfile( ...
-                            this.CLUSTER_SUBJECTS_DIR, this.sessionData.sessionFolder, ip.Results.visits{iv}, '') )); 
+                            this.CLUSTER_SUBJECTS_DIR, sessd.sessionFolder, ip.Results.visits{iv}, '') )); 
                 catch ME
                     handwarning(ME);
                 end
@@ -573,12 +560,14 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
         function        pushAncillary(this)
             %% PUSHANCILLARY calls scp to push ct.4dfp.* to this.CLUSTER_HOSTNAME:this.CLUSTER_SUBJECTS_DIR
             
-            cd(fullfile(this.sessionData.sessionPath));
+            sessd = this.sessionData;
+            
+            cd(fullfile(sessd.sessionPath));
             lists = {'ct.4dfp.*'};
             for ils = 1:length(lists)
                 try
                     mlbash(sprintf('scp -qr %s %s:%s', ...
-                        lists{ils}, this.CLUSTER_HOSTNAME, fullfile(this.CLUSTER_SUBJECTS_DIR, this.sessionData.sessionFolder, '')));
+                        lists{ils}, this.CLUSTER_HOSTNAME, fullfile(this.CLUSTER_SUBJECTS_DIR, sessd.sessionFolder, '')));
                 catch ME
                     handwarning(ME);
                 end
@@ -586,44 +575,19 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             
             visits = {'V1' 'V2'};
             for iv = 1:length(visits)                
-                cd(fullfile(this.sessionData.sessionPath, visits{iv}, ''));
-                listv = {'mpr.4dfp.*' '*_t4' [upper(this.sessionData.tracer) '_*-NAC']};
+                cd(fullfile(sessd.sessionPath, visits{iv}, ''));
+                listv = {'mpr.4dfp.*' '*_t4' [upper(sessd.tracer) '_V*-NAC']};
                 for ilv = 1:length(listv)
                     try
                         mlbash(sprintf('scp -qr %s %s:%s', ...
                             listv{ilv}, ...
                             this.CLUSTER_HOSTNAME, ...
-                            fullfile(this.CLUSTER_SUBJECTS_DIR, this.sessionData.sessionFolder, visits{iv}, '')));
+                            fullfile(this.CLUSTER_SUBJECTS_DIR, sessd.sessionFolder, visits{iv}, '')));
                     catch ME
                         handwarning(ME);
                     end
                 end
             end
-        end
-        function this = t4RepairConvertedNAC(this, frame1st, frame2nd)
-            %% T4REPAIRCONVERTEDNAC
-            %  @param frame1st is numeric.
-            %  @param frame2nd is numeric.            
-            %  See also:  mlraichle.T4ResolveBuilder.repairSingle
-            
-            cd(this.sessionData.tracerNAC('typ', 'path'));
-            mlraichle.T4ResolveBuilder.printv('t4RepairConvertedNAC.pwd:  %s\n', pwd);
-            this.ensureTracerSymlinks;
-            this = this.repairSingle( ...
-                frame1st, frame2nd, ...
-                'dest', sprintf('%sv%ir%i', lower(this.sessionData.tracer), this.sessionData.vnumber, this.sessionData.rnumber));
-        end
-        function this = t4ResolveConvertedNAC(this)
-            %% T4RESOLVECONVERTEDNAC is the principle caller of resolve.
-            
-            cd(this.sessionData.tracerNAC('typ', 'path'));
-            mlraichle.T4ResolveBuilder.printv('t4ResolveConvertedNAC.pwd:  %s\n', pwd);
-            this.ensureTracerSymlinks;
-            this = this.resolve( ...
-                'dest', sprintf('%sv%i', lower(this.sessionData.tracer), this.sessionData.vnumber), ...
-                'source', this.sessionData.tracerNAC('typ', 'fp'), ...
-                'firstCrop', this.firstCrop, ...
-                'frames', this.frames);
         end
         
  		function this = T4ResolveBuilder(varargin)
@@ -631,7 +595,6 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
  			%  Usage:  this = T4ResolveBuilder()
 
  			this = this@mlfourdfp.MMRResolveBuilder(varargin{:});
-            this = this.excludeFrames(this.guessExclusions);
         end
     end
     

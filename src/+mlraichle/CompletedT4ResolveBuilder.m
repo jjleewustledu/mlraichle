@@ -1,5 +1,7 @@
 classdef CompletedT4ResolveBuilder < mlfourdfp.MMRResolveBuilder
-	%% COMPLETEDT4RESOLVEBUILDER  
+	%% COMPLETEDT4RESOLVEBUILDER was written, ad hoc, for defective runs of mlraichle.T4ResolveBuilder for which calls to 
+    %  mlfourdfp.T4ResolveBuilder.iterate succeeded but calls to .t4ResolveAndPaste needed adjusting.  N.B. differences
+    %  noted below for methods .resolve and .t4ResolveCompletedNAC.
 
 	%  $Revision$
  	%  was created 10-Nov-2016 17:48:25
@@ -45,7 +47,7 @@ classdef CompletedT4ResolveBuilder < mlfourdfp.MMRResolveBuilder
                                 'vnumber',     iVisit);
                             this = CompletedT4ResolveBuilder('sessionData', sessd);
                             this = this.t4ResolveCompletedNAC; %#ok<NASGU>                                    
-                            save(sprintf('mlraichle_T4ResolveBuilder_serialCompletedT4s_this_%s.mat', datestr(now, 30)), 'this');
+                            save(sprintf('mlraichle_CompletedT4ResolveBuilder_serialCompletedT4s_this_%s.mat', datestr(now, 30)), 'this');
                         catch ME
                             handwarning(ME);
                         end
@@ -57,7 +59,8 @@ classdef CompletedT4ResolveBuilder < mlfourdfp.MMRResolveBuilder
     
 	methods        
         function this = resolve(this, varargin)
-            %% RESOLVE
+            %% RESOLVE differs from mlfourdfp.T4ResolveBuilder.resolve in that no while-loop calls .iterate; 
+            %  key calls are to .extractFrames, .lazyBlurredFrames, .t4ResolveAndPaste and .teardownIterate.
             %  @param dest       is a f.q. fileprefix.
             %  @param destMask   "
             %  @param source     "
@@ -113,6 +116,8 @@ classdef CompletedT4ResolveBuilder < mlfourdfp.MMRResolveBuilder
         end
         function this = t4ResolveCompletedNAC(this)
             %% T4RESOLVECONVERTEDNAC is the principle caller of resolve.
+            %  It differs from mlfourdp.T4ResolveBuilder.t4ResolveCompletedNAC by calling .recoverTorndown
+            %  and not calling .ensureTracerSymLinks.
             
             cd(this.sessionData.fdgNAC('typ', 'path'));
             this.recoverTorndown;
