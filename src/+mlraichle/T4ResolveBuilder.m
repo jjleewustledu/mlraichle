@@ -490,18 +490,6 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             end                
             movefile([lm '.4dfp.*'], sessd.tracerNACLocation);
         end
-        function        prepareMR(this)
-            %% PREPAREMR runs msktgenMprage as needed for use by resolve.
-            
-            sessd      = this.sessionData;
-            mpr        = sessd.mprage('typ', 'fp');
-            atl        = sessd.atlas('typ', 'fp');
-            mprToAtlT4 = [mpr '_to_' atl '_t4'];            
-            if (~lexist(fullfile(sessd.mprage('typ', 'path'), mprToAtlT4)))
-                cd(sessd.mprage('typ', 'path'));
-                this.msktgenMprage(mpr, atl);
-            end
-        end
         function        pullTracerNAC(this, varargin)
             %% PULLTRACERNAC calls scp to pull this.CLUSTER_HOSTNAME:this.CLUSTER_SUBJECTS_DIR/<TRACER>_<VISIT>-NAC*
             %  @param visits is a cell-array defaulting to {'V1' 'V2'}

@@ -1,5 +1,5 @@
-classdef O15ResolveBuilder < mlfourdfp.AbstractTracerResolveBuilder
-	%% O15RESOLVEBUILDER  
+classdef O15DynamicBuilder < mlfourdfp.AbstractTracerResolveBuilder
+	%% O15DYNAMICBUILDER  
 
 	%  $Revision$
  	%  was created 27-Oct-2016 22:21:08
@@ -16,10 +16,10 @@ classdef O15ResolveBuilder < mlfourdfp.AbstractTracerResolveBuilder
     methods (Static)
         function tf   = completed(sessd)
             assert(isa(sessd, 'mlraichle.SessionData'));
-            this = mlraichle.O15ResolveBuilder('sessionData', sessd);
+            this = mlraichle.O15DynamicBuilder('sessionData', sessd);
             tf = lexist(this.completedTouchFile, 'file');
         end
-        function        parTriggering(varargin)           
+        function        parTriggering(varargin)
             
             ip = inputParser;
             addRequired( ip, 'methodName', @ischar);
@@ -56,8 +56,8 @@ classdef O15ResolveBuilder < mlfourdfp.AbstractTracerResolveBuilder
                                     'snumber',     mlraichle.T4ResolveUtilities.scanNumber(  eTracer.dns{iTracer}), ...
                                     'tracer',      mlraichle.T4ResolveUtilities.tracerPrefix(eTracer.dns{iTracer}), ...
                                     'vnumber',     mlraichle.T4ResolveUtilities.visitNumber( eVisit.dns{iVisit}));
-                                this = mlraichle.O15ResolveBuilder('sessionData', sessd);
-                                mlraichle.O15ResolveBuilder.printv('O15ResolveBuilder.pth___ -> %s\n', pth___);
+                                this = mlraichle.O15DynamicBuilder('sessionData', sessd);
+                                mlraichle.O15DynamicBuilder.printv('O15DynamicBuilder.pth___ -> %s\n', pth___);
                                 this.(ipr.methodName);
                             catch ME
                                 handwarning(ME);
@@ -102,8 +102,8 @@ classdef O15ResolveBuilder < mlfourdfp.AbstractTracerResolveBuilder
                                     'snumber',     mlraichle.T4ResolveUtilities.scanNumber(  eTracer.dns{iTracer}), ...
                                     'tracer',      mlraichle.T4ResolveUtilities.tracerPrefix(eTracer.dns{iTracer}), ...
                                     'vnumber',     mlraichle.T4ResolveUtilities.visitNumber( eVisit.dns{iVisit}));
-                                this = mlraichle.O15ResolveBuilder('sessionData', sessd);
-                                mlraichle.O15ResolveBuilder.printv('O15ResolveBuilder.pth___ -> %s\n', pth___);
+                                this = mlraichle.O15DynamicBuilder('sessionData', sessd);
+                                mlraichle.O15DynamicBuilder.printv('O15DynamicBuilder.pth___ -> %s\n', pth___);
                                 this.(ip.Results.methodName);
                             catch ME
                                 handwarning(ME);
@@ -116,97 +116,17 @@ classdef O15ResolveBuilder < mlfourdfp.AbstractTracerResolveBuilder
     end
     
 	methods		  
- 		function this = O15ResolveBuilder(varargin)
- 			%% O15RESOLVEBUILDER
- 			%  Usage:  this = O15ResolveBuilder()
+ 		function this = O15DynamicBuilder(varargin)
+ 			%% O15DynamicBuilder
+ 			%  Usage:  this = O15DynamicBuilder()
 
  			this = this@mlfourdfp.AbstractTracerResolveBuilder(varargin{:});
         end
         function printSessionData(this)
-            mlraichle.O15ResolveBuilder.printv('O15ResolveBuilder.printSessionData -> \n');
+            mlraichle.O15DynamicBuilder.printv('O15DynamicBuilder.printSessionData -> \n');
             disp(this.sessionData);
         end
-        function resolveLocally(this)
-            this.mkdirTracerNACLocation;
-            this.buildTracerNAC;
-            this.ensureMsktgenMprage;  
-            this.resolveConvertedNAC;
-        end
-        function prepareClusterResolve(this)
-            this.mkdirTracerNACLocation;
-            this.buildTracerNAC;
-            this.ensureMsktgenMprage; 
-            this.pushAncillary;
-            this.pushTracerNAC;
-        end
-        function pullTracerNAC(this, varargin)
-            %% PULLTRACERNAC calls scp to pull this.CLUSTER_HOSTNAME:this.CLUSTER_SUBJECTS_DIR/<TRACER>_<VISIT>-NAC*
-            %  @param visits is a cell-array defaulting to {'V1' 'V2'}
-            
-            ip = inputParser;
-            addParameter(ip, 'visits', {'V1' 'V2'}, @iscell);
-            parse(ip, varargin{:});
-            
-            sessd = this.sessionData;
-            cd(fullfile(sessd.sessionPath));
-            
-            for iv = 1:length(ip.Results.visits)
-                cd(fullfile(sessd.sessionPath, ip.Results.visits{iv}, ...
-                    sprintf('%s_%s-NAC', upper(sessd.tracer), ip.Results.visits{iv}), ''));
-                listv = {'*'}; 
-                for ilv = 1:length(listv)
-                    try
-                        mlbash(sprintf('scp -qr %s:%s .', ...
-                            this.CLUSTER_HOSTNAME, ...
-                            fullfile( ...
-                                this.CLUSTER_SUBJECTS_DIR, sessd.sessionFolder, ip.Results.visits{iv}, ...
-                                sprintf('%s_%s-NAC', upper(sessd.tracer), ip.Results.visits{iv}), listv{ilv})));                        
-                    catch ME
-                        handwarning(ME);
-                    end
-                end
-            end
-        end
-        function pushTracerNAC(this, varargin)
-            %% PUSHTRACERNAC calls scp to push <TRACER>_<VISIT>-NAC to this.CLUSTER_HOSTNAME:this.CLUSTER_SUBJECTS_DIR
-            %  @param visits is a cell-array defaulting to {'V1' 'V2'}
-            
-            ip = inputParser;
-            addParameter(ip, 'visits', {'V1' 'V2'}, @iscell);
-            parse(ip, varargin{:});
-            
-            sessd = this.sessionData;
-            cd(fullfile(sessd.sessionPath));
-            
-            for iv = 1:length(ip.Results.visits)
-                cd(fullfile(sessd.sessionPath, ip.Results.visits{iv}, ...
-                    sprintf('%s_%s-NAC', upper(sessd.tracer), ip.Results.visits{iv}), ''));
-                try
-                    mlbash(sprintf('scp -qr %s %s:%s', ...
-                        fullfile( ...
-                            sessd.sessionPath, ip.Results.visits{iv}, ...
-                            sprintf('%s_%s-NAC', upper(sessd.tracer), ip.Results.visits{iv})), ...
-                        this.CLUSTER_HOSTNAME, ...
-                        fullfile( ...
-                            this.CLUSTER_SUBJECTS_DIR, sessd.sessionFolder, ip.Results.visits{iv}, '') )); 
-                catch ME
-                    handwarning(ME);
-                end
-            end
-        end
-        function batchClusterResolve(this)
-            c = parcluster;
-            c.batch(@this.batchClusterResolve__, 1, {});
-        end
     end 
-    
-    %% PRIVATE
-    
-    methods (Access = private)
-        function batchClusterResolve__(this)
-            this.resolveConvertedNAC;
-        end
-    end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end

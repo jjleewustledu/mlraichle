@@ -1,5 +1,5 @@
-classdef F18ResolveBuilder < mlfourdfp.AbstractTracerResolveBuilder
-	%% F18RESOLVEBUILDER  
+classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
+	%% FDGBUILDER  
 
 	%  $Revision$
  	%  was created 11-Dec-2016 22:13:25
@@ -14,21 +14,29 @@ classdef F18ResolveBuilder < mlfourdfp.AbstractTracerResolveBuilder
  	end
 
     methods (Static)
-        function tf    = completed(sessd)
+        function tf = completed(sessd)
             assert(isa(sessd, 'mlraichle.SessionData'));
-            this = mlraichle.F18ResolveBuilder('sessionData', sessd);
+            this = mlraichle.FdgBuilder('sessionData', sessd);
             tf = lexist(this.completedTouchFile, 'file');
         end
     end
     
 	methods 
 		  
- 		function this = F18ResolveBuilder(varargin)
- 			%% F18RESOLVEBUILDER
- 			%  Usage:  this = F18ResolveBuilder()
+ 		function this = FdgBuilder(varargin)
+ 			%% FdgBuilder
+ 			%  Usage:  this = FdgBuilder()
 
  			this = this@mlfourdfp.AbstractTracerResolveBuilder(varargin{:});
- 		end
+        end
+        
+        function resolveMpr(this)
+            
+        end
+        function printSessionData(this)
+            mlraichle.FdgBuilder.printv('FdgBuilder.printSessionData -> \n');
+            disp(this.sessionData);
+        end
  	end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

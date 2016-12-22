@@ -125,7 +125,7 @@ classdef SessionData < mlpipeline.SessionData
             
             loc = this.studyData_.locationType(ip.Results.typ, ...
                 fullfile(this.freesurfersDir, [this.sessionLocation('typ', 'folder') '_' this.vLocation('typ', 'folder')], ''));
-        end
+        end   
         function obj  = perf(this, varargin)
             obj = this.mrObject('ep2d_perf', varargin{:});
         end
@@ -154,6 +154,13 @@ classdef SessionData < mlpipeline.SessionData
                 sprintf('ctRescaledv%i.4dfp.ifh', this.vnumber, ipr.rnumber));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end        
+        function n    = NFramesToExclude(this)
+            if (lstrfind(upper(this.tracer), 'FDG') && ~this.attenuationCorrected)
+                n = 3;
+                return
+            end
+            n = 0;
+        end
         function obj  = petfov(this, varargin)
             obj = this.mrObject('AIFFOV%s%s', varargin{:});
         end
@@ -379,6 +386,7 @@ classdef SessionData < mlpipeline.SessionData
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired( ip, 'desc', @ischar);
+            addParameter(ip, 'orientation', '', @(x) lstrcmp({'sagittal' 'transverse' 'coronal' ''}, x));
             addParameter(ip, 'suffix', '', @ischar);
             addParameter(ip, 'typ', 'fqfp', @ischar);
             parse(ip, varargin{:});
@@ -386,7 +394,8 @@ classdef SessionData < mlpipeline.SessionData
             fqfn = fullfile(this.fourdfpLocation, ...
                             sprintf('%s%s%s', ip.Results.desc, ip.Results.suffix, this.filetypeExt));
             this.ensureMRFqfilename(fqfn);
-            obj = this.studyData_.imagingType(ip.Results.typ, fqfn);
+            fqfn = this.ensureOrientation(fqfn, ip.Results.orientation);
+            obj  = this.studyData_.imagingType(ip.Results.typ, fqfn);
         end 
         function obj = petObject(this, varargin)
             ip = inputParser;
@@ -411,10 +420,60 @@ classdef SessionData < mlpipeline.SessionData
     %% PROTECTED
     
     methods (Access = protected)    
-        function ensureCTFqfilename(~, fqfn) %#ok<INUSD>
+        function        ensureCTFqfilename(~, fqfn) %#ok<INUSD>
             %assert(lexist(fqfn, 'file'));
         end
-        function ensureMRFqfilename(this, fqfn)
+        function fqfn = ensureOrientation(this, fqfn, orient)
+            assert(lstrcmp({'sagittal' 'transverse' 'coronal' ''}, orient)); 
+            [pth,fp,ext] = myfileparts(fqfn);
+            fqfp = fullfile(pth, fp);   
+            orient0 = this.readOrientation(fqfp);
+            fv = mlfourdfp.FourdfpVisitor;             
+            
+            if (isempty(orient))
+                return
+            end     
+            if (strcmp(orient0, orient))
+                return
+            end       
+            if (lexist([this.orientedFileprefix(fqfp, orient) ext]))
+                fqfn = [this.orientedFileprefix(fqfp, orient) ext];
+                return
+            end
+                       
+            pwd0 = pushd(pth);
+            switch (orient0)
+                case 'sagittal'
+                    switch (orient)
+                        case 'transverse'
+                            fv.S2T_4dfp(fp, [fp 'T']);
+                            fqfn = [fqfp 'T' ext];
+                        case 'coronal'
+                            fv.S2C_4dfp(fp, [fp 'C']);
+                            fqfn = [fqfp 'C' ext];
+                    end
+                case 'transverse'
+                    switch (orient)
+                        case 'sagittal'
+                            fv.T2S_4dfp(fp, [fp 'S']);
+                            fqfn = [fqfp 'S' ext];
+                        case 'coronal'
+                            fv.T2C_4dfp(fp, [fp 'C']);
+                            fqfn = [fqfp 'C' ext];
+                    end
+                case 'coronal'
+                    switch (orient)
+                        case 'sagittal'
+                            fv.C2S_4dfp(fp, [fp 'S']);
+                            fqfn = [fqfp 'S' ext];
+                        case 'transverse'
+                            fv.C2T_4dfp(fp, [fp 'T']);
+                            fqfn = [fqfp 'T' ext];
+                    end
+            end
+            popd(pwd0);
+        end
+        function        ensureMRFqfilename(this, fqfn)
             if (~lexist(fqfn, 'file'))
                 try
                     import mlfourdfp.*;
@@ -428,12 +487,44 @@ classdef SessionData < mlpipeline.SessionData
                 end
             end
         end
-        function ensurePETFqfilename(~, fqfn) %#ok<INUSD>
+        function        ensurePETFqfilename(~, fqfn) %#ok<INUSD>
             %assert(lexist(fqfn, 'file'));
         end
-        function ensureUmapFqfilename(~, fqfn) %#ok<INUSD>
+        function        ensureUmapFqfilename(~, fqfn) %#ok<INUSD>
             %assert(lexist(fqfn, 'file'));
-        end    
+        end   
+        function fqfp = orientedFileprefix(~, fqfp, orient)
+            assert(mlfourdfp.FourdfpVisitor.lexist_4dfp(fqfp));
+            switch (orient)
+                case 'sagittal'
+                    fqfp = [fqfp 'S'];
+                case 'transverse'
+                    fqfp = [fqfp 'T'];
+                case 'coronal'
+                    fqfp = [fqfp 'C'];
+                otherwise
+                    error('mlraichle:switchCaseNotSupported', ...
+                          'SesssionData.orientedFileprefix.orient -> %s', orient);
+            end
+        end
+        function o    = readOrientation(~, varargin)
+            ip = inputParser;
+            addRequired(ip, 'fqfp', @mlfourdfp.FourdfpVisitor.lexist_4dfp);
+            parse(ip, varargin{:});
+            
+            [~,o] = mlbash(sprintf('awk ''/orientation/{print $NF}'' %s.4dfp.ifh', ip.Results.fqfp));
+            switch (strtrim(o))
+                case '2'
+                    o = 'transverse';
+                case '3'
+                    o = 'coronal';
+                case '4'
+                    o = 'sagittal';
+                otherwise
+                    error('mlraichle:switchCaseNotSupported', ...
+                          'SessionData.readOrientation.o -> %s', o);
+            end
+        end 
     end
     
     %% HIDDEN, DEPRECATED
