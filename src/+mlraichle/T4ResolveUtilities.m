@@ -37,7 +37,7 @@ classdef T4ResolveUtilities < mlfourdfp.T4ResolveUtilities
         end
         function repairFrameNumbersInImgRec(fqfn)
             assert(lexist(fqfn));
-            lp = mlio.LogParser.loadx(fqfn, '.4dfp.img.rec');
+            lp = mlio.LogParser2.loadx(fqfn, '.4dfp.img.rec');
             assert(lexist(lp.fqfn));
             contents = lp.cellContents;
             line = 0;

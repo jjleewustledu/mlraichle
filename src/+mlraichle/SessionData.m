@@ -196,8 +196,7 @@ classdef SessionData < mlpipeline.SessionData
             
             [ipr,schar] = this.iprLocation(varargin{:});
             loc = this.studyData_.locationType(ipr.typ, ...
-                fullfile(this.vLocation, ...
-                         sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.acTag), ''));
+                  fullfile(this.vLocation, sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.acTag), ''));
         end
         function obj  = tracerLM(this, varargin)
             %  @param named tracer is a string identifier.
