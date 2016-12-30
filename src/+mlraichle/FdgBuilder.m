@@ -10,7 +10,6 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
  	
 
 	properties
- 		framesToSkip = 3
  	end
 
     methods (Static)
@@ -189,9 +188,12 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
  			%  Usage:  this = FdgBuilder()
 
  			this = this@mlfourdfp.AbstractTracerResolveBuilder(varargin{:});
-            maxFrames = this.readSize(sessd0.fdgNACResolved('typ', 'fqfp'));
-            this.frames = [zeros(1, this.framesToSkip) ones(1, maxFrames - this.framesToSkip)];
-        end        
+            if (isempty(this.frames_))
+                sessd0 = this.adjustedSessionData('rnumber', max(1, this.sessionData.rnumber-1));
+                maxFrames = this.readLength(sessd0.fdgNACResolved('typ', 'fqfp'));
+                this.frames = [0 0 0 ones(1, maxFrames - this.framesToSkip)];
+            end
+        end
         
         function this = reconstituteEarlyFrames(this, varargin)
             ip = inputParser;
@@ -216,7 +218,10 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
             delete('*.nii.gz', '*.nii');
             popd(pwd0);
         end
-        function this = resolve(this)
+        function this = resolve(this, varargin)
+            this = this.resolve@mlfourdfp.T4ResolveBuilder(varargin{:});
+        end
+        function this = resolveFdg(this)
             if (1 == this.sessionData.rnumber)
                 this = this.resolveR1;
                 return
@@ -264,7 +269,7 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
             this.printv('FdgBuilder.resolveRNumber.pwd -> %s\n', pwd);
             this = this.resolve( ...
                 'dest',      sessd.tracerRevision('typ', 'fp'), ... 
-                'source',    sessd0.tracerRevision('typ', 'fp'), ...
+                'source',    sessd0.tracerResolved('typ', 'fp'), ...
                 'firstCrop', 1, ...
                 'frames',    this.frames);
             popd(pwd0);

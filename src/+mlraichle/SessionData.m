@@ -115,6 +115,17 @@ classdef SessionData < mlpipeline.SessionData
         function obj  = adc(this, varargin)
             obj = this.mrObject('ep2d_diff_26D_lgfov_nopat_ADC', varargin{:});
         end
+        function obj = atlas(this, varargin)
+            ip = inputParser;
+            addParameter(ip, 'desc', 'TRIO_Y_NDC', @ischar);
+            addParameter(ip, 'suffix', '', @ischar);
+            addParameter(ip, 'typ', 'fqfp', @ischar);
+            parse(ip, varargin{:});
+            
+            obj = this.studyData_.imagingType(ip.Results.typ, ...
+                fullfile(getenv('REFDIR'), ...
+                         sprintf('%s%s%s', ip.Results.desc, ip.Results.suffix, this.filetypeExt)));
+        end
         function obj  = dwi(this, varargin)
             obj = this.mrObject('ep2d_diff_26D_lgfov_nopat_TRACEW', varargin{:});
         end
@@ -153,13 +164,6 @@ classdef SessionData < mlpipeline.SessionData
                 this.fdgNACLocation('typ', 'path'), ...
                 sprintf('ctRescaledv%i.4dfp.ifh', this.vnumber, ipr.rnumber));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
-        end        
-        function n    = NFramesToExclude(this)
-            if (lstrfind(upper(this.tracer), 'FDG') && ~this.attenuationCorrected)
-                n = 3;
-                return
-            end
-            n = 0;
         end
         function obj  = petfov(this, varargin)
             obj = this.mrObject('AIFFOV%s%s', varargin{:});

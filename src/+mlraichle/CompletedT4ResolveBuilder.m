@@ -60,7 +60,7 @@ classdef CompletedT4ResolveBuilder < mlfourdfp.MMRResolveBuilder
 	methods        
         function this = resolve(this, varargin)
             %% RESOLVE differs from mlfourdfp.T4ResolveBuilder.resolve in that no while-loop calls .iterate; 
-            %  key calls are to .extractFrames, .lazyBlurredFrames, .t4ResolveAndPaste and .teardownIterate.
+            %  key calls are to .lazyExtractFrames, .lazyBlurredFrames, .t4ResolveAndPaste and .teardownIterate.
             %  @param dest       is a f.q. fileprefix.
             %  @param destMask   "
             %  @param source     "
@@ -84,26 +84,24 @@ classdef CompletedT4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             addParameter(ip, 'destBlur',   this.coulombPrecision, @isnumeric); % fwhh/mm
             addParameter(ip, 'sourceBlur', this.coulombPrecision, @isnumeric); % fwhh/mm            
             addParameter(ip, 'NRevisions', this.NRevisions, @isnumeric);
-            addParameter(ip, 'atlas',      this.atlas,      @ischar);
             addParameter(ip, 'firstCrop',  this.firstCrop,  @isnumeric); % [0 1]
             addParameter(ip, 'frames',     this.frames,     @isnumeric); % 1 to keep; 0 to skip
             addParameter(ip, 'log',        '/dev/null',     @ischar);
             addParameter(ip, 'mprage',     this.mprage,     @ischar);
             addParameter(ip, 'rnumber',    this.NRevisions, @isnumeric);
             addParameter(ip, 't40',        this.buildVisitor.transverse_t4, @(x) ischar(x) || iscell(x));
+            addParameter(ip, 'atlas',      this.atlas('typ', 'fp'), @ischar);
             parse(ip, varargin{:});
             this.inputCache_ = ip.Results;
             ipr = this.inputCache_;       
             ipr = this.expandFrames(ipr); 
-            ipr = this.boundFrames(ipr);      
+            ipr = this.findFrameBounds(ipr);      
             ipr = this.expandBlurs(ipr);
             ipr.mprage = '';            
             
             this.t4ResolveAndPasteLog_ = this.loggerFilename('T4ResolveBuilder_resolve', ipr.dest, 'path', this.sessionData.vLocation);
-            ipr.dest     = sprintf('%sr%i', ipr.dest, ip.Results.NRevisions);            
-            ipr          = this.contractBlurs(ipr);
-            ipr          = this.contractFrames(ipr);
-            extractedFps = this.extractFrames(ipr);
+            ipr.dest     = sprintf('%sr%i', ipr.dest, ip.Results.NRevisions);
+            extractedFps = this.lazyExtractFrames(ipr);
                            this.lazyBlurredFrames(extractedFps, ipr);
             ipr          = this.t4ResolveAndPaste(ipr); 
             ipr          = this.teardownIterate(ipr);            
