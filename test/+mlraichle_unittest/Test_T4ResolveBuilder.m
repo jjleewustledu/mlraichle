@@ -55,27 +55,6 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
             mlraichle.T4ResolveBuilder.runSingleOnConvertedNAC( ...
                 'sessionFolder', this.hygly, 'visitFolder', 'V1', 'tracerFolder', 'FDG_V1-NAC', 'frames', this.testingFrames, 'NRevisions', 2);
         end
-        function test_t4ResolvePET3(this)
-            this.sessd = mlraichle.SessionData( ...
-                'studyData', this.studyd, 'sessionPath', fullfile(this.studyd.subjectsDir, 'NP995_09', ''));  
-            
-            this.testObj = mlraichle.T4ResolveBuilder('sessionData', this.sessd);
-            cd(fullfile(this.sessd.sessionPath, 'V1', ''));
-            this.testObj = this.testObj.t4ResolvePET3;
-        end
-        function test_t4ResolvePET2(this)
-            this.sessd = mlraichle.SessionData( ...
-                'studyData', this.studyd, ...
-                'sessionPath', fullfile(this.studyd.subjectsDir, 'NP995_09', ''), ...
-                'vnumber', 1);  
-            
-            this.testObj = mlraichle.T4ResolveBuilder('sessionData', this.sessd);
-            cd(fullfile(this.sessd.sessionPath, 'V2', ''));
-            this.testObj = this.testObj.t4ResolvePET2;
-        end
-        function test_buildUmapOnSumt(this)
-            this.testObj = this.testObj.buildUmapOnSumt;
-        end
         function test_buildUmapFrames(this)
             cd(fullfile(this.sessd.sessionPath, 'V1', 'FDG_V1-AC', ''));
             %this.testObj.buildVisitor.copy_4dfp(this.sessd.umap_fqfp, 'fdgv1_umap');

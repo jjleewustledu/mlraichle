@@ -80,10 +80,9 @@ classdef CompletedT4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             addParameter(ip, 'source',     '',              @FourdfpVisitor.lexist_4dfp);
             addParameter(ip, 'destMask',   'none',          @ischar);
             addParameter(ip, 'sourceMask', 'none',          @ischar);
-            addParameter(ip, 'framesMask', 'maskOrdFrames', @ischar);
+            addParameter(ip, 'maskForFrames', 'maskForFrames', @ischar);
             addParameter(ip, 'destBlur',   this.coulombPrecision, @isnumeric); % fwhh/mm
-            addParameter(ip, 'sourceBlur', this.coulombPrecision, @isnumeric); % fwhh/mm            
-            addParameter(ip, 'NRevisions', this.NRevisions, @isnumeric);
+            addParameter(ip, 'sourceBlur', this.coulombPrecision, @isnumeric); % fwhh/mm
             addParameter(ip, 'firstCrop',  this.firstCrop,  @isnumeric); % [0 1]
             addParameter(ip, 'frames',     this.frames,     @isnumeric); % 1 to keep; 0 to skip
             addParameter(ip, 'log',        '/dev/null',     @ischar);
@@ -92,17 +91,17 @@ classdef CompletedT4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             addParameter(ip, 't40',        this.buildVisitor.transverse_t4, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'atlas',      this.atlas('typ', 'fp'), @ischar);
             parse(ip, varargin{:});
-            this.inputCache_ = ip.Results;
-            ipr = this.inputCache_;       
+            ipr = ip.Results;       
             ipr = this.expandFrames(ipr); 
             ipr = this.findFrameBounds(ipr);      
             ipr = this.expandBlurs(ipr);
             ipr.mprage = '';            
             
-            this.t4ResolveAndPasteLog_ = this.loggerFilename('T4ResolveBuilder_resolve', ipr.dest, 'path', this.sessionData.vLocation);
+            this.t4ResolveLog = this.loggerFilename( ...
+                ipr.dest, 'func', 'T4ResolveBuilder_resolve', 'path', this.sessionData.vLocation);
             ipr.dest     = sprintf('%sr%i', ipr.dest, ip.Results.NRevisions);
             extractedFps = this.lazyExtractFrames(ipr);
-                           this.lazyBlurredFrames(extractedFps, ipr);
+                           this.lazyBlurredFrames(ipr);
             ipr          = this.t4ResolveAndPaste(ipr); 
             ipr          = this.teardownIterate(ipr);            
             

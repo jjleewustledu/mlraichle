@@ -70,7 +70,7 @@ classdef O15DynamicBuilder < mlfourdfp.AbstractTracerResolveBuilder
         function        sumTimesAll(varargin)
             ip = inputParser;
             addParameter(ip, 'tag', '', @ischar);
-            addParameter(ip, 'NFrames', 20, @isnumeric);
+            addParameter(ip, 'frames', ones(1,20), @isnumeric);
             parse(ip, varargin{:});
 
             import mlraichle.* mlsystem.*;
@@ -107,7 +107,7 @@ classdef O15DynamicBuilder < mlfourdfp.AbstractTracerResolveBuilder
                                 'vnumber',     T4ResolveUtilities.visitNumber(eVisit.dns{iVisit}));
                             disp(sessd);
                             this = O15DynamicBuilder('sessionData', sessd);
-                            this.sumTimes(sessd.tracerRevision('typ', 'fp'), 'NFrames', ip.Results.NFrames);
+                            this.sumTimes(sessd.tracerRevision('typ', 'fp'));
                             popd(pwd0);
                         catch ME
                             handwarning(ME);

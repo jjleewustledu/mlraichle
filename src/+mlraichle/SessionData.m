@@ -51,17 +51,6 @@ classdef SessionData < mlpipeline.SessionData
 
 	methods
  		function this = SessionData(varargin)
- 			%% SESSIONDATA
- 			%  @param [param-name, param-value[, ...]]
-            %         'ac'          is logical
-            %         'rnumber'     is numeric
-            %         'sessionPath' is a path to the session data
-            %         'studyData'   is a mlpipeline.StudyData
-            %         'snumber'     is numeric
-            %         'tracer'      is char
-            %         'vnumber'     is numeric
-            %         'tag'         is appended to the fileprefix
-
  			this = this@mlpipeline.SessionData(varargin{:});
         end
         function [ipr,schar,this] = iprLocation(this, varargin)
@@ -69,7 +58,7 @@ classdef SessionData < mlpipeline.SessionData
             %  @param named tracer is a string identifier.
             %  @param named snumber is the scan number; is numeric.
             %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  mlpipeline.StudyData.imagingType.
+            %  See also:  imagingType.
             %  @param named frame is numeric.
             %  @param named rnumber is the revision number; is numeric.
             %  @returns ipr, the struct ip.Results obtained by parse.            
@@ -106,23 +95,23 @@ classdef SessionData < mlpipeline.SessionData
             addParameter(ip, 'typ', 'path', @ischar);
             parse(ip, varargin{:});
             
-            loc = this.studyData_.locationType(ip.Results.typ, ...
+            loc = locationType(ip.Results.typ, ...
                 fullfile(this.sessionPath, sprintf('V%i', this.vnumber), ''));
         end
         
-        %% IMRData        
+        %% IMRData
         
         function obj  = adc(this, varargin)
             obj = this.mrObject('ep2d_diff_26D_lgfov_nopat_ADC', varargin{:});
         end
-        function obj = atlas(this, varargin)
+        function obj  = atlas(this, varargin)
             ip = inputParser;
             addParameter(ip, 'desc', 'TRIO_Y_NDC', @ischar);
             addParameter(ip, 'suffix', '', @ischar);
             addParameter(ip, 'typ', 'fqfp', @ischar);
             parse(ip, varargin{:});
             
-            obj = this.studyData_.imagingType(ip.Results.typ, ...
+            obj = imagingType(ip.Results.typ, ...
                 fullfile(getenv('REFDIR'), ...
                          sprintf('%s%s%s', ip.Results.desc, ip.Results.suffix, this.filetypeExt)));
         end
@@ -134,11 +123,29 @@ classdef SessionData < mlpipeline.SessionData
             addParameter(ip, 'typ', 'path', @ischar);
             parse(ip, varargin{:});
             
-            loc = this.studyData_.locationType(ip.Results.typ, ...
+            loc = locationType(ip.Results.typ, ...
                 fullfile(this.freesurfersDir, [this.sessionLocation('typ', 'folder') '_' this.vLocation('typ', 'folder')], ''));
         end   
         function obj  = perf(this, varargin)
             obj = this.mrObject('ep2d_perf', varargin{:});
+        end
+        function obj  = T1(this, varargin)
+            %  @param named tracer is a string identifier.
+            %  @param named snumber is the scan number; is numeric.
+            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
+            %  See also:  imagingType.
+            %  @param named frame is numeric.
+            %  @param named rnumber is the revision number; is numeric.
+            %  @returns ipr, the struct ip.Results obtained by parse.            
+            %  @returns schr, the s-number as a string.
+            
+            fqfn = fullfile(this.vLocation, 'T1001.4dfp.ifh');
+            if (~lexist(fqfn, 'file'))
+                mic = T1@mlpipeline.SessionData(this, 'typ', 'mlmr.MRImagingContext');
+                mic.niftid;
+                mic.saveas(fqfn);
+            end
+            obj = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tof(this, varargin)
             obj = this.mrObject('tof', varargin{:});
@@ -147,7 +154,7 @@ classdef SessionData < mlpipeline.SessionData
             obj = this.mrObject('AIFFOV%s%s', varargin{:});
         end
                 
-        %% IPETData        
+        %% IPETData
         
         function obj  = ct(this, varargin)
             obj = this.ctObject('ct', varargin{:});
@@ -159,10 +166,9 @@ classdef SessionData < mlpipeline.SessionData
             obj = this.ctObject('ctMask', varargin{:});
         end
         function obj  = ctRescaled(this, varargin)
-            ipr = this.iprLocation(varargin{:});
             fqfn = fullfile( ...
-                this.fdgNACLocation('typ', 'path'), ...
-                sprintf('ctRescaledv%i.4dfp.ifh', this.vnumber, ipr.rnumber));
+                this.vLocation('typ', 'path'), ...
+                sprintf('ctRescaledv%i.4dfp.ifh', this.vnumber));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = petfov(this, varargin)
@@ -176,14 +182,14 @@ classdef SessionData < mlpipeline.SessionData
             %  @param named tracer is a string identifier.
             %  @param named snumber is the scan number; is numeric.
             %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  mlpipeline.StudyData.imagingType.
+            %  See also:  imagingType.
             %  @param named frame is numeric.
             %  @param named rnumber is the revision number; is numeric.
             %  @returns ipr, the struct ip.Results obtained by parse.            
             %  @returns schr, the s-number as a string.
             
             [ipr,schar] = this.iprLocation(varargin{:});
-            loc = this.studyData_.locationType(ipr.typ, ...
+            loc = locationType(ipr.typ, ...
                 fullfile(this.vLocation, ...
                          sprintf('%s%s_V%i%s', ipr.tracer, schar, this.vnumber, this.convertedSuffix), ...
                          sprintf('%s%s_V%i-LM-00', ipr.tracer, schar, this.vnumber), ''));
@@ -192,21 +198,25 @@ classdef SessionData < mlpipeline.SessionData
             %  @param named tracer is a string identifier.
             %  @param named snumber is the scan number; is numeric.
             %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  mlpipeline.StudyData.imagingType.
+            %  See also:  imagingType.
             %  @param named frame is numeric.
             %  @param named rnumber is the revision number; is numeric.
             %  @returns ipr, the struct ip.Results obtained by parse.            
             %  @returns schr, the s-number as a string.
             
             [ipr,schar] = this.iprLocation(varargin{:});
-            loc = this.studyData_.locationType(ipr.typ, ...
+            if (isempty(ipr.tracer))
+                loc = locationType(ipr.typ, this.vLocation);
+                return
+            end
+            loc = locationType(ipr.typ, ...
                   fullfile(this.vLocation, sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.acTag), ''));
         end
         function obj  = tracerLM(this, varargin)
             %  @param named tracer is a string identifier.
             %  @param named snumber is the scan number; is numeric.
             %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  mlpipeline.StudyData.imagingType.
+            %  See also:  imagingType.
             %  @param named frame is numeric.
             %  @param named rnumber is the revision number; is numeric.
             %  @returns ipr, the struct ip.Results obtained by parse.            
@@ -222,7 +232,7 @@ classdef SessionData < mlpipeline.SessionData
             %  @param named tracer is a string identifier.
             %  @param named snumber is the scan number; is numeric.
             %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  mlpipeline.StudyData.imagingType.
+            %  See also:  imagingType.
             %  @param named frame is numeric.
             %  @param named rnumber is the revision number; is numeric.
             %  @returns ipr, the struct ip.Results obtained by parse.            
@@ -238,7 +248,7 @@ classdef SessionData < mlpipeline.SessionData
             %  @param named tracer is a string identifier.
             %  @param named snumber is the scan number; is numeric.
             %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  mlpipeline.StudyData.imagingType.
+            %  See also:  imagingType.
             %  @param named frame is numeric.
             %  @param named rnumber is the revision number; is numeric.
             %  @returns ipr, the struct ip.Results obtained by parse.            
@@ -254,23 +264,26 @@ classdef SessionData < mlpipeline.SessionData
             %  @param named tracer is a string identifier.
             %  @param named snumber is the scan number; is numeric.
             %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  mlpipeline.StudyData.imagingType.
+            %  See also:  imagingType.
             %  @param named frame is numeric.
             %  @param named rnumber is the revision number; is numeric.
             %  @returns ipr, the struct ip.Results obtained by parse.            
             %  @returns schr, the s-number as a string.
             
             [ipr,schar] = this.iprLocation(varargin{:});
+            assert(~isempty(this.builder_), ...
+                'please assign SessionData.builder before calling SessionData.tracerResolved');
             fqfn = fullfile( ...
                 this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
-                sprintf('%s%sv%ir%i_resolved.4dfp.ifh', lower(ipr.tracer), schar, this.vnumber, ipr.rnumber));
+                sprintf('%s%sv%ir%i_%s.4dfp.ifh', ...
+                    lower(ipr.tracer), schar, this.vnumber, ipr.rnumber, this.builder__.resolveTag));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerRevision(this, varargin)
             %  @param named tracer is a string identifier.
             %  @param named snumber is the scan number; is numeric.
             %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  mlpipeline.StudyData.imagingType.
+            %  See also:  imagingType.
             %  @param named frame is numeric.
             %  @param named rnumber is the revision number; is numeric.
             %  @returns ipr, the struct ip.Results obtained by parse.            
@@ -282,20 +295,12 @@ classdef SessionData < mlpipeline.SessionData
                 sprintf('%s%sv%ir%i.4dfp.ifh', lower(ipr.tracer), schar, this.vnumber, ipr.rnumber));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
-        function loc  = tracerACT4Location(this, varargin)
-            this.attenuationCorrected = true;
-            loc = this.tracerT4Location(varargin{:});
-        end
-        function loc  = tracerNACT4Location(this, varargin)
-            this.attenuationCorrected = false;
-            loc = this.tracerT4Location(varargin{:});
-        end
         function loc  = tracerT4Location(this, varargin)
             %% TRACERT4LOCATION has KLUDGES!
             %  @param named tracer is a string identifier.
             %  @param named snumber is the scan number; is numeric.
             %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  mlpipeline.StudyData.imagingType.
+            %  See also:  imagingType.
             %  @param named frame is numeric.
             %  @param named rnumber is the revision number; is numeric.
             %  @returns ipr, the struct ip.Results obtained by parse.            
@@ -303,7 +308,7 @@ classdef SessionData < mlpipeline.SessionData
             
             [ipr,schar] = this.iprLocation(varargin{:});
             if (lstrfind(ipr.tracer, 'FDG'))
-                loc = this.studyData_.locationType(ipr.typ, ...
+                loc = locationType(ipr.typ, ...
                     fullfile(this.vLocation, ...
                              sprintf('%s_V%i-%s', ipr.tracer, this.vnumber, this.acTag), 'T4', ''));
                 return
@@ -317,7 +322,7 @@ classdef SessionData < mlpipeline.SessionData
             if (isdir(fullfile(this.vLocation, sprintf('OO2_V%i-%s', this.vnumber, this.acTag))))
                 schar = '2';
             end
-            loc = this.studyData_.locationType(ipr.typ, ...
+            loc = locationType(ipr.typ, ...
                 fullfile(this.vLocation, ...
                          sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.acTag), 'T4', ''));
         end
@@ -325,7 +330,7 @@ classdef SessionData < mlpipeline.SessionData
             %  @param named tracer is a string identifier.
             %  @param named snumber is the scan number; is numeric.
             %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  mlpipeline.StudyData.imagingType.
+            %  See also:  imagingType.
             %  @param named frame is numeric.
             %  @param named rnumber is the revision number; is numeric.
             %  @returns ipr, the struct ip.Results obtained by parse.            
@@ -338,17 +343,16 @@ classdef SessionData < mlpipeline.SessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = umapSynth(this, varargin)
-            ipr = this.iprLocation(varargin{:});
+            if (isempty(this.tracer))
+                fqfn = fullfile(this.vLocation('typ', 'path'), 'umapSynth_op_T1001.4dfp.ifh');
+                obj  = this.fqfilenameObject(fqfn, varargin{:});
+                return
+            end
             fqfn = fullfile( ...
                 this.tracerLocation('typ', 'path'), ...
-                sprintf('umapSynthv%i.4dfp.ifh', this.vnumber, ipr.rnumber));
+                sprintf('umapSynth_op_%s.4dfp.ifh', this.tracerRevision('typ', 'fqfp')));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
-        end        
-        function obj  = umapSynthFDG(this, varargin)
-            this.attenuationCorrected = false;
-            this.tracer = 'FDG';
-            obj = this.umapSynth(varargin{:});
-        end        
+        end     
 
         %% idiomatic objects
         
@@ -363,9 +367,9 @@ classdef SessionData < mlpipeline.SessionData
             fqfn = fullfile(this.sessionLocation, ...
                             sprintf('%s%s%s', ip.Results.desc, ip.Results.suffix, this.filetypeExt));
             this.ensureCTFqfilename(fqfn);
-            obj = this.studyData_.imagingType(ip.Results.typ, fqfn);
+            obj = imagingType(ip.Results.typ, fqfn);
         end 
-        function obj = fqfilenameObject(this, varargin)
+        function obj = fqfilenameObject(~, varargin)
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired( ip, 'fqfn', @ischar);
@@ -373,9 +377,9 @@ classdef SessionData < mlpipeline.SessionData
             addParameter(ip, 'typ', 'fqfn', @ischar);
             parse(ip, varargin{:});
             
-            obj = this.studyData_.imagingType(ip.Results.typ, ip.Results.fqfn);
+            obj = imagingType(ip.Results.typ, ip.Results.fqfn);
         end
-        function obj = fqfileprefixObject(this, varargin)
+        function obj = fqfileprefixObject(~, varargin)
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired( ip, 'fqfp', @ischar);
@@ -383,7 +387,7 @@ classdef SessionData < mlpipeline.SessionData
             addParameter(ip, 'typ', 'fqfp', @ischar);
             parse(ip, varargin{:});
             
-            obj = this.studyData_.imagingType(ip.Results.typ, ip.Results.fqfp);
+            obj = imagingType(ip.Results.typ, ip.Results.fqfp);
         end
         function obj = mrObject(this, varargin)
             ip = inputParser;
@@ -398,7 +402,7 @@ classdef SessionData < mlpipeline.SessionData
                             sprintf('%s%s%s', ip.Results.desc, ip.Results.suffix, this.filetypeExt));
             this.ensureMRFqfilename(fqfn);
             fqfn = this.ensureOrientation(fqfn, ip.Results.orientation);
-            obj  = this.studyData_.imagingType(ip.Results.typ, fqfn);
+            obj  = imagingType(ip.Results.typ, fqfn);
         end 
         function obj = petObject(this, varargin)
             ip = inputParser;
@@ -416,13 +420,13 @@ classdef SessionData < mlpipeline.SessionData
                        sprintf('%s%iv%ir%i%s', ip.Results.tracer, this.snumber, this.vnumber, this.rnumber, this.filetypeExt));
             end
             this.ensurePETFqfilename(fqfn);
-            obj = this.studyData_.imagingType(ip.Results.typ, fqfn);
+            obj = imagingType(ip.Results.typ, fqfn);
         end  
     end
     
     %% PROTECTED
     
-    methods (Access = protected)    
+    methods (Access = protected)
         function        ensureCTFqfilename(~, fqfn) %#ok<INUSD>
             %assert(lexist(fqfn, 'file'));
         end
@@ -571,7 +575,7 @@ classdef SessionData < mlpipeline.SessionData
             addParameter(ip, 'rnumber', this.rnumber, @isnumeric);
             parse(ip, varargin{:});
             
-            obj = this.studyData_.imagingType(typ, ...
+            obj = imagingType(typ, ...
                 fullfile(this.fdgNACLocation('typ', 'path'), ...
                 sprintf('fdgv%ir%i_frames%ito%i_resolved.4dfp.img', this.vnumber, ip.Results.rnumber, ip.Results.frame0, ip.Results.frameF)));
         end
@@ -606,6 +610,10 @@ classdef SessionData < mlpipeline.SessionData
             this.attenuationCorrected = true;
             obj = this.tracerRevision(varargin{:});
         end
+        function loc  = tracerACT4Location(this, varargin)
+            this.attenuationCorrected = true;
+            loc = this.tracerT4Location(varargin{:});
+        end
         function obj  = tracerNAC(this, varargin)
             this.attenuationCorrected = false;
             obj = this.tracerNative(varargin{:});
@@ -622,7 +630,12 @@ classdef SessionData < mlpipeline.SessionData
             this.attenuationCorrected = false;
             obj = this.tracerRevision(varargin{:});
         end
+        function loc  = tracerNACT4Location(this, varargin)
+            this.attenuationCorrected = false;
+            loc = this.tracerT4Location(varargin{:});
+        end
     end
+    
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end
 

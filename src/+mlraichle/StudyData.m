@@ -39,7 +39,7 @@ classdef StudyData < mlpipeline.StudyData
             d = fullfile(getenv('PPG'), 'rawdata', '');
         end
         function d    = subjectsDir
-            d = fullfile(getenv('PPG'), 'jjlee', '');
+            d = fullfile(getenv('PPG'), 'jjlee2', '');
         end
     end
     

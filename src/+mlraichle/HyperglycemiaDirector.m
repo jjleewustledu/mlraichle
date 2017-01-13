@@ -10,22 +10,46 @@ classdef HyperglycemiaDirector
  	
 
 	properties
-        alignmentDirector
         fdgDirector
         hoDirector
-        ocDirector
         ooDirector
+        ocDirector
         umapDirector
  		visitDirector
  	end
 
 	methods 
-		  
+        function this = analyzeVisit(this, sessp, v)
+            import mlraichle.*;
+            study = StudyData;
+            sessd = SessionData('studyData', study, 'sessionPath', sessp);
+            sessd.vnumber = v;
+            this = this.analyzeTracers('sessionData', sessd);
+        end
+        function this = analyzeSubject(this)
+        end
+        function this = analyzeCohort(this)
+        end
+        
+        function this = analyzeTracers(this)
+            this.umapDirector = this.umapDirector.analyze;
+            this.fdgDirector  = this.fdgDirector.analyze;
+            this.hoDirector   = this.hoDirector.analyze;
+            this.ooDirector   = this.ooDirector.analyze;
+            this.ocDirector   = this.ocDirector.analyze;
+        end
+        
  		function this = HyperglycemiaDirector(varargin)
  			%% HYPERGLYCEMIADIRECTOR
  			%  Usage:  this = HyperglycemiaDirector()
 
- 			
+ 			import mlraichle.*;
+            this.visitDirector = VisitDirector(varargin{:});
+            this.umapDirector  = UmapDirector( UmapBuilder(varargin{:}));
+            this.fdgDirector   = FdgDirector(  FdgBuilder(varargin{:}));
+            this.hoDirector    = HoDirector(   HoBuilder(varargin{:}));
+            this.ooDirector    = OoDirector(   OoBuilder(varargin{:}));
+            this.ocDirector    = OcDirector(   OcBuilder(varargin{:}));
  		end
  	end 
 

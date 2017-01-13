@@ -453,6 +453,18 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             this.prepareMR;
             this.pushAncillary;
         end
+        function        prepareMR(this)
+            %% PREPAREMR runs msktgenMprage as needed for use by resolve.
+            
+            sessd      = this.sessionData;
+            mpr        = sessd.mprage('typ', 'fp');
+            atl        = sessd.atlas('typ', 'fp');
+            mprToAtlT4 = [mpr '_to_' atl '_t4'];            
+            if (~lexist(fullfile(sessd.mprage('typ', 'path'), mprToAtlT4)))
+                cd(sessd.mprage('typ', 'path'));
+                this.msktgenMprage(mpr, atl);
+            end
+        end
         function        prepareNACLocation(this)
             %% PREPARENACLOCATION recovers the NAC location from backup or creates it de novo.
             

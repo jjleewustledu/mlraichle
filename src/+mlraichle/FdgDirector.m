@@ -1,4 +1,4 @@
-classdef FdgDirector 
+classdef FdgDirector < mlraichle.TracerDirector
 	%% FDGDIRECTOR  
 
 	%  $Revision$
@@ -11,42 +11,41 @@ classdef FdgDirector
 
 	properties
         fdgBuilder
- 		parCluster
- 	end
-
+    end
+    
+    properties (Dependent)
+        framesPartitions
+    end
+    
+    methods %% GET
+        function g = get.framesPartitions(this)
+            g = this.fdgBuilder.framesPartitions;
+        end
+    end
+    
 	methods 
 		  
  		function this = FdgDirector(varargin)
  			%% FDGDIRECTOR
  			%  Usage:  this = FdgDirector()
-
- 			this.parCluster = mlraichle.ParCluster;
+            
         end
         
-        function resolve(this, varargin)
-            %% RESOLVE
-            %  @param revisions is numeric, e.g., 1, 2, [1 2].
-            
-            ip = inputParser;
-            addParameter(ip, 'revisions', 1, @isnumeric);
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlraichle.SessionData'));
-            parse(ip, varargin{:});            
-            
-            sessd = ip.Results.sessionData;
-            for r = 1:length(ip.Results.revisions)
-                sessd.rnumber = r;
-                this.fdgBuilder = mlraichle.FdgBuilder('sessionData', sessd);
-                this.fdgBuilder.resolve;
+        function this = buildResolvedACFrames(this)
+            assert(this.e7Tools.acCompleted);            
+            for p = 1:length(this.framesPartitions)
+                this.frames = this.framesPartitions{p};
+                this.t4imgsACFrames;
+                this.pasteACFrames;
+                this.sumACFrames;  
             end
         end
-        
-        function pushDataToCluster(this, varargin)
-            this.parCluster.pushDir();
-        end
-        function resolveOnCluster(this, varargin)
-            this.parCluster.resolve;
-        end
     end 
+    
+    %% PRIVATE
+    
+    properties (Access = private)
+    end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end

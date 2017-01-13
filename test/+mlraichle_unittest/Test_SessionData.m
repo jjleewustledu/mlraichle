@@ -31,7 +31,7 @@ classdef Test_SessionData < matlab.unittest.TestCase
         end
         function test_subjectsDir(this)
             this.verifyEqual(this.testObj.subjectsDir, ...
-                fullfile(getenv('PPG'), 'jjlee', ''));
+                fullfile(getenv('PPG'), 'jjlee2', ''));
         end
         function test_sessionPath(this)
             this.verifyEqual(this.testObj.sessionPath, this.sessionPath);
@@ -95,7 +95,7 @@ classdef Test_SessionData < matlab.unittest.TestCase
             end
         end
         function test_ensureMRFqfilename(this)
-            delete(this.testObj.t2);
+            %delete(this.testObj.t2);
         end
         
         %% IPETData
@@ -112,7 +112,7 @@ classdef Test_SessionData < matlab.unittest.TestCase
         function test_fdgListModeLocation(this)
             this.verifyEqual( ...
                 this.testObj.fdgListmodeLocation, ...
-                fullfile(this.testObj.sessionPath, 'V1', 'FDG_V1-Converted', 'FDG_V1-LM-00', ''));
+                fullfile(this.testObj.sessionPath, 'V1', 'FDG_V1-Converted-NAC', 'FDG_V1-LM-00', ''));
         end
         function test_ct(this)
             this.verifyEqual(this.testObj.ct('typ', 'fqfp'), ...
