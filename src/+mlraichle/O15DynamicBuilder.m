@@ -14,11 +14,6 @@ classdef O15DynamicBuilder < mlfourdfp.AbstractTracerResolveBuilder
  	end
 
     methods (Static)
-        function tf   = completed(sessd)
-            assert(isa(sessd, 'mlraichle.SessionData'));
-            this = mlraichle.O15DynamicBuilder('sessionData', sessd);
-            tf = lexist(this.completedTouchFile, 'file');
-        end
         function        parTriggering(varargin)
             
             ip = inputParser;
@@ -170,6 +165,7 @@ classdef O15DynamicBuilder < mlfourdfp.AbstractTracerResolveBuilder
  			%  Usage:  this = O15DynamicBuilder()
 
  			this = this@mlfourdfp.AbstractTracerResolveBuilder(varargin{:});
+            this.finished = mlpipeline.Finished(this, 'path', this.logPath, 'tag', lower(this.sessionData.tracer));
         end
         function printSessionData(this)
             mlraichle.O15DynamicBuilder.printv('O15DynamicBuilder.printSessionData -> \n');

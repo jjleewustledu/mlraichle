@@ -15,11 +15,6 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
     end
     
     methods (Static)
-        function tf = completed(sessd)
-            assert(isa(sessd, 'mlraichle.SessionData'));
-            this = mlraichle.FdgBuilder('sessionData', sessd);
-            tf = lexist(this.completedTouchFile, 'file');
-        end
         function extractFramesResolveSequenceAll(varargin)
             ip = inputParser;
             addParameter(ip, 'tag', '', @ischar);
@@ -256,6 +251,7 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
                 maxFrames = this.readLength(sessd0.fdgNACResolved('typ', 'fqfp'));
                 this.frames = [zeros(1, this.framesToSkip) ones(1, maxFrames - this.framesToSkip)];
             end
+            this.finished = mlpipeline.Finished(this, 'path', this.logPath, 'tag', lower(this.sessionData.tracer));
         end
         
         function        printSessionData(this)

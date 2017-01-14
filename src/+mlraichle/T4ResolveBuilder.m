@@ -14,11 +14,6 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
     end
 
     methods (Static)
-        function tf    = completed(sessd)
-            assert(isa(sessd, 'mlraichle.SessionData'));
-            this = mlraichle.T4ResolveBuilder('sessionData', sessd);
-            tf = lexist(this.completedTouchFile, 'file');
-        end
         function s     = hello(N)
             if (~exist('N', 'var'))
                 N = 2;
