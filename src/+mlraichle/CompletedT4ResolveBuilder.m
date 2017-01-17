@@ -81,8 +81,8 @@ classdef CompletedT4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             addParameter(ip, 'destMask',   'none',          @ischar);
             addParameter(ip, 'sourceMask', 'none',          @ischar);
             addParameter(ip, 'maskForFrames', 'maskForFrames', @ischar);
-            addParameter(ip, 'destBlur',   this.coulombPrecision, @isnumeric); % fwhh/mm
-            addParameter(ip, 'sourceBlur', this.coulombPrecision, @isnumeric); % fwhh/mm
+            addParameter(ip, 'destBlur',   this.blurArg,    @isnumeric); % fwhh/mm
+            addParameter(ip, 'sourceBlur', this.blurArg,    @isnumeric); % fwhh/mm
             addParameter(ip, 'firstCrop',  this.firstCrop,  @isnumeric); % [0 1]
             addParameter(ip, 'frames',     this.frames,     @isnumeric); % 1 to keep; 0 to skip
             addParameter(ip, 'log',        '/dev/null',     @ischar);
