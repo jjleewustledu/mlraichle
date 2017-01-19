@@ -9,12 +9,6 @@ classdef SynthStudyData < mlraichle.StudyData
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
  	
     
-    methods (Static)        
-        function d    = subjectsDir
-            d = fullfile(getenv('PPG'), 'jjleeSynth', '');
-        end
-    end
-
 	methods		
         function sess = sessionData(this, varargin)
             %% SESSIONDATA
@@ -33,6 +27,10 @@ classdef SynthStudyData < mlraichle.StudyData
             end
             sess = mlraichle.SynthSessionData('studyData', this, varargin{:});
         end  
+        function f    = subjectsFolder(~)
+            f = 'jjleeSynth';
+        end
+        
  		function this = SynthStudyData(varargin)
  			%% SYNTHSTUDYDATA
  			%  Usage:  this = SynthStudyData()

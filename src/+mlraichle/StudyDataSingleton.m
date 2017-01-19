@@ -9,17 +9,15 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
  	%% It was developed on Matlab 9.0.0.307022 (R2016a) Prerelease for MACI64.
     
 
+    properties
+        subjectsFolder = 'jjlee2'
+    end
+
     properties (SetAccess = protected)
         dicomExtension = 'dcm'
     end
-    
-    methods %% GET
-    end
 
     methods (Static)
-        function d    = freesurfersDir
-            d = fullfile(getenv('PPG'), 'freesurfer', '');
-        end
         function this = instance(varargin)
             persistent instance_
             if (~isempty(varargin))
@@ -30,30 +28,30 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
             end
             this = instance_;
         end
-        function d    = RawDataDir(sessFold)
-            %% RAWDATADIR            
+    end
+    
+    methods
+        function d    = freesurfersDir(~)
+            d = fullfile(getenv('PPG'), 'freesurfer', '');
+        end
+        function d    = RawDataDir(this, sessFold)
+            %% RAWDATADIR
             %  @param sessFold is the name of the folder in rawdataDir that contains session data.
             %  @returns a path to the session data ending in 'RawData' or the empty string on failures.
             
             import mlraichle.*;
             assert(ischar(sessFold));
-            d = fullfile(StudyDataSingleton.rawdataDir, sessFold, 'RESOURCES', 'RawData', '');
+            d = fullfile(this.rawdataDir, sessFold, 'RESOURCES', 'RawData', '');
             if (~isdir(d))
-                d = fullfile(StudyDataSingleton.rawdataDir, sessFold, 'resources', 'RawData', '');
+                d = fullfile(this.rawdataDir, sessFold, 'resources', 'RawData', '');
             end
             if (~isdir(d))
                 d = '';
             end
         end
-        function d    = rawdataDir
+        function d    = rawdataDir(~)
             d = fullfile(getenv('PPG'), 'rawdata', '');
         end
-        function d    = subjectsDir
-            d = fullfile(getenv('PPG'), 'jjlee', '');
-        end
-    end
-    
-    methods
         function        register(this, varargin)
             %% REGISTER this class' persistent instance with mlpipeline.StudyDataSingletons
             %  using the latter class' register methods.
@@ -95,6 +93,9 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
             end
             sess = mlraichle.SessionData('studyData', this, varargin{:});
         end  
+        function d    = subjectsDir(this)
+            d = fullfile(getenv('PPG'), this.subjectsFolder, '');
+        end
         function f    = subjectsDirFqdns(this)
             dt = mlsystem.DirTools(this.subjectsDir);
             f = {};
@@ -104,7 +105,7 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
                     f = [f dt.fqdns(di)]; %#ok<AGROW>
                 end
             end
-        end   
+        end
     end
     
     %% PROTECTED

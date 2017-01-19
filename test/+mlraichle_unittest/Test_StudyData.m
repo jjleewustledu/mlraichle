@@ -1,8 +1,8 @@
-classdef Test_StudyDataSingleton < matlab.unittest.TestCase
+classdef Test_StudyData < matlab.unittest.TestCase
 	%% TEST_STUDYDATASINGLETON 
 
-	%  Usage:  >> results = run(mlraichle_unittest.Test_StudyDataSingleton)
- 	%          >> result  = run(mlraichle_unittest.Test_StudyDataSingleton, 'test_dt')
+	%  Usage:  >> results = run(mlraichle_unittest.Test_StudyData)
+ 	%          >> result  = run(mlraichle_unittest.Test_StudyData, 'test_dt')
  	%  See also:  file:///Applications/Developer/MATLAB_R2014b.app/help/matlab/matlab-unit-test-framework.html
 
 	%  $Revision$
@@ -19,7 +19,7 @@ classdef Test_StudyDataSingleton < matlab.unittest.TestCase
 
 	methods (Test)
         function test_instance(this)
-            this.verifyClass(this.testObj, 'mlraichle.StudyDataSingleton');
+            this.verifyClass(this.testObj, 'mlraichle.StudyData');
             this.verifyEqual(this.testObj.dicomExtension, 'dcm');            
         end
         function test_freesurfersDir(this)
@@ -33,11 +33,6 @@ classdef Test_StudyDataSingleton < matlab.unittest.TestCase
         function test_subjectsDir(this)
             this.verifyEqual(this.testObj.subjectsDir, ...
                 fullfile(getenv('PPG'), 'jjlee2', ''));
-        end
-        function test_register(this)
-            sdss = mlpipeline.StudyDataSingletons.instance;
-            this.verifyTrue(lstrfind(sdss.registry.keys, 'raichle'));
-            this.verifyClass(mlpipeline.StudyDataSingletons.instance('raichle'), 'mlraichle.StudyDataSingleton');
         end
         function test_replaceSessionData(this)
             this.testObj = this.testObj.replaceSessionData('sessionPath', this.aSessionPath('HYGLY09'));
@@ -58,14 +53,14 @@ classdef Test_StudyDataSingleton < matlab.unittest.TestCase
         end
         function test_sessionData_instance1(this)
             import mlraichle.*;
-            testObj_inst1 = StudyDataSingleton.instance( ...
+            testObj_inst1 = StudyData( ...
                             SessionData('studyData', this.testObj, 'sessionPath', this.aSessionPath('HYGLY11')));
             this.verifyClass(testObj_inst1.sessionData, 'mlraichle.SessionData');
             this.verifyEqual(testObj_inst1.sessionData.sessionPath, this.aSessionPath('HYGLY11'));
         end
         function test_sessionData_instance2(this)
             import mlraichle.*;
-            testObj_inst2 = StudyDataSingleton.instance( ...
+            testObj_inst2 = StudyData( ...
                             SessionData('studyData', this.testObj, 'sessionPath', this.aSessionPath('HYGLY11')), ...
                             SessionData('studyData', this.testObj, 'sessionPath', this.aSessionPath('HYGLY08')));
             this.verifyClass(testObj_inst2.sessionData, 'mlpatterns.CellComposite');
@@ -79,16 +74,10 @@ classdef Test_StudyDataSingleton < matlab.unittest.TestCase
                  SessionData('studyData', this.testObj, 'sessionPath', this.aSessionPath('HYGLY11')) ...
                  SessionData('studyData', this.testObj, 'sessionPath', this.aSessionPath('HYGLY08')) ...
                  SessionData('studyData', this.testObj, 'sessionPath', this.aSessionPath('HYGLY09')) });
-            testObj_CC = StudyDataSingleton.instance(cc);
+            testObj_CC = StudyData(cc);
             this.verifyClass(testObj_CC.sessionData, 'mlpatterns.CellComposite');
             this.verifyEqual(testObj_CC.sessionData.length, 3);
             this.verifyEqual(testObj_CC.sessionData{3}.sessionPath, this.aSessionPath('HYGLY09'));
-        end
-        function test_saveWorkspace(this)
-            this.assertFalse(this.testObj.isChpcHostname);
-            loc = this.testObj.saveWorkspace;
-            this.verifyTrue(lexist(loc, 'file'));
-            delete(loc);
         end
 	end
 
@@ -99,7 +88,7 @@ classdef Test_StudyDataSingleton < matlab.unittest.TestCase
 
  	methods (TestMethodSetup)
 		function setupStudyDataSingletonsTest(this)
-            this.testObj_ = mlraichle.StudyDataSingleton.instance('initialize');
+            this.testObj_ = mlraichle.StudyData;
             this.testObj = this.testObj_;
  		end
     end
