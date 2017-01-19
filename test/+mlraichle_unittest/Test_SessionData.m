@@ -61,7 +61,8 @@ classdef Test_SessionData < matlab.unittest.TestCase
         function test_mriLocation(this)
             this.verifyEqual(this.testObj.mriLocation, ...
                 fullfile(getenv('PPG'), 'freesurfer', 'HYGLY09_V1', 'mri', ''));
-        end        
+        end
+        
         function test_aparcA2009sAseg(this)
             this.verifyEqual(this.testObj.aparcA2009sAseg('typ', 'fqfn'), ...
                 fullfile(getenv('PPG'), 'freesurfer', 'HYGLY09_V1', 'mri', 'aparc.a2009s+aseg.mgz'));
@@ -89,8 +90,8 @@ classdef Test_SessionData < matlab.unittest.TestCase
         function test_mpr_imagingContext(this)
             ic = this.testObj.mpr('typ', 'imagingContext');
             this.verifyClass(ic, 'mlfourd.ImagingContext');
-            fprintf('\ntest_mpr_imagingContext:  viewing %s\n', this.testObj.mpr('typ', '4dfp.img'));
             if (this.view)
+                fprintf('\ntest_mpr_imagingContext:  viewing %s\n', this.testObj.mpr('typ', '4dfp.img'));
                 ic.view;
             end
         end
@@ -100,6 +101,10 @@ classdef Test_SessionData < matlab.unittest.TestCase
         
         %% IPETData
         
+        function test_ct(this)
+            this.verifyEqual(this.testObj.ct('typ', 'fqfp'), ...
+                fullfile(this.sessionPath, 'ct'));
+        end
         function test_hdrinfoLocation(this)
             this.verifyEqual(this.testObj.hdrinfoLocation, fullfile(this.vPath));
         end
@@ -109,14 +114,11 @@ classdef Test_SessionData < matlab.unittest.TestCase
         function test_scanLocation(this)
             this.verifyEqual(this.testObj.scanLocation, fullfile(this.vPath));
         end
+        
         function test_fdgListModeLocation(this)
             this.verifyEqual( ...
                 this.testObj.fdgListmodeLocation, ...
                 fullfile(this.testObj.sessionPath, 'V1', 'FDG_V1-Converted-NAC', 'FDG_V1-LM-00', ''));
-        end
-        function test_ct(this)
-            this.verifyEqual(this.testObj.ct('typ', 'fqfp'), ...
-                fullfile(this.sessionPath, 'ct'));
         end
         function test_fdgAC(this)
             this.verifyEqual( ...
@@ -139,6 +141,7 @@ classdef Test_SessionData < matlab.unittest.TestCase
                 fullfile(this.testObj.sessionPath, 'V1', 'FDG_V1-NAC', 'FDG_V1-LM-00-OP.4dfp.ifh'));
         end
         function test_fdgNACResolved(this)
+            this.testObj.builder = mlfourdfp.T4ResolveBuilder('sessionData', this.testObj);
             this.verifyEqual( ...
                 this.testObj.fdgNACResolved('typ', 'fqfn'), ...
                 fullfile(this.testObj.sessionPath, 'V1', 'FDG_V1-NAC', 'fdgv1r1_resolved.4dfp.ifh'));
@@ -157,17 +160,17 @@ classdef Test_SessionData < matlab.unittest.TestCase
 
  	methods (TestClassSetup)
 		function setupSessionData(this)
- 		end
-	end
-
- 	methods (TestMethodSetup)
-		function setupSessionDataTest(this)
             this.studyData = mlraichle.StudyData;
  			this.testObj_  = mlraichle.SessionData( ...
                 'studyData', this.studyData, ...
                 'sessionPath', this.sessionPath, ...
                 'snumber', 1, ...
                 'vnumber', 1);
+ 		end
+	end
+
+ 	methods (TestMethodSetup)
+		function setupSessionDataTest(this)
  			this.testObj = this.testObj_;
  			this.addTeardown(@this.cleanFiles);
  		end

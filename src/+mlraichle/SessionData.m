@@ -81,7 +81,9 @@ classdef SessionData < mlpipeline.SessionData
             this.snumber = ip.Results.snumber;
             this.vnumber = ip.Results.vnumber;           
             
-            if (lstrfind(upper(ipr.tracer), 'FDG'))
+            if (~lstrfind(upper(ipr.tracer), 'OC') && ...
+                ~lstrfind(upper(ipr.tracer), 'OO') && ...
+                ~lstrfind(upper(ipr.tracer), 'HO'))
                 ipr.snumber = nan;
             end
             if (isnan(ipr.snumber))
@@ -271,12 +273,12 @@ classdef SessionData < mlpipeline.SessionData
             %  @returns schr, the s-number as a string.
             
             [ipr,schar] = this.iprLocation(varargin{:});
-            assert(~isempty(this.builder_), ...
+            assert(~isempty(this.builder), ...
                 'please assign SessionData.builder before calling SessionData.tracerResolved');
             fqfn = fullfile( ...
                 this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
                 sprintf('%s%sv%ir%i_%s.4dfp.ifh', ...
-                    lower(ipr.tracer), schar, this.vnumber, ipr.rnumber, this.builder__.resolveTag));
+                    lower(ipr.tracer), schar, this.vnumber, ipr.rnumber, this.builder.resolveTag));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerRevision(this, varargin)
@@ -570,14 +572,14 @@ classdef SessionData < mlpipeline.SessionData
         end
         function obj  = fdgNACResolved0(this, typ, varargin)
             ip = inputParser;
-            addParameter(ip, 'frame0', nan, @isnumeric);
-            addParameter(ip, 'frameF', nan, @isnumeric);
+            addParameter(ip, 'indexMin', nan, @isnumeric);
+            addParameter(ip, 'indexMax', nan, @isnumeric);
             addParameter(ip, 'rnumber', this.rnumber, @isnumeric);
             parse(ip, varargin{:});
             
             obj = imagingType(typ, ...
                 fullfile(this.fdgNACLocation('typ', 'path'), ...
-                sprintf('fdgv%ir%i_frames%ito%i_resolved.4dfp.img', this.vnumber, ip.Results.rnumber, ip.Results.frame0, ip.Results.frameF)));
+                sprintf('fdgv%ir%i_frames%ito%i_resolved.4dfp.img', this.vnumber, ip.Results.rnumber, ip.Results.indexMin, ip.Results.indexMax)));
         end
         function obj  = fdgNACRevision(this, varargin)
             obj = this.tracerNACRevision('tracer', 'FDG', varargin{:});
