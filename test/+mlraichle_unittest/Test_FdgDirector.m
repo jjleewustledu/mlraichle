@@ -16,22 +16,36 @@ classdef Test_FdgDirector < matlab.unittest.TestCase
 	properties
  		registry
  		testObj
+        view = true
  	end
 
 	methods (Test)
-        function test_buildResolvedNACFrames(this)
+        function test_constructFdgNAC(this)
+            this.testObj = this.testObj.constructFdgNAC;
+            this.verifyClass(this.testObj.product, 'mlpet.PETImagingContext');
+            this.verifyEqual(this.testObj.product.entropy, nan);
+            if (this.view)
+                this.testObj.product.view;
+            end
         end
-        function test_buildResolvedUmaps(this)
-        end
-        function test_buildResolvedACFrames(this)
-            this.testObj.buildResolvedACFrames;
+        function test_constructFdgAC(this)
+            this.testObj = this.testObj.constructFdgAC;
+            this.verifyClass(this.testObj.product, 'mlpet.PETImagingContext');
+            this.verifyEqual(this.testObj.product.entropy, nan);
+            if (this.view)
+                this.testObj.product.view;
+            end
         end
 	end
 
  	methods (TestClassSetup)
 		function setupFdgDirector(this)
  			import mlraichle.*;
- 			this.testObj_ = FdgDirector;
+            studyd = SynthStudyData;
+            sessd  = SessionData('studyData', studyd, ...
+                                 'sessionPath', fullfile(getenv('PPG'), 'jjleeSynth', 'HYGLY09', ''));
+ 			this.testObj_ = FdgDirector( ...
+                            FdgBuilder('sessionData', sessd));
  		end
 	end
 

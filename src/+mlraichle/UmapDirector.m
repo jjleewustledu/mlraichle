@@ -14,7 +14,7 @@ classdef UmapDirector
  	end
 
 	methods 
-        function this = buildUmap(this)
+        function this = constructUmap(this)
             studyd = mlraichle.StudyData;
             pwd0 = pushd(studyd.subjectsDir);
             mlfourdfp.CarneyUmapBuilder.buildUmapAll;

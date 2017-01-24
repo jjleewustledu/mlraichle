@@ -19,8 +19,8 @@ classdef Test_UmapDirector < matlab.unittest.TestCase
  	end
 
 	methods (Test)
-		function test_buildUmap(this)
- 			this.testObj.buildUmap;
+		function test_constructUmap(this)
+ 			this.testObj.constructUmap;
  		end
 	end
 

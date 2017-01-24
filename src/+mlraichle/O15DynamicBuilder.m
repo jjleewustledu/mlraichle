@@ -65,7 +65,7 @@ classdef O15DynamicBuilder < mlfourdfp.AbstractTracerResolveBuilder
         function        sumTimesAll(varargin)
             ip = inputParser;
             addParameter(ip, 'tag', '', @ischar);
-            addParameter(ip, 'frames', ones(1,20), @isnumeric);
+            addParameter(ip, 'indicesLogical', ones(1,20), @isnumeric);
             parse(ip, varargin{:});
 
             import mlraichle.* mlsystem.*;
@@ -91,7 +91,7 @@ classdef O15DynamicBuilder < mlfourdfp.AbstractTracerResolveBuilder
                         try
                             pth = eTracer.fqdns{iTracer};
                             pwd0 = pushd(pth);
-                            O15DynamicBuilder.printv('resolveFdg:  try pwd->%s\n', pwd);
+                            O15DynamicBuilder.printv('sumTimesAll:  try pwd->%s\n', pwd);
                             sessd = SessionData( ...
                                 'studyData',   studyd, ...
                                 'sessionPath', eSess.fqdns{iSess}, ...

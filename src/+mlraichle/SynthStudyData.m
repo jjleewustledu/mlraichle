@@ -27,15 +27,13 @@ classdef SynthStudyData < mlraichle.StudyData
             end
             sess = mlraichle.SynthSessionData('studyData', this, varargin{:});
         end  
-        function f    = subjectsFolder(~)
-            f = 'jjleeSynth';
-        end
         
  		function this = SynthStudyData(varargin)
  			%% SYNTHSTUDYDATA
  			%  Usage:  this = SynthStudyData()
 
  			this = this@mlraichle.StudyData(varargin{:});
+            this.subjectsFolder = 'jjleeSynth';
  		end
  	end 
 

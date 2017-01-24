@@ -477,7 +477,7 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             %  See also:  mlfourdfp.FourdfpVisitor.sif_4dfp.
             
             sessd = this.sessionData;
-            ori = sessd.tracerLMFrame('typ', 'fqfn', 'frame', length(this.frames)-1);
+            ori = sessd.tracerLMFrame('typ', 'fqfn', 'frame', length(this.indicesLogical)-1);
             lm  = sessd.tracerLM( 'typ', 'fqfp');
             nac = sessd.tracerNAC('typ', 'fqfp');
             

@@ -19,33 +19,25 @@ classdef Test_HyperglycemiaDirector < matlab.unittest.TestCase
  	end
 
 	methods (Test)
-        function test_ctor(this)
-        end
-		function test_visitDirector(this)
- 			this.verifyClass(this.testObj.visitDirector, 'mlraichle.VisitDirector');
-        end
-		function test_fdgDirector(this)
- 			this.verifyClass(this.testObj.fdgDirector,   'mlraichle.FdgDirector');
-        end
-		function test_hoDirector(this)
- 			this.verifyClass(this.testObj.hoDirector,    'mlraichle.HoDirector');
-        end
-		function test_ooDirector(this)
- 			this.verifyClass(this.testObj.ooDirector,    'mlraichle.OoDirector');
-        end
-		function test_ocDirector(this)
- 			this.verifyClass(this.testObj.ocDirector,    'mlraichle.OcDirector');
-        end
-		function test_umapDirector(this)
- 			this.verifyClass(this.testObj.umapDirector,  'mlraichle.UmapDirector');
-        end
-        function test_analyzeVisit(this)
+        
+        function test_analyzeCohort(this)
         end
         function test_analyzeSubject(this)
         end
-        function test_analyzeCohort(this)
+        function test_analyzeVisit(this)
         end
         function test_analyzeTracers(this)
+        end
+        
+		function test_buildUmap(this)
+        end
+		function test_buildFdg(this)
+        end
+		function test_buildHo(this)
+        end
+		function test_buildOo(this)
+        end
+		function test_buildOc(this)
         end
 	end
 

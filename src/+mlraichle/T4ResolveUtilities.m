@@ -27,7 +27,7 @@ classdef T4ResolveUtilities < mlfourdfp.T4ResolveUtilities
                                  sprintf('FDG_%s-LM-00-OP.4dfp.ifh', visit)), 'file');
         end  
         function tf = hasOPV(pth, lastFrame)
-            lastFrame = lastFrame - 1; % Siemens tags frames starting with 00
+            lastFrame = lastFrame - 1; % Siemens tags indicesLogical starting with 00
             visitPth = fileparts(pth);
             [~,visit] = fileparts(visitPth);
             tf = lexist(fullfile(visitPth, ...
@@ -63,7 +63,7 @@ classdef T4ResolveUtilities < mlfourdfp.T4ResolveUtilities
         end
     end
     
-	methods 		  
+	methods
  		function this = T4ResolveUtilities(varargin)
  			%% T4RESOLVEUTILITIES
  			%  Usage:  this = T4ResolveUtilities()

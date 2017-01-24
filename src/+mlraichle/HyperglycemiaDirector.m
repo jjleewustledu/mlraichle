@@ -10,15 +10,19 @@ classdef HyperglycemiaDirector
  	
 
 	properties
+ 		visitDirector
+        umapDirector
         fdgDirector
         hoDirector
         ooDirector
         ocDirector
-        umapDirector
- 		visitDirector
  	end
 
 	methods 
+        function this = analyzeCohort(this)
+        end     
+        function this = analyzeSubject(this)
+        end   
         function this = analyzeVisit(this, sessp, v)
             import mlraichle.*;
             study = StudyData;
@@ -26,11 +30,6 @@ classdef HyperglycemiaDirector
             sessd.vnumber = v;
             this = this.analyzeTracers('sessionData', sessd);
         end
-        function this = analyzeSubject(this)
-        end
-        function this = analyzeCohort(this)
-        end
-        
         function this = analyzeTracers(this)
             this.umapDirector = this.umapDirector.analyze;
             this.fdgDirector  = this.fdgDirector.analyze;

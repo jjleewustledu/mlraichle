@@ -9,12 +9,79 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
  	
 
-    properties       
+    properties 
         framesPartitions
         partitionBoundaries
     end
     
     methods (Static)
+        function assembleFdgAfterAC
+            import mlsystem.* mlfourdfp.*;
+            studyd = mlraichle.StudyData;            
+            eSess = DirTool(fullfile(studyd.subjectsDir, 'HYGLY*'));
+            for iSess = 1:length(eSess.fqdns)
+
+                eVisit = DirTool(eSess.fqdns{iSess});
+                for iVisit = 1:length(eVisit.fqdns)
+                        
+                    if (~isempty(regexp(eVisit.dns{iVisit}, '^V[1-2]$', 'match')))
+                        fdgRawdata = sprintf('FDG_%s', eVisit.dns{iVisit});
+                        pthAC = fullfile(eVisit.fqdns{iVisit}, [fdgRawdata '-AC'], '');
+                        
+                        if (isdir(pthAC))
+                            rmdir(pthAC, 's');
+                        end
+                        
+                        ensuredir(pthAC);
+                        fprintf('FDGResolveBuilder.assembleFdgAfterAC:  working in -> %s\n', pthAC);                            
+                        sessd = mlraichle.SessionData('studyData', studyd, ...
+                                                      'sessionPath', eSess.fqdns{iSess}, ...
+                                                      'tracer', 'FDG', ...
+                                                      'vnumber', T4ResolveUtilities.visitNumber(eVisit.dns{iVisit}));
+                        this = FDGResolveBuilder('sessionData', sessd);  
+                        firstFortranTimeFrame_ = this.firstFortranTimeFrame;                          
+                        fdgACRevision = sessd.fdgACRevision('typ', 'fp');
+                        fdgPrefix = sprintf('FDG_%s-LM-00-OP', eVisit.dns{iVisit});
+                        fv = FourdfpVisitor;
+                        eFrame = DirTool(fullfile(eVisit.fqdns{iVisit}, sprintf('%s-Converted-Frame*', fdgRawdata), ''));
+                        for iFrame = 1:length(eFrame.fqdns)
+                            try
+                                pwd0 = pushd(eFrame.fqdns{iFrame});
+                                fortranNumFrame = T4ResolveBuilder.frameNumber(eFrame.dns{iFrame}, 1);
+                                fdgFramename = this.fileprefixIndexed(fdgACRevision, fortranNumFrame);
+                                fv.sif_4dfp(fdgPrefix);
+                                fdgT4 = sprintf('%s_frame%i_to_resolved_t4', ...
+                                                sessd.fdgNACRevision('typ', 'fp'), fortranNumFrame);
+                                fqFdgT4 = fullfile(sessd.fdgT4Location, fdgT4);
+                                fv.cropfrac_4dfp(0.5, fdgPrefix, fdgACRevision);
+                                if (fortranNumFrame >= firstFortranTimeFrame_ && ...
+                                    lexist(fqFdgT4, 'file'))
+                                    fv.lns(fqFdgT4);
+                                    fv.t4img_4dfp(fdgT4, fdgACRevision, 'options', ['-O' fdgACRevision]);                            
+                                    fv.move_4dfp([fdgACRevision '_on_resolved'], ...                                
+                                                 fullfile(pthAC, [fdgFramename '_on_resolved']));
+                                else                           
+                                    fv.move_4dfp(fdgACRevision, ...                                
+                                                 fullfile(pthAC, [fdgFramename '_on_resolved']));
+                                end
+                                delete('*.4dfp.*')
+                                delete([fdgACRevision '_frame*_to_resolved_t4']);
+                                popd(pwd0);
+                            catch ME
+                                handwarning(ME);
+                            end
+                        end
+                        pwd0 = pushd(fullfile(pthAC, ''));
+                        ipr.dest = fdgACRevision;
+                        ipr.indicesLogical = ones(1, length(eFrame.fqdns));
+                        this.pasteImageIndices(ipr, 'on_resolved');
+                        fv.imgblur_4dfp([fdgACRevision '_on_resolved'], 5.5);
+                        delete(fullfile(pthAC, [fdgACRevision '_frame*_on_resolved.4dfp.*']));
+                        popd(pwd0);
+                    end
+                end                
+            end
+        end
         function extractFramesResolveSequenceAll(varargin)
             ip = inputParser;
             addParameter(ip, 'tag', '', @ischar);
@@ -74,7 +141,7 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
                     try
                         pth = fullfile(eVisit.fqdns{iVisit}, sprintf('FDG_%s-NAC', eVisit.dns{iVisit}));
                         pwd0 = pushd(pth);
-                        FdgBuilder.printv('resolveFdg:  try pwd->%s\n', pwd);
+                        FdgBuilder.printv('resolvePartition:  try pwd->%s\n', pwd);
                         sessd = SessionData( ...
                             'studyData',   studyd, ...
                             'sessionPath', eSess.fqdns{iSess}, ...
@@ -113,7 +180,7 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
                     try
                         pth = fullfile(eVisit.fqdns{iVisit}, sprintf('FDG_%s-NAC', eVisit.dns{iVisit}), '');
                         pwd0 = pushd(pth);
-                        FdgBuilder.printv('resolveFdg:  try pwd->%s\n', pwd);
+                        FdgBuilder.printv('resolvePartition:  try pwd->%s\n', pwd);
                         sessd = SynthSessionData( ...
                             'studyData',   studyd, ...
                             'sessionPath', eSess.fqdns{iSess}, ...
@@ -153,7 +220,7 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
                     try
                         pth = fullfile(eVisit.fqdns{iVisit}, sprintf('FDG_%s-NAC', eVisit.dns{iVisit}));
                         pwd0 = pushd(pth);
-                        FdgBuilder.printv('resolveFdg:  try pwd->%s\n', pwd);
+                        FdgBuilder.printv('resolvePartition:  try pwd->%s\n', pwd);
                         sessd = SynthSessionData( ...
                             'studyData',   studyd, ...
                             'sessionPath', eSess.fqdns{iSess}, ...
@@ -197,7 +264,7 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
         function sumTimesAll(varargin)
             ip = inputParser;
             addParameter(ip, 'tag', '', @ischar);
-            addParameter(ip, 'frames', ones(1,6), @isnumeric);
+            addParameter(ip, 'indicesLogical', ones(1,6), @isnumeric);
             addParameter(ip, 'rnumber', 1, @isnumeric);
             parse(ip, varargin{:});
 
@@ -219,7 +286,7 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
                     try
                         pth = fullfile(eVisit.fqdns{iVisit}, sprintf('FDG_%s-NAC', eVisit.dns{iVisit}));
                         pwd0 = pushd(pth);
-                        FdgBuilder.printv('resolveFdg:  try pwd->%s\n', pwd);
+                        FdgBuilder.printv('resolvePartition:  try pwd->%s\n', pwd);
                         sessd = SessionData( ...
                             'studyData',   studyd, ...
                             'sessionPath', eSess.fqdns{iSess}, ...
@@ -228,7 +295,58 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
                             'ac',          false, ...
                             'rnumber',     ip.Results.rnumber);
                         this = FdgBuilder('sessionData', sessd);
-                        this.sumTimes(sessd.tracerResolved('typ', 'fp'), 'frames', ip.Results.frames);
+                        this.sumTimes(sessd.tracerResolved('typ', 'fp'), 'indicesLogical', ip.Results.indicesLogical);
+                        popd(pwd0);
+                    catch ME
+                        handwarning(ME);
+                    end
+                end
+            end
+        end 
+        function test(varargin)
+            ip = inputParser;
+            addParameter(ip, 'tag', '', @ischar);
+            addParameter(ip, 'useTracerResolvedSumtAC', false, @islogical);
+            parse(ip, varargin{:});
+
+            import mlfourdfp.* mlsystem.* mlraichle.*;
+            setenv('PRINTV', '1');
+            studyd = StudyData;            
+            if (isempty(ip.Results.tag))
+                tagString = 'HYGLY*';
+            else                
+                tagString = [ip.Results.tag '*'];
+            end
+            
+            eSess = DirTool(fullfile(studyd.subjectsDir, tagString));
+            for iSess = 1:length(eSess.fqdns)
+
+                eVisit = DirTool(fullfile(eSess.fqdns{iSess}, 'V*'));
+                for iVisit = 1:length(eVisit.fqdns)
+
+                    try
+                        pth = fullfile(eVisit.fqdns{iVisit}, sprintf('FDG_%s-AC', eVisit.dns{iVisit}));
+                        pwd0 = pushd(pth);
+                        FdgBuilder.printv('testT4ResolveFdgAC:  try pwd->%s\n', pwd);
+                        sessd = SessionData( ...
+                            'studyData',   studyd, ...
+                            'sessionPath', eSess.fqdns{iSess}, ...
+                            'ac',          true, ...
+                            'tracer',      'FDG', ...
+                            'vnumber',     T4ResolveUtilities.visitNumber(eVisit.dns{iVisit}));
+                        this = FdgBuilder('sessionData', sessd);
+                        mprT = sessd.mpr('typ', 'fp', 'orientation', 'transverse');
+                        tracerResSumt = mybasename(this.fileprefixSumt(this.sessionData.tracerResolved));
+                        this.buildVisitor.t4img_4dfp( ...
+                            fullfile(this.t4Path, [tracerResSumt '_to_' mprT '_t4']), ...
+                            tracerResSumt, 'out', 'test', 'options', ['-O' mprT]);
+                        this.buildVisitor.t4img_4dfp( ...
+                            fullfile(this.t4Path, [mprT '_to_' tracerResSumt '_t4']), ...
+                            mprT, 'out', 'test2', 'options', ['-O' tracerResSumt]);
+                        mlbash(sprintf('fslview test.4dfp.img -l Cool %s.4dfp.img -t 0.5',    mprT));
+                        mlbash(sprintf('fslview %s.4dfp.img   -l Cool test2.4dfp.img -t 0.5', tracerResSumt));
+                        delete('test.4dfp.*');
+                        delete('test2.4dfp.*');
                         popd(pwd0);
                     catch ME
                         handwarning(ME);
@@ -245,13 +363,27 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
  			%  Usage:  this = FdgBuilder()
 
  			this = this@mlfourdfp.AbstractTracerResolveBuilder(varargin{:});
-            this.framesToSkip = 12;
-            if (isempty(this.frames_))
-                sessd0 = this.adjustedSessionData('rnumber', max(1, this.sessionData.rnumber-1));
-                maxFrames = this.readLength(sessd0.fdgNACResolved('typ', 'fqfp'));
-                this.frames = [zeros(1, this.framesToSkip) ones(1, maxFrames - this.framesToSkip)];
-            end
+            this.sessionData.tracer = 'FDG';            
             this.finished = mlpipeline.Finished(this, 'path', this.logPath, 'tag', lower(this.sessionData.tracer));
+        end
+        
+        function this = buildNACimageComposite(this)
+            this.mmrResolveBuilder_.sif;
+            this.mmrResolveBuilder_.cropfrac;
+            this.resolvePartitions;
+            this.assemblePartitions;
+        end
+        function this = motionCorrectNACimageComposite(this)
+        end
+        function this = buildCarneyUmap(this)
+        end
+        function this = motionCorrectUmaps(this)
+        end
+        function this = buildACimageComposite(this)
+        end
+        function this = motionCorrectACimageComposite(this)
+        end
+        function this = assembleFdg(this)
         end
         
         function        printSessionData(this)
@@ -282,56 +414,67 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
             popd(pwd0);
         end
         function this = redoT4ResolveAndPaste(this)
-            ipr = struct('dest', '', 'frames', [], 'rnumber', []);
+            ipr = struct('dest', '', 'indicesLogical', [], 'rnumber', []);
             ipr.dest = this.sessionData.fdgNACRevision('typ','fp');
-            ipr.frames = [zeros(1,12) ones(1,60)];
+            ipr.indicesLogical = [zeros(1,12) ones(1,60)];
             ipr.rnumber = 1;
-            this.t4ResolveLog =  ...
+            this.resolveLog =  ...
                 loggerFilename(ipr.dest, 'func', 'redoT4ResolveAndPaste', 'path', this.logPath);                
                 
             dt = mlsystem.DirTool(fullfile(this.t4Path, '*_t4'));
             if (~isempty(dt.fqdns))
                 movefile(fullfile(this.t4Path, '*'));
             end
-            this.lazyExtractFrames(ipr);
-            this.t4ResolveAndPaste(ipr);
+            this.lazyStageImages(ipr);
+            this.resolveAndPaste(ipr);
             this.teardownLogs;
             this.teardownT4s;
             this.teardownResolve;
-        end
-        function this = resolve(this, varargin)
-            this = this.resolve@mlfourdfp.T4ResolveBuilder(varargin{:});
-        end
-        function this = resolveFdg(this, varargin)
-            if (1 == this.sessionData.rnumber)
-                this = this.resolveRevision1(varargin{:});
-                return
-            end
-            this = this.resolveRevision(varargin{:});
-        end
-        function this = resolveFdgPartitions(this, varargin)
-            this.frames = [];
-            Nframes = length(this.frames);
-            [nonEmpty,this] = this.nonEmptyFrames;
-            for v = 1:length(varargin)
-                interval = varargin{v};
-                assert(~isempty(interval) && isnumeric(interval));
-                frames = zeros(1,Nframes);
-                frames(interval(1):interval(end)) = ones(1, length(interval));
-                this.frames = frames .* nonEmpty;
-                if (1 == v)
-                    this.targetFrame = interval(end);
-                else
-                    this.targetFrame = interval(1);
-                end
-                if (v == length(varargin))
+        end        
+        
+        function parts = resolvePartitions(this)
+                       
+            lenParts = 8;
+            Nparts = floor(this.imageComposite.length/lenParts);
+            parts = cell(1, Nparts);
+            
+            parts{1} = this.imageComposite;
+            parts{1}.indicesLogical = this.indicesInterval(1, lenParts);
+            parts{1}.indexOfReference = lenParts;
+            this.imageComposite = parts{1};
+            this = this.resolvePartition( ...
+                'resolveTag', sprintf('frames%i-%i_op_frame%i', 1, lenParts, parts{1}.indexOfReference));
+            
+            for p = 2:Nparts
+                q = (p - 1)*lenParts + 1;
+                parts{p} = this.imageComposite;
+                parts{p}.indicesLogical = this.indicesInterval(q, q+lenParts-1);
+                parts{p}.indexOfReference = q;
+                this.imageComposite = parts{p};
+                if (Nparts == p)
                     this.keepForensics = false;
                 end
-                this.resolveTag = sprintf('frames%ito%i_op_frame%i', interval(1), interval(end), this.targetFrame);
-                this = this.resolveFdg;
+                this = this.resolvePartition( ...
+                    'resolveTag', sprintf('frames%i-%i_op_frame%i', q, q+lenParts-1, parts{p}.indexOfReference));
             end
-        end        
-        function fqfp = assembleFdgPartitions(this, varargin)
+        end
+        function this  = resolvePartition(this, varargin)
+            this.mmrResolveBuilder_.ensureTracerLocation;
+            this.mmrResolveBuilder_.ensureTracerSymlinks;
+            
+            sessd  = this.sessionData;
+            sessd0 = this.sessionData;
+            sessd0.rnumber = sessd.rnumber - 1;
+            pwd_ = pushd(sessd.tracerLocation);
+            this.printv('FdgBuilder.resolveRevision.pwd -> %s\n', pwd);
+            this = this.resolve( ...
+                'dest',      sessd.tracerRevision('typ', 'fp'), ... 
+                'source',    sessd0.tracerResolved('typ', 'fp'), ...
+                'indicesLogical', this.indicesLogical, ...
+                varargin{:});
+            popd(pwd_);
+        end       
+        function fqfp  = assemblePartitions(this, varargin)
             import mlfourd.*;
             parts = cell(size(varargin));
             part1 = NumericalNIfTId.load( ...
@@ -344,47 +487,21 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
             part1.fqfp = this.sessionData.tracerAssembled('typ', 'fqfp');
             fqfp = part.fqfp;
         end
-        function this = resolveOnCluster(this)
-        end
     end 
     
     %% PRIVATE
     
     methods (Access = 'private')
-        function this = resolveRevision1(this, varargin)
-            assert(1 == this.sessionData.rnumber);
-            this.mkdirTracerLocation;
-            this.sifTracer;
-            this.ensureTracerSymlinks;
-            
-            sessd = this.sessionData;
-            pwd0 = pushd(sessd.tracerLocation);
-            this.printv('FdgBuilder.resolveRevision1.pwd -> %s\n', pwd);
-            this = this.resolve( ...
-                'dest',      sessd.tracerRevision('typ', 'fp'), ... 
-                'source',    sessd.tracerNative('typ', 'fp'), ...
-                'firstCrop', this.firstCrop, ...
-                'frames',    this.frames, ...
-                varargin{:});
-            popd(pwd0);
+        function fr = firstFortranTimeFrame(this)
+            NNativeFrames = this.imageComposite.readLength(this.sessionData.tracerRevision('typ', 'fqfp'));
+            NUmapFrames   = this.imageComposite.readLength(this.sessionData.tracerResolved('typ', 'fqfp'));
+            fr = NNativeFrames - NUmapFrames + 1;
         end
-        function this = resolveRevision(this, varargin)
-            assert(this.sessionData.rnumber > 1);
-            %this.mkdirTracerLocation;
-            this.ensureTracerSymlinks;
-            
-            sessd  = this.sessionData;
-            sessd0 = this.sessionData;
-            sessd0.rnumber = sessd.rnumber - 1;
-            pwd0 = pushd(sessd.tracerLocation);
-            this.printv('FdgBuilder.resolveRevision.pwd -> %s\n', pwd);
-            this = this.resolve( ...
-                'dest',      sessd.tracerRevision('typ', 'fp'), ... 
-                'source',    sessd0.tracerResolved('typ', 'fp'), ...
-                'firstCrop', 1, ...
-                'frames',    this.frames, ...
-                varargin{:});
-            popd(pwd0);
+        function ii = indicesInterval(this, first, last)
+            ii = false(1, this.imageComposite.length);
+            for i = first:last
+                ii(i) = true;
+            end
         end
     end
         
