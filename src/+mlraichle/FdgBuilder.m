@@ -368,8 +368,8 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
         end
         
         function this = buildNACimageComposite(this)
-            this.mmrResolveBuilder_.sif;
-            this.mmrResolveBuilder_.cropfrac;
+            this.mmrBuilder_.sif;
+            this.mmrBuilder_.cropfrac;
             this.resolvePartitions;
             this.assemblePartitions;
         end
@@ -459,8 +459,8 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
             end
         end
         function this  = resolvePartition(this, varargin)
-            this.mmrResolveBuilder_.ensureTracerLocation;
-            this.mmrResolveBuilder_.ensureTracerSymlinks;
+            this.mmrBuilder_.ensureTracerLocation;
+            this.mmrBuilder_.ensureTracerSymlinks;
             
             sessd  = this.sessionData;
             sessd0 = this.sessionData;
