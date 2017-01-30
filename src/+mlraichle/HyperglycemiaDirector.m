@@ -37,11 +37,29 @@ classdef HyperglycemiaDirector
             this.ooDirector   = this.ooDirector.analyze;
             this.ocDirector   = this.ocDirector.analyze;
         end
+        function this = sortDownloads(this, downloadPath)
+            import mlfourdfp.*;
+            DicomSorter.sessionSort(downloadPath, this.sessionData_.sessionPath);
+            rds = RawDataSorter( ...
+                'studyData',   this.sessionData_.studyData, ...
+                'sessionData', this.sessionData_);
+            RawData = fullfile(downloadPath, 'RESOURCES', 'RawData', '');
+            SCANS   = fullfile(downloadPath, 'SCANS', '');
+            rds.dcm_sort_PPG(RawData);
+            rds.moveRawData(RawData);
+            rds.copyUTE(SCANS);            
+        end
         
  		function this = HyperglycemiaDirector(varargin)
  			%% HYPERGLYCEMIADIRECTOR
  			%  Usage:  this = HyperglycemiaDirector()
 
+            ip = inputParser;
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
+            parse(ip, varargin{:});
+            
+            this.sessionData_ = ip.Results.sessionData;
+            
  			import mlraichle.*;
             this.visitDirector = VisitDirector(varargin{:});
             this.umapDirector  = UmapDirector( UmapBuilder(varargin{:}));
@@ -50,7 +68,13 @@ classdef HyperglycemiaDirector
             this.ooDirector    = OoDirector(   OoBuilder(varargin{:}));
             this.ocDirector    = OcDirector(   OcBuilder(varargin{:}));
  		end
- 	end 
+    end 
+    
+    %% PRIVATE
+    
+    properties (Access = private)
+        sessionData_
+    end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end

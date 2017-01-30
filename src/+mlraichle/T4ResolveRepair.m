@@ -72,41 +72,9 @@ classdef T4ResolveRepair < mlfourdfp.T4ResolveBuilder
  			%  Usage:  this = T4ResolveRepair()
 
  			this = this@mlfourdfp.T4ResolveBuilder(varargin{:});
+            this.mmrBuilder_ = mlfourdfp.MMRBuilder('sessionData', this.sessionData);
         end
         
-        function        ensureTracerSymlinks(this)
-            sessd = this.sessionData;
-
-            assert(this.buildVisitor.lexist_4dfp(sessd.mpr('typ', 'fqfp')));
-            if (~lexist(sessd.mpr('typ', 'fn')))
-                this.buildVisitor.lns_4dfp(sessd.mpr('typ', 'fqfp'));
-            end
-            mprAtlT4 = [sessd.mpr('typ', 'fp') '_to_' sessd.atlas('typ', 'fp') '_t4'];
-            fqMprAtlT4 = fullfile(sessd.mpr('typ', 'path'), mprAtlT4);            
-            assert(lexist(fqMprAtlT4, 'file'));
-            if (~lexist(mprAtlT4))
-                this.buildVisitor.lns(fqMprAtlT4);
-            end
-            
-            assert(this.buildVisitor.lexist_4dfp(sessd.T1( 'typ', 'fqfp')));
-            assert(this.buildVisitor.lexist_4dfp(sessd.T2( 'typ', 'fqfp')));
-            assert(this.buildVisitor.lexist_4dfp(sessd.tof('typ', 'fqfp')));
-            assert(this.buildVisitor.lexist_4dfp(sessd.ct( 'typ', 'fqfp')));
-            assert(isdir(sessd.tracerLocation));            
-            cd(sessd.tracerLocation);
-            if (~lexist(sessd.T1('typ', 'fn')))
-                this.buildVisitor.lns_4dfp(sessd.T1('typ', 'fqfp'));
-            end
-            if (~lexist(sessd.t2('typ', 'fn')))
-                this.buildVisitor.lns_4dfp(sessd.t2('typ', 'fqfp'));
-            end
-            if (~lexist(sessd.tof('typ', 'fn')))
-                this.buildVisitor.lns_4dfp(sessd.tof('typ', 'fqfp'));
-            end
-            if (~lexist(sessd.ct('typ', 'fn')))
-                this.buildVisitor.lns_4dfp(sessd.ct('typ', 'fqfp'));
-            end
-        end
         function ipr  = imageRegSingle(this, ipr)
             try
                 extractedFp1 = sprintf('%s_frame%i', ipr.dest, ipr.frame1st);
@@ -146,12 +114,13 @@ classdef T4ResolveRepair < mlfourdfp.T4ResolveBuilder
             %  See also:  mlraichle.T4ResolveBuilder.repairSingle
             
             sessd = this.sessionData;
-            cd(sessd.tracerNAC('typ', 'path'));
+            pwd0 = pushd(sessd.tracerNAC('typ', 'path'));
             this.printv('repairConvertedNAC.pwd -> %s\n', pwd);
-            this.ensureTracerSymlinks;
+            this.mmrBuilder_.ensureTracerSymlinks;
             this = this.repairSingle( ...
                 frame1st, frame2nd, ...
                 'dest', sprintf('%sv%ir%i', lower(sessd.tracer), sessd.vnumber, sessd.rnumber));
+            popd(pwd0);
         end
         function ipr  = repairSingle(this, varargin)
             
@@ -226,6 +195,10 @@ classdef T4ResolveRepair < mlfourdfp.T4ResolveBuilder
  	end 
 
     %% PRIVATE
+    
+    properties (Access = private)
+        mmrBuilder_
+    end
     
     methods (Static, Access = private)
         function this = triggering(varargin)

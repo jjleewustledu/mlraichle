@@ -11,6 +11,7 @@ classdef SessionData < mlpipeline.SessionData
 
     properties
         filetypeExt = '.4dfp.ifh'
+        petPlatform = 'mmr'
     end
     
 	properties (Dependent)

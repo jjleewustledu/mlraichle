@@ -264,7 +264,7 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
         function sumTimesAll(varargin)
             ip = inputParser;
             addParameter(ip, 'tag', '', @ischar);
-            addParameter(ip, 'indicesLogical', ones(1,6), @isnumeric);
+            addParameter(ip, 'indicesLogical', true(1,6), @islogical);
             addParameter(ip, 'rnumber', 1, @isnumeric);
             parse(ip, varargin{:});
 
@@ -416,7 +416,7 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
         function this = redoT4ResolveAndPaste(this)
             ipr = struct('dest', '', 'indicesLogical', [], 'rnumber', []);
             ipr.dest = this.sessionData.fdgNACRevision('typ','fp');
-            ipr.indicesLogical = [zeros(1,12) ones(1,60)];
+            ipr.indicesLogical = [false(1,12) true(1,60)];
             ipr.rnumber = 1;
             this.resolveLog =  ...
                 loggerFilename(ipr.dest, 'func', 'redoT4ResolveAndPaste', 'path', this.logPath);                

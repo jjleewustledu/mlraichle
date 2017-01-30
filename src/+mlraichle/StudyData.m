@@ -10,7 +10,7 @@ classdef StudyData < mlpipeline.StudyData
     
 
     properties
-        subjectsFolder = 'jjlee2'
+        subjectsFolder = 'jjlee'
     end
     
     properties (SetAccess = protected)
