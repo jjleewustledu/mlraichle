@@ -10,7 +10,7 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
     
 
     properties
-        subjectsFolder = 'jjlee'
+        subjectsFolder = 'jjlee2'
     end
 
     properties (SetAccess = protected)

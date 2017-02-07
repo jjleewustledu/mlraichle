@@ -16,8 +16,12 @@ classdef HyperglycemiaDirector
         hoDirector
         ooDirector
         ocDirector
- 	end
+    end
 
+    methods (Static)
+        
+    end
+    
 	methods 
         function this = analyzeCohort(this)
         end     
@@ -39,7 +43,8 @@ classdef HyperglycemiaDirector
         end
         function this = sortDownloads(this, downloadPath)
             import mlfourdfp.*;
-            DicomSorter.sessionSort(downloadPath, this.sessionData_.sessionPath);
+            DicomSorter.sessionSort(downloadPath, this.sessionData_.vLocation);
+            
             rds = RawDataSorter( ...
                 'studyData',   this.sessionData_.studyData, ...
                 'sessionData', this.sessionData_);
@@ -48,6 +53,21 @@ classdef HyperglycemiaDirector
             rds.dcm_sort_PPG(RawData);
             rds.moveRawData(RawData);
             rds.copyUTE(SCANS);            
+        end
+        function this = sortDownloadCT(this, downloadPath)            
+            import mlfourdfp.*;
+            DicomSorter.sessionSort(downloadPath, this.sessionData_.sessionPath);
+            
+%             cd(this.sessionData_.rawdataDir);
+%             [~,downloadFold] = fileparts(downloadPath);
+%             ds = DicomSorter( ...
+%                 'studyData', this.sessionData_.studyData, ...
+%                 'sessionData', this.sessionData_);
+%             ds.sessions_to_4dfp( ...
+%                 'sessionFilter', downloadFold, ...
+%                 'seriesFilter', {'AC_CT'}, ...
+%                 'studyData', this.sessionData_.studyData, ...
+%                 'preferredName', 'AC_CT');
         end
         
  		function this = HyperglycemiaDirector(varargin)
@@ -61,12 +81,12 @@ classdef HyperglycemiaDirector
             this.sessionData_ = ip.Results.sessionData;
             
  			import mlraichle.*;
-            this.visitDirector = VisitDirector(varargin{:});
-            this.umapDirector  = UmapDirector( UmapBuilder(varargin{:}));
-            this.fdgDirector   = FdgDirector(  FdgBuilder(varargin{:}));
-            this.hoDirector    = HoDirector(   HoBuilder(varargin{:}));
-            this.ooDirector    = OoDirector(   OoBuilder(varargin{:}));
-            this.ocDirector    = OcDirector(   OcBuilder(varargin{:}));
+%             this.visitDirector = VisitDirector(varargin{:});
+%             this.umapDirector  = UmapDirector( UmapBuilder(varargin{:}));
+%             this.fdgDirector   = FdgDirector(  FdgBuilder(varargin{:}));
+%             this.hoDirector    = HoDirector(   HoBuilder(varargin{:}));
+%             this.ooDirector    = OoDirector(   OoBuilder(varargin{:}));
+%             this.ocDirector    = OcDirector(   OcBuilder(varargin{:}));
  		end
     end 
     
