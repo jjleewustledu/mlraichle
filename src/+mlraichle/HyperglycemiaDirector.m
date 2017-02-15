@@ -10,12 +10,19 @@ classdef HyperglycemiaDirector
  	
 
 	properties
+        sessionData
  		visitDirector
         umapDirector
         fdgDirector
         hoDirector
         ooDirector
         ocDirector
+    end
+    
+    methods %% GET
+        function g = get.sessionData(this)
+            g = this.sessionData_;
+        end
     end
 
     methods (Static)
@@ -41,6 +48,11 @@ classdef HyperglycemiaDirector
             this.ooDirector   = this.ooDirector.analyze;
             this.ocDirector   = this.ocDirector.analyze;
         end
+        
+        function this = constructUmaps(this)
+            mlfourdfp.CarneyUmapBuilder.buildUmapAll;
+            mmrb = mlsiemens.MMRBuilder('sessionData', this.sessionData);
+        end
         function this = sortDownloads(this, downloadPath)
             import mlfourdfp.*;
             DicomSorter.sessionSort(downloadPath, this.sessionData_.vLocation);
@@ -54,7 +66,7 @@ classdef HyperglycemiaDirector
             rds.moveRawData(RawData);
             rds.copyUTE(SCANS);            
         end
-        function this = sortDownloadCT(this, downloadPath)            
+        function this = sortDownloadCT(this, downloadPath)
             import mlfourdfp.*;
             DicomSorter.sessionSort(downloadPath, this.sessionData_.sessionPath);
             

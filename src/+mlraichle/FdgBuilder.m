@@ -367,12 +367,6 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
             this.finished = mlpipeline.Finished(this, 'path', this.logPath, 'tag', lower(this.sessionData.tracer));
         end
         
-        function this = buildNACimageComposite(this)
-            this.mmrBuilder_.sif;
-            this.mmrBuilder_.cropfrac;
-            this.resolvePartitions;
-            this.assemblePartitions;
-        end
         function this = motionCorrectNACimageComposite(this)
         end
         function this = buildCarneyUmap(this)
@@ -432,61 +426,6 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
             this.teardownResolve;
         end        
         
-        function parts = resolvePartitions(this)
-                       
-            lenParts = 8;
-            Nparts = floor(this.imageComposite.length/lenParts);
-            parts = cell(1, Nparts);
-            
-            parts{1} = this.imageComposite;
-            parts{1}.indicesLogical = this.indicesInterval(1, lenParts);
-            parts{1}.indexOfReference = lenParts;
-            this.imageComposite = parts{1};
-            this = this.resolvePartition( ...
-                'resolveTag', sprintf('frames%i-%i_op_frame%i', 1, lenParts, parts{1}.indexOfReference));
-            
-            for p = 2:Nparts
-                q = (p - 1)*lenParts + 1;
-                parts{p} = this.imageComposite;
-                parts{p}.indicesLogical = this.indicesInterval(q, q+lenParts-1);
-                parts{p}.indexOfReference = q;
-                this.imageComposite = parts{p};
-                if (Nparts == p)
-                    this.keepForensics = false;
-                end
-                this = this.resolvePartition( ...
-                    'resolveTag', sprintf('frames%i-%i_op_frame%i', q, q+lenParts-1, parts{p}.indexOfReference));
-            end
-        end
-        function this  = resolvePartition(this, varargin)
-            this.mmrBuilder_.ensureTracerLocation;
-            this.mmrBuilder_.ensureTracerSymlinks;
-            
-            sessd  = this.sessionData;
-            sessd0 = this.sessionData;
-            sessd0.rnumber = sessd.rnumber - 1;
-            pwd_ = pushd(sessd.tracerLocation);
-            this.printv('FdgBuilder.resolveRevision.pwd -> %s\n', pwd);
-            this = this.resolve( ...
-                'dest',      sessd.tracerRevision('typ', 'fp'), ... 
-                'source',    sessd0.tracerResolved('typ', 'fp'), ...
-                'indicesLogical', this.indicesLogical, ...
-                varargin{:});
-            popd(pwd_);
-        end       
-        function fqfp  = assemblePartitions(this, varargin)
-            import mlfourd.*;
-            parts = cell(size(varargin));
-            part1 = NumericalNIfTId.load( ...
-                this.sessionData.tracerPartition('typ', '4dfp.ifh', 'partition', varargin{1}));
-            for p = 2:length(parts)
-                parts{p} = NumericalNIfTId.load( ...
-                    this.sessionData.tracerPartition('typ', '4dfp.ifh', 'partition', varargin{p}));
-                part1.img = [part1.img parts{p}.img];
-            end
-            part1.fqfp = this.sessionData.tracerAssembled('typ', 'fqfp');
-            fqfp = part.fqfp;
-        end
     end 
     
     %% PRIVATE
@@ -496,12 +435,6 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
             NNativeFrames = this.imageComposite.readLength(this.sessionData.tracerRevision('typ', 'fqfp'));
             NUmapFrames   = this.imageComposite.readLength(this.sessionData.tracerResolved('typ', 'fqfp'));
             fr = NNativeFrames - NUmapFrames + 1;
-        end
-        function ii = indicesInterval(this, first, last)
-            ii = false(1, this.imageComposite.length);
-            for i = first:last
-                ii(i) = true;
-            end
         end
     end
         
