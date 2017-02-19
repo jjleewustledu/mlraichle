@@ -12,6 +12,8 @@ classdef SessionData < mlpipeline.SessionData
     properties
         filetypeExt = '.4dfp.ifh'
         petPlatform = 'mmr'
+        resolveTag  = 'op_fdg'        
+        selectedMask
     end
     
 	properties (Dependent)
@@ -37,6 +39,10 @@ classdef SessionData < mlpipeline.SessionData
             if (lstrfind(upper(this.tracer), 'OO') || ...
                 lstrfind(upper(this.tracer), 'OC'))
                 g = '-Converted-Abs';
+                return
+            end
+            if (lstrfind(upper(this.tracer), 'FDG'))
+                g = '-Converted-AC';
                 return
             end
             g = '-Converted';
@@ -129,7 +135,7 @@ classdef SessionData < mlpipeline.SessionData
             loc = locationType(ip.Results.typ, ...
                 fullfile(this.freesurfersDir, [this.sessionLocation('typ', 'folder') '_' this.vLocation('typ', 'folder')], ''));
         end   
-        function obj  = mask(this, varargin)            
+        function obj  = mask(this, varargin)
             %  @param named tracer is a string identifier.
             %  @param named snumber is the scan number; is numeric.
             %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
@@ -139,7 +145,13 @@ classdef SessionData < mlpipeline.SessionData
             %  @returns ipr, the struct ip.Results obtained by parse.            
             %  @returns schr, the s-number as a string.
             
-             fqfn = fullfile(this.vLocation, 'brainmaskBinarized.4dfp.ifh');
+            if (isempty(this.selectedMask))
+                fqfn = fullfile(this.vLocation, sprintf('brainmaskBinarized_%s.4dfp.ifh', this.resolveTag));
+            else
+                assert(lexist(this.selectedMask, 'file'));
+                fqfn = this.selectedMask;
+            end
+            
 %             if (~lexist(fqfn, 'file'))
 %                 mic = this.aparcA2009sAseg('typ', 'mlmr.MRImagingContext');
 %                 mic = mic.binarized;
@@ -360,6 +372,22 @@ classdef SessionData < mlpipeline.SessionData
                 this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
                 sprintf('%s%sv%ir%i_%s.4dfp.ifh', ...
                     lower(ipr.tracer), schar, this.vnumber, ipr.rnumber, this.builder.resolveTag));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = tracerResolved1(this, varargin)
+            [ipr,schar] = this.iprLocation(varargin{:});
+            fqfn = fullfile( ...
+                this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
+                sprintf('%s%sv%ir%i_on_resolved.4dfp.ifh', ...
+                    lower(ipr.tracer), schar, this.vnumber, ipr.rnumber));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = tracerResolvedSumt1(this, varargin)
+            [ipr,schar] = this.iprLocation(varargin{:});
+            fqfn = fullfile( ...
+                this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
+                sprintf('%s%sv%ir%i_on_resolved_sumt.4dfp.ifh', ...
+                    lower(ipr.tracer), schar, this.vnumber, ipr.rnumber));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerRevision(this, varargin)

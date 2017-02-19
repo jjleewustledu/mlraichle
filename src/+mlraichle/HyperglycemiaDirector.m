@@ -51,7 +51,7 @@ classdef HyperglycemiaDirector
         
         function this = constructUmaps(this)
             mlfourdfp.CarneyUmapBuilder.buildUmapAll;
-            mmrb = mlsiemens.MMRBuilder('sessionData', this.sessionData);
+            %mmrb = mlsiemens.MMRBuilder('sessionData', this.sessionData);
         end
         function this = sortDownloads(this, downloadPath)
             import mlfourdfp.*;
