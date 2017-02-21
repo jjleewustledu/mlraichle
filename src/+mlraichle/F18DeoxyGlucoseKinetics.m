@@ -354,7 +354,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
                 [this.fu this.k1 this.k2 this.k3 this.k4 this.u0 this.v1]';
         end
         
-        function tsc  = prepareTsc(this)
+        function mmr  = prepareTsc(this)
             pic = mlpet.PETImagingContext( ...
                 [this.sessionData.fdgACRevision('typ','fqfp') '_on_resolved.4dfp.ifh']);
             mmr = mlsiemens.BiographMMR(pic.niftid, ...
@@ -364,9 +364,9 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
             num = num.masked(msk);
             num = num.volumeSummed;
             num.img = num.img/msk.count;
+            num.img = ensureRowVector(num.img);
             mmr.img = num.img;
             mmr.fileprefix = [mmr.fileprefix '_tsc'];
-            tsc = mmr;
         end
         function dta  = prepareDta(this)
             dta = mlpet.Caprac('scannerData', this.tsc);

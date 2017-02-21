@@ -9,7 +9,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
  	
 
-	properties
+	properties (Constant)
         
         %% aparc+aseg
         
@@ -19,10 +19,11 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
         thalamus = [10 49]
         cerebWhite = [7 46]
         cerebCortex = [8 47]
-        brainstem = 16
+        brainstem = [16 16]
         ventralDC = [28 60]
         amygdala  = [18 54]
-        hippo = [17 53]        
+        hippo = [17 53]       
+        yeoOffset = 100
  	end
 
 	methods 
@@ -46,8 +47,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             sessd = SessionData('studyData', studyd, 'sessionPath', fileparts(vloc));
             sessd.vnumber = v;
             sessd.attenuationCorrected = true;
-            ic = FDGKineticsParc.parcMask(sessd);
-            sessd.selectedMask = ic.fqfilename;
+            sessd.selectedMask = FDGKineticsParc.parcMask(sessd).fqfilename;
             this = FDGKineticsParc.runMask(sessd);
         end
         function this = runMask(sessd)
@@ -74,60 +74,83 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             toc
         end
         
-        function mskt = parcMask(sessd)
+        function pm = parcMask(sessd, parc)
+            assert(ischar(parc));
             cd(sessd.vLocation);
             
             import mlraichle.*;
             [~,mskt] = FDGKineticsWholebrain.mskt(sessd);
             [~,ct4rb_bmb] = FDGKineticsWholebrain.brainmaskBinarized(sessd, mskt);
-            FDGKineticsParc.resolveAparcAseg(sessd);
-            [ct4rb_mni] = FDGKineticsParc.resolveMNI152(sessd);
-            FDGKineticsParc.resolveYeo7(sessd);
-        end       
-        
-        function ct4rb = resolveMNI152(this)            
-        end
-        function aa = resolveAparcAseg(sessd, ct4rb)
+            aa = FDGKineticsParc.resolveAparcAseg(sessd, ct4rb_bmb, FDGKineticsParc.(parc));
+            [mat_mni,ct4rb_mni] = FDGKineticsParc.resolveMNI152(sessd);
+            y = FDGKineticsParc.resolveYeo7(sessd, mat_mni, ct4rb_mni);
+            
+            aa.numericalNiftid;
+            y.numericalNiftid;            
+            pm = aa + y;
+            pm = pm.binarized;
+            pm.view;
+        end        
+        function raa = resolveAparcAseg(sessd, ct4rb, parc)
             cd(sessd.vLocation);
             
-            aa = sprintf('aparc_aseg_%s.4dfp.ifh', sessd.resolveTag);
-            if (lexist(aa))
+            raa_fn = sprintf('aparc_aseg_%s.4dfp.ifh', sessd.resolveTag);
+            if (lexist(raa_fn))
                 return
-            end            
-            sessd.mri_convert(sessd.aparcAseg('typ','mgz'), sessd.aparcAseg('typ','nii'));
-            sessd.nifti_4dfp_4(sessd.aparcAseg('typ','nii'), aa);
-            ct4rb.t4img_4dfp('brainmask', mybasename(aa));            
-            aa = mlfourd.ImagingContext(aa);
+            end
+            aa_fp = sessd.aparcAseg('typ','fp');
+            sessd.mri_convert(sessd.aparcAseg('typ','mgz'), [aa_fp '.nii']);
+            sessd.nifti_4dfp_4(aa_fp);
+            raa = ct4rb.t4img_4dfp('brainmask', aa_fp, 'opts', '-n');
+            raa = raa.numericalNiftid;
+            raa.img = double(raa.img == parc(1)) + double(raa.img == parc(2));
+            raa = raa.binarized;
+            raa = mlfourd.ImagingContext(raa);
+            raa.filename = raa_fn;
+            ras.save;
+            raa.view;
         end
-        function b = brain(sessd)
+        function [mat,ct4rb] = resolveMNI152(sessd)   
+            cd(sessd.vLocation);            
+            
+            brainmask = 'brainmask.nii';
+            if (~lexist(brainmask, 'file'))
+                sessd.mri_convert(sessd.brainmask('typ','mgz'), brainmask);
+            end
+            mni = fullfile(getenv('PPG'), 'jjlee2', 'FSL_MNI152_FreeSurferConformed_1mm.nii');
+            mniOnBrain = 'MNI152OnBrain.nii.gz';
+            mlbash(sprintf('flirt -in %s -ref %s -out %s -omat %s.mat -cost normmi -dof 12', ...
+                mni, brainmask, mniOnBrain, mybasename(mniOnBrain)));            
+            
+            fv = mlfourdfp.FourdfpVisitor;            
+            fdgBrain = fv.ensureSafeOn([sessd.tracerResolvedSumt1('typ','fp') '_brain']);
+            sessd.nifti_4dfp_4(brainmask);      
+            sessd.nifti_4dfp_4(mniOnBrain);
+            ct4rb = mlfourdfp.CompositeT4ResolveBuilder( ...
+                'sessionData', sessd, ...
+                'theImages', {fdgBrain mybasename(brainmask) mybasename(mniOnBrain)}, ...
+                'resolveTag', 'op_fdg');
+            ct4rb.resolve;
+            
+            mat = [mybasename(mniOnBrain) '.mat'];
+        end
+        function y = yeo7(sessd, mat, ct4rb)
             cd(sessd.vLocation);
             
-        end
-        function y = yeo7(sessd)
-            cd(sessd.vLocation);
-            
-            y = 'Yeo7.4dfp.ifh';
+            y = sprintf('Yeo7_%s.4dfp.ifh', sessd.resolveTag);
             if (lexist(y, 'file'))
                 return
             end
+            ymni = fullfile(getenv('PPG'), 'jjlee2', 'Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii');
+            brainmask = 'brainmask.nii';
+            ynii = 'Yeo7.nii';
+            mlbash(sprintf('flirt -in %s -ref %s -applyxfm -init %s -out %s', ymni, brainmask, mat, ynii));
             
-            brain = 'brain.nii';
-            if (~lexist(brain, 'file'))
-                sessd.mri_convert(fullfile(sessd.mriLocation, 'brain.mgz'), brain);
-            end
-            MNI152 = fullfile(getenv('PPG'), 'jjlee2', 'FSL_MNI152_FreeSurferConformed_1mm.nii');
-            MNI152OnBrain = 'MNI152OnBrain.nii.gz';
-            mlbash(sprintf('flirt -in %s -ref %s -out %s -omat %s.mat -cost normmi -dof 12', ...
-                MNI152, brain, MNI152OnBrain, mybasename(MNI152OnBrain)));
-            
-            Yeo = fullfile(getenv('PPG'), 'jjlee2', 'Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii');
-            sessd.nifti_4dfp_4(Yeo, y);
-            sessd.nifti_4dfp_4(brain);      
-            sessd.nifti_4dfp_4(MNI152OnBrain);
-            fdgBrain = mlraichle.FDGKineticsParc.fdgBrain(sessd);
-            ct4rb = mlfourdfp.CompositeT4ResolveBuilder( ...
-                'sessionData', sessd, 'theImages', {mybasename(fdgBrain) mybasename(brain4) mybasename(MNI152OnBrain4)}, 'resolveTag', 'op_fdg');
-            ct4rb.resolve;
+            mniOnBrain = 'MNI152OnBrain';
+            sessd.nifti_4dfp_4(mniOnBrain);
+            y = ct4rb.t4img_4dfp(mniOnBrain, mybasename(ynii), 'opts', '-n');
+            y = mlfourd.ImagingContext(y);
+            y.view;
         end
     end
     

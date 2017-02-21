@@ -11,8 +11,7 @@ classdef SessionData < mlpipeline.SessionData
 
     properties
         filetypeExt = '.4dfp.ifh'
-        petPlatform = 'mmr'
-        resolveTag  = 'op_fdg'        
+        petPlatform = 'mmr'     
         selectedMask
     end
     
@@ -21,6 +20,7 @@ classdef SessionData < mlpipeline.SessionData
         convertedSuffix
         petBlur
         rawdataDir
+        resolveTag
     end
     
     methods %% GET
@@ -54,6 +54,13 @@ classdef SessionData < mlpipeline.SessionData
         function g = get.rawdataDir(this)
             g = this.studyData_.rawdataDir;
         end 
+        function g = get.resolveTag(this)
+            if (strcmp('FDG', this.tracer))
+                g = ['op_' lower(this.tracer)];
+            else
+                g = sprintf('op_%s%i', lower(this.tracer), this.snumber);  
+            end
+        end
     end
 
 	methods
@@ -146,18 +153,20 @@ classdef SessionData < mlpipeline.SessionData
             %  @returns schr, the s-number as a string.
             
             if (isempty(this.selectedMask))
-                fqfn = fullfile(this.vLocation, sprintf('brainmaskBinarized_%s.4dfp.ifh', this.resolveTag));
+                fqfn = fullfile(this.vLocation, sprintf('brainmaskBinarizeBlended_%s.4dfp.ifh', this.resolveTag));
             else
                 assert(lexist(this.selectedMask, 'file'));
                 fqfn = this.selectedMask;
             end
-            
-%             if (~lexist(fqfn, 'file'))
-%                 mic = this.aparcA2009sAseg('typ', 'mlmr.MRImagingContext');
-%                 mic = mic.binarized;
-%                 mic.fourdfp;
-%                 mic.saveas(fqfn);
-%             end
+            obj = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = maskAparcAseg(this, varargin)
+            if (isempty(this.selectedMask))
+                fqfn = fullfile(this.vLocation, sprintf('aparcAsegBinarizeBlended_%s.4dfp.ifh', this.resolveTag));
+            else
+                assert(lexist(this.selectedMask, 'file'));
+                fqfn = this.selectedMask;
+            end
             obj = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = mpr(this, varargin)
@@ -209,7 +218,7 @@ classdef SessionData < mlpipeline.SessionData
         
         function obj  = CCIRRadMeasurementsTable(this)
             obj = fullfile( ...
-                this.vLocation, 'CCIR rad measurements.xlsx');
+                this.vLocation, 'CCIR_rad_measurements.xlsx');
         end
         function obj  = ct(this, varargin)
             obj = this.ctObject('ct', varargin{:});

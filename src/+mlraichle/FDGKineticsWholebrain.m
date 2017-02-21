@@ -24,21 +24,56 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
     end 
 
     methods (Static)
-        function this = godo(sessfold, v)
-            import mlraichle.*;
-            studyd = StudyData;
-            assert(strcmp(studyd.subjectsFolder, 'jjlee'));
-            vloc = fullfile(studyd.subjectsDir, sessfold, sprintf('V%i', v), '');
-            assert(isdir(vloc));
-            
-            sessd = SessionData('studyData', studyd, 'sessionPath', fileparts(vloc));
-            sessd.vnumber = v;
-            sessd.attenuationCorrected = true;
-            [~,ic] = FDGKineticsWholebrain.mskt(sessd);
-            sessd.selectedMask = ic.fqfn;
-            this = FDGKineticsWholebrain.run(sessd);
+        function this = godo(obj)
+            try
+                sessf = obj.sessf;
+                v = obj.v;
+                
+                import mlraichle.*;
+                studyd = StudyData;
+                assert(strcmp(studyd.subjectsFolder, 'jjlee'));
+                vloc = fullfile(studyd.subjectsDir, sessf, sprintf('V%i', v), '');
+                assert(isdir(vloc));
+                sessd = SessionData('studyData', studyd, 'sessionPath', fileparts(vloc));
+                sessd.vnumber = v;
+                sessd.attenuationCorrected = true;
+                
+                sessd = FDGKineticsWholebrain.godoMasks(obj);
+
+                pushd(vloc);
+                diary(sprintf('FDGKineticsWholebrain_godo_%s_V%i.log', obj.sessf, obj.v))
+                this = FDGKineticsWholebrain.doBayes(sessd);
+                popd(vloc);
+            catch ME
+                handwarning(ME);
+            end
         end
-        function this = run(sessd)
+        function [sessd,ct4rb] = godoMasks(obj)
+            try
+                sessf = obj.sessf;
+                v = obj.v;
+                
+                import mlraichle.*;
+                studyd = StudyData;
+                assert(strcmp(studyd.subjectsFolder, 'jjlee'));
+                vloc = fullfile(studyd.subjectsDir, sessf, sprintf('V%i', v), '');
+                assert(isdir(vloc));
+                sessd = SessionData('studyData', studyd, 'sessionPath', fileparts(vloc));
+                sessd.vnumber = v;
+                sessd.attenuationCorrected = true;
+
+                pushd(vloc);
+                diary(sprintf('FDGKineticsWholebrain.godoMasks_%s_V%i.log', obj.sessf, obj.v));
+                [~,msktn] = FDGKineticsWholebrain.mskt(sessd);
+                [~,ct4rb] = FDGKineticsWholebrain.brainmaskBinarized(sessd, msktn);                
+                aa = FDGKineticsWholebrain.aparcAseg(sessd, ct4rb);
+                sessd.selectedMask = [aa.fqfp '.4dfp.ifh'];
+                popd(vloc);
+            catch ME
+                handwarning(ME);
+            end
+        end
+        function this = doBayes(sessd)
             tic
             assert(isa(sessd, 'mlraichle.SessionData'));
             cd(sessd.vLocation);
@@ -52,7 +87,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             
             kmin = this.kmin;
             k1k3overk2k3 = kmin(1)*kmin(3)/(kmin(2) + kmin(3));
-            fprintf('\n%s is working in %s\n', mfilename, sessd.sessionPath);
+            fprintf('\n%s is working in %s\n', mfilename, sessd.vLocation);
             fprintf('[k_1 ... k_4] / min^{-1} -> %s\n', mat2str(kmin));
             fprintf('chi = frac{k_1 k_3}{k_2 + k_3} / min^{-1} -> %s\n', mat2str(k1k3overk2k3));
             fprintf('Kd = K_1 = V_B k1 / (mL min^{-1} (100g)^{-1}) -> %s\n', mat2str(100*this.v1*kmin(1)));
@@ -60,12 +95,17 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             fprintf('\n');
             save('this_mlraichle_FDGKineticsWholebrain_runWholebrain', 'this')
             toc
-        end
-        
+        end        
         function [m,n] = mskt(sessd)
             import mlfourdfp.*;
             f = [sessd.tracerResolved1('typ','fqfp') '_sumt'];
             f1 = mybasename(FourdfpVisitor.ensureSafeOn(f));
+            if (lexist([f1 '_mskt.4dfp.ifh'], 'file') && lexist([f1 '_msktNorm.4dfp.ifh'], 'file'))
+                m = mlfourd.ImagingContext([f1 '_mskt.4dfp.ifh']);
+                n = mlfourd.ImagingContext([f1 '_msktNorm.4dfp.ifh']);
+                return
+            end
+            
             lns_4dfp(f, f1);
             
             ct4rb = CompositeT4ResolveBuilder('sessionData', sessd);
@@ -96,12 +136,34 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             brainmask.save;
             
             ct4rb = mlfourdfp.CompositeT4ResolveBuilder( ...
-                'sessionData', sessd, 'theImages', {fdgSumt.fileprefix brainmask.fileprefix});
+                'sessionData', sessd, ...
+                'theImages', {fdgSumt.fileprefix brainmask.fileprefix});
+            if (lexist(['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh'], 'file'))
+                b = mlpet.PETImagingContext(['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh']);
+                return
+            end
             ct4rb = ct4rb.resolve;
             b = ct4rb.product{2};
             b.numericalNiftid;
             b = b.binarizeBlended;
             b.saveas(['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh']);
+        end
+        function aa = aparcAseg(sessd, ct4rb)
+            if (lexist('aparcAsegBinarizeBlended_op_fdg.4dfp.ifh', 'file'))
+                aa = mlpet.PETImagingContext('aparcAsegBinarizeBlended_op_fdg.4dfp.ifh');
+                return
+            end
+            
+            aa = sessd.aparcAseg('typ', 'mgz');
+            aa = sessd.mri_convert(aa, 'aparcAseg.nii');
+            aa = mybasename(aa);
+            sessd.nifti_4dfp_4(aa);
+            aa = ct4rb.t4img_4dfp( ...
+                sessd.brainmask('typ','fp'), aa, 'opts', '-n'); 
+            aa = mlfourd.ImagingContext([aa '.4dfp.ifh']);
+            aa.numericalNiftid;
+            aa = aa.binarizeBlended;
+            aa.saveas([aa 'BinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh']);
         end
     end
     
