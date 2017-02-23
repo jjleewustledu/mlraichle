@@ -6,7 +6,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
- 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
+ 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee.
  	
 
 	properties (Constant)
@@ -22,6 +22,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
         brainstem = [16 16]
         ventralDC = [28 60]
         amygdala  = [18 54]
+        white = [2 41]
         hippo = [17 53]       
         yeoOffset = 100
  	end
