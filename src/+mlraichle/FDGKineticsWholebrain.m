@@ -6,7 +6,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
- 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
+ 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee.
  	
 
 	properties
@@ -162,8 +162,8 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                 sessd.brainmask('typ','fp'), aa, 'opts', '-n'); 
             aa = mlfourd.ImagingContext([aa '.4dfp.ifh']);
             aa.numericalNiftid;
-            aa = aa.binarizeBlended;
-            aa.saveas([aa 'BinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh']);
+            aa = aa.binarizeBlended(0); % set threshold to intensity floor
+            aa.saveas(['aparcAsegBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh']);
         end
     end
     
