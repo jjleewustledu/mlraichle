@@ -415,6 +415,14 @@ classdef SessionData < mlpipeline.SessionData
                 sprintf('%s%sv%ir%i.4dfp.ifh', lower(ipr.tracer), schar, this.vnumber, ipr.rnumber));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
+        function obj  = tracerRevisionSumt(this, varargin)
+            [ipr,schar] = this.iprLocation(varargin{:});
+            fqfn = fullfile( ...
+                this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
+                sprintf('%s%sv%ir%i_sumt.4dfp.ifh', ...
+                    lower(ipr.tracer), schar, this.vnumber, ipr.rnumber));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
         function obj  = tracerVisit(this, varargin)
             %  @param named tracer is a string identifier.
             %  @param named snumber is the scan number; is numeric.
