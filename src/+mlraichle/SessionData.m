@@ -20,7 +20,6 @@ classdef SessionData < mlpipeline.SessionData
         convertedSuffix
         petBlur
         rawdataDir
-        resolveTag
     end
     
     methods %% GET
@@ -54,13 +53,6 @@ classdef SessionData < mlpipeline.SessionData
         function g = get.rawdataDir(this)
             g = this.studyData_.rawdataDir;
         end 
-        function g = get.resolveTag(this)
-            if (strcmp('FDG', this.tracer))
-                g = ['op_' lower(this.tracer)];
-            else
-                g = sprintf('op_%s%i', lower(this.tracer), this.snumber);  
-            end
-        end
     end
 
 	methods
@@ -162,7 +154,7 @@ classdef SessionData < mlpipeline.SessionData
         end
         function obj  = maskAparcAseg(this, varargin)
             if (isempty(this.selectedMask))
-                fqfn = fullfile(this.vLocation, sprintf('aparcAsegBinarizeBlended_%s.4dfp.ifh', this.resolveTag));
+                fqfn = fullfile(this.vLocation, sprintf('aparcAsegBinarized_%s.4dfp.ifh', this.resolveTag));
             else
                 assert(lexist(this.selectedMask, 'file'));
                 fqfn = this.selectedMask;
@@ -563,6 +555,9 @@ classdef SessionData < mlpipeline.SessionData
     end
     
     %% PROTECTED
+    
+    properties (Access = protected)
+    end
     
     methods (Access = protected)
         function        ensureCTFqfilename(~, fqfn) %#ok<INUSD>

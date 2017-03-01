@@ -9,8 +9,9 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee.
  	
 
-	properties
- 		
+	properties (Constant)
+        REUSE_APARCASEG = true
+ 		REUSE_BRAINMASK = true
  	end
 
 	methods 
@@ -24,7 +25,16 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
     end 
 
     methods (Static)
-        function this = godo(obj)
+        function j = godoChpc
+            pwd0 = pushd(fullfile(getenv('PPG'), 'jjlee', ''));
+            load('hyglys.mat');
+            c = parcluster;
+            for h = 1:8
+                j = c.batch(@mlraichle.FDGKineticsWholebrain.godo, 1, {hyglys{h}}); %#ok<USENS>
+            end
+            popd(pwd0);
+        end
+        function [summary,this] = godo(obj)
             try
                 sessf = obj.sessf;
                 v = obj.v;
@@ -40,10 +50,9 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                 
                 sessd = FDGKineticsWholebrain.godoMasks(obj);
 
-                pushd(vloc);
-                diary(sprintf('FDGKineticsWholebrain_godo_%s_V%i.log', obj.sessf, obj.v))
-                this = FDGKineticsWholebrain.doBayes(sessd);
-                popd(vloc);
+                pwd0 = pushd(vloc);
+                [this,summary] = FDGKineticsWholebrain.doBayes(sessd);
+                popd(pwd0);
             catch ME
                 handwarning(ME);
             end
@@ -62,18 +71,17 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                 sessd.vnumber = v;
                 sessd.attenuationCorrected = true;
 
-                pushd(vloc);
-                diary(sprintf('FDGKineticsWholebrain.godoMasks_%s_V%i.log', obj.sessf, obj.v));
+                pwd0 = pushd(vloc);
                 [~,msktn] = FDGKineticsWholebrain.mskt(sessd);
                 [~,ct4rb] = FDGKineticsWholebrain.brainmaskBinarized(sessd, msktn);                
-                aa = FDGKineticsWholebrain.aparcAseg(sessd, ct4rb);
+                aa = FDGKineticsWholebrain.aparcAsegBinarized(sessd, ct4rb);
                 sessd.selectedMask = [aa.fqfp '.4dfp.ifh'];
-                popd(vloc);
+                popd(pwd0);
             catch ME
                 handwarning(ME);
             end
         end
-        function this = doBayes(sessd)
+        function [this,summary] = doBayes(sessd)
             tic
             assert(isa(sessd, 'mlraichle.SessionData'));
             cd(sessd.vLocation);
@@ -81,19 +89,31 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             this = FDGKineticsWholebrain(sessd);
             this.showAnnealing = true;
             this.showBeta      = true;
-            this.showPlots     = true;
+            this.showPlots     = false;
             this               = this.estimateParameters;
-            this.plot;
+            this.plot;            
+            save('this_mlraichle_FDGKineticsWholebrain_doBayes', 'this');   
             
             kmin = this.kmin;
-            k1k3overk2k3 = kmin(1)*kmin(3)/(kmin(2) + kmin(3));
-            fprintf('\n%s is working in %s\n', mfilename, sessd.vLocation);
-            fprintf('[k_1 ... k_4] / min^{-1} -> %s\n', mat2str(kmin));
-            fprintf('chi = frac{k_1 k_3}{k_2 + k_3} / min^{-1} -> %s\n', mat2str(k1k3overk2k3));
-            fprintf('Kd = K_1 = V_B k1 / (mL min^{-1} (100g)^{-1}) -> %s\n', mat2str(100*this.v1*kmin(1)));
-            fprintf('CMRglu/[glu] = V_B chi / mL min^{-1} (100g)^{-1} -> %s\n', mat2str((this.v1/0.0105)*k1k3overk2k3));
-            fprintf('\n');
-            save('this_mlraichle_FDGKineticsWholebrain_runWholebrain', 'this')
+            summary.bestFitParams = this.bestFitParams;
+            summary.meanParams = this.meanParams;
+            summary.stdParams  = this.stdParams;
+            summary.kmin = kmin;
+            summary.chi = kmin(1)*kmin(3)/(kmin(2) + kmin(3));
+            summary.Kd = 100*this.v1*kmin(1);
+            summary.CMR = (this.v1/0.0105)*summary.chi;
+            summary.free = summary.CMR/(100*kmin(3));            
+            
+            lg = mlpipeline.Logger(sprintf('FDGKineticsWholebrain_godo_%s_V%i', sessd.sessionFolder, sessd.vnumber));
+            lg.add('\n%s is working in %s\n', mfilename, sessd.vLocation);
+            lg.add('[k_1 ... k_4] / min^{-1} -> %s\n', mat2str(summary.kmin));
+            lg.add('chi = frac{k_1 k_3}{k_2 + k_3} / min^{-1} -> %s\n', mat2str(summary.chi));
+            lg.add('Kd = K_1 = V_B k1 / (mL min^{-1} (100g)^{-1}) -> %s\n', mat2str(summary.Kd));
+            lg.add('CMRglu/[glu] = V_B chi / (mL min^{-1} (100g)^{-1}) -> %s\n', mat2str(summary.CMR));
+            lg.add('free glu/[glu] = CMRglu/(100 k3) -> %s\n', mat2str(summary.free));
+            lg.add('\n');
+            lg.save;
+            
             toc
         end        
         function [m,n] = mskt(sessd)
@@ -120,50 +140,60 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
         end
         function [b,ct4rb] = brainmaskBinarized(sessd, msktNorm)
             fdgSumt = mlpet.PETImagingContext(sessd.tracerResolvedSumt1('typ','fqfn'));
-            fnii = fdgSumt.numericalNiftid;
-            msktNorm = mlfourd.ImagingContext(msktNorm);
-            mnii = msktNorm.numericalNiftid;
-            fnii = fnii.*mnii;
-            fdgSumt = mlpet.PETImagingContext(fnii);
-            fdgSumt.filepath = pwd;
-            fdgSumt.fileprefix = [sessd.tracerResolvedSumt1('typ','fp') '_brain'];
-            fdgSumt.filesuffix = '.4dfp.ifh';
-            fdgSumt.save;
+            if (~lexist([sessd.tracerResolvedSumt1('typ','fp') '_brain.4dfp.ifh'], 'file'))
+                fnii = fdgSumt.numericalNiftid;
+                msktNorm = mlfourd.ImagingContext(msktNorm);
+                mnii = msktNorm.numericalNiftid;
+                fnii = fnii.*mnii;
+                fdgSumt = mlpet.PETImagingContext(fnii);
+                fdgSumt.filepath = pwd;
+                fdgSumt.fileprefix = [sessd.tracerResolvedSumt1('typ','fp') '_brain'];
+                fdgSumt.filesuffix = '.4dfp.ifh';
+                fdgSumt.save;
+            end
             
             brainmask = mlfourd.ImagingContext(sessd.brainmask);
-            brainmask.fourdfp;
-            brainmask.filepath = pwd;
-            brainmask.save;
+            if (~lexist('brainmask.4dfp.ifh', 'file'))
+                brainmask.fourdfp;
+                brainmask.filepath = pwd;
+                brainmask.save;
+                if (lexist('brainmask.nii')); gzip('brainmask.nii'); end
+            end
             
             ct4rb = mlfourdfp.CompositeT4ResolveBuilder( ...
                 'sessionData', sessd, ...
                 'theImages', {fdgSumt.fileprefix brainmask.fileprefix});
-            if (lexist(['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh'], 'file'))
+            if (mlraichle.FDGKineticsWholebrain.REUSE_BRAINMASK && ...
+                lexist(['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh'], 'file'))
                 b = mlpet.PETImagingContext(['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh']);
                 return
             end
             ct4rb = ct4rb.resolve;
             b = ct4rb.product{2};
             b.numericalNiftid;
+            b.saveas(['brainmask_' ct4rb.resolveTag '.4dfp.ifh']);
             b = b.binarizeBlended;
             b.saveas(['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh']);
         end
-        function aa = aparcAseg(sessd, ct4rb)
-            if (lexist('aparcAsegBinarizeBlended_op_fdg.4dfp.ifh', 'file'))
-                aa = mlpet.PETImagingContext('aparcAsegBinarizeBlended_op_fdg.4dfp.ifh');
+        function aa = aparcAsegBinarized(sessd, ct4rb)
+            if (mlraichle.FDGKineticsWholebrain.REUSE_APARCASEG && ...
+                lexist('aparcAsegBinarized_op_fdg.4dfp.ifh', 'file'))
+                aa = mlpet.PETImagingContext('aparcAsegBinarized_op_fdg.4dfp.ifh');
                 return
             end
             
             aa = sessd.aparcAseg('typ', 'mgz');
-            aa = sessd.mri_convert(aa, 'aparcAseg.nii');
+            aa = sessd.mri_convert(aa, 'aparcAseg.nii.gz');
             aa = mybasename(aa);
             sessd.nifti_4dfp_4(aa);
             aa = ct4rb.t4img_4dfp( ...
-                sessd.brainmask('typ','fp'), aa, 'opts', '-n'); 
-            aa = mlfourd.ImagingContext([aa '.4dfp.ifh']);
-            aa.numericalNiftid;
-            aa = aa.binarizeBlended(0); % set threshold to intensity floor
-            aa.saveas(['aparcAsegBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh']);
+                sessd.brainmask('typ','fp'), aa, 'opts', '-n');
+            aa = mlpet.PETImagingContext([aa '.4dfp.ifh']);
+            nn = aa.numericalNiftid;
+            nn.saveas(['aparcAseg_' ct4rb.resolveTag '.4dfp.ifh']);
+            nn = nn.binarized; % set threshold to intensity floor
+            nn.saveas(['aparcAsegBinarized_' ct4rb.resolveTag '.4dfp.ifh']);
+            aa = mlfourd.ImagingContext(nn);
         end
     end
     

@@ -705,7 +705,7 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             workdir = fullfile(getenv('PPG'), 'jjlee', subject, 'V2', '');
             mpr     = [subject '_mpr'];
 
-            mprImg = [mpr '.4dfp.img'];
+            mprImg = [mpr '.4dfp.ifh'];
             if (~lexist(mprImg, 'file'))
                 if (lexist(fullfile(convdir, mprImg)))
                     this.buildVisitor.lns_4dfp(fullfile(convdir, mpr));
