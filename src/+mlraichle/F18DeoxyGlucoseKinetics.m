@@ -320,7 +320,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
  			this = this@mlkinetics.AbstractKinetics();
             ip = inputParser;
             addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
-            addParameter(ip, 'mask', varargin{1}.maskAparcAseg('typ','mlfourd.ImagingContext'), ...
+            addParameter(ip, 'mask', varargin{1}.aparcAsegBinarized('typ','mlfourd.ImagingContext'), ...
                                            @(x) isa(x, 'mlfourd.ImagingContext'));
             parse(ip, varargin{:});
             this.sessionData = ip.Results.sessionData;
@@ -329,8 +329,11 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
             assert(this.sessionData.attenuationCorrected);
             
             this.tsc              = this.prepareTsc;
+            fprintf('mlraichle.F18DeoxyGlucoseKinetics.ctor:  returned from prepareTsc\n');
             this.dta              = this.prepareDta;
+            fprintf('mlraichle.F18DeoxyGlucoseKinetics.ctor:  returned from prepareDta\n');
             this.tsc              = this.dta.scannerData;
+            fprintf('mlraichle.F18DeoxyGlucoseKinetics.ctor:  returned from dta.scannerData\n');
             this.independentData  = {ensureRowVector(this.tsc.times)};
             this.dependentData    = {ensureRowVector(this.tsc.specificActivity)};
             [t,dtaBecq1,tscBecq1] =  this.interpolateAll( ...

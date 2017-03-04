@@ -25,30 +25,20 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
     end 
 
     methods (Static)
-        function j = godoChpc
-            pwd0 = pushd(fullfile(getenv('PPG'), 'jjlee', ''));
-            load('hyglys.mat');
-            c = parcluster;
-            for h = 1:8
-                j = c.batch(@mlraichle.FDGKineticsWholebrain.godo, 1, {hyglys{h}}); %#ok<USENS>
-            end
-            popd(pwd0);
-        end
-        function [summary,this] = godo(obj)
+        function [summary,this] = godo(datobj)
             try
-                sessf = obj.sessf;
-                v = obj.v;
+                sessf = datobj.sessf;
+                v = datobj.v;
                 
                 import mlraichle.*;
                 studyd = StudyData;
-                assert(strcmp(studyd.subjectsFolder, 'jjlee'));
                 vloc = fullfile(studyd.subjectsDir, sessf, sprintf('V%i', v), '');
                 assert(isdir(vloc));
                 sessd = SessionData('studyData', studyd, 'sessionPath', fileparts(vloc));
                 sessd.vnumber = v;
                 sessd.attenuationCorrected = true;
                 
-                sessd = FDGKineticsWholebrain.godoMasks(obj);
+                sessd = FDGKineticsWholebrain.godoMasks(sessd);
 
                 pwd0 = pushd(vloc);
                 [this,summary] = FDGKineticsWholebrain.doBayes(sessd);
@@ -57,21 +47,12 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                 handwarning(ME);
             end
         end
-        function [sessd,ct4rb] = godoMasks(obj)
+        function [sessd,ct4rb]  = godoMasks(sessd)
+            assert(isa(sessd, 'mlraichle.SessionData'));
             try
-                sessf = obj.sessf;
-                v = obj.v;
-                
                 import mlraichle.*;
-                studyd = StudyData;
-                assert(strcmp(studyd.subjectsFolder, 'jjlee'));
-                vloc = fullfile(studyd.subjectsDir, sessf, sprintf('V%i', v), '');
-                assert(isdir(vloc));
-                sessd = SessionData('studyData', studyd, 'sessionPath', fileparts(vloc));
-                sessd.vnumber = v;
-                sessd.attenuationCorrected = true;
-
-                pwd0 = pushd(vloc);
+                assert(isdir(sessd.vLocation));
+                pwd0 = pushd(sessd.vLocation);
                 [~,msktn] = FDGKineticsWholebrain.mskt(sessd);
                 [~,ct4rb] = FDGKineticsWholebrain.brainmaskBinarized(sessd, msktn);                
                 aa = FDGKineticsWholebrain.aparcAsegBinarized(sessd, ct4rb);
@@ -115,7 +96,8 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             lg.save;
             
             toc
-        end        
+        end   
+        
         function [m,n] = mskt(sessd)
             import mlfourdfp.*;
             f = [sessd.tracerResolved1('typ','fqfp') '_sumt'];
@@ -194,6 +176,9 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             nn = nn.binarized; % set threshold to intensity floor
             nn.saveas(['aparcAsegBinarized_' ct4rb.resolveTag '.4dfp.ifh']);
             aa = mlfourd.ImagingContext(nn);
+        end
+        
+        function teardown(sessd)            
         end
     end
     

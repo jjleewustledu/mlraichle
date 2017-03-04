@@ -11,6 +11,7 @@ classdef SessionData < mlpipeline.SessionData
 
     properties
         filetypeExt = '.4dfp.ifh'
+        parcellation
         petPlatform = 'mmr'     
         selectedMask
     end
@@ -20,6 +21,7 @@ classdef SessionData < mlpipeline.SessionData
         convertedSuffix
         petBlur
         rawdataDir
+        vfolder
     end
     
     methods %% GET
@@ -48,11 +50,13 @@ classdef SessionData < mlpipeline.SessionData
         end
         function g = get.petBlur(~)
             g = mlpet.MMRRegistry.instance.petPointSpread;
-            g = mean(g);
         end
         function g = get.rawdataDir(this)
             g = this.studyData_.rawdataDir;
         end 
+        function g = get.vfolder(this)
+            g = sprintf('V%i', this.vnumber);
+        end
     end
 
 	methods
@@ -109,8 +113,21 @@ classdef SessionData < mlpipeline.SessionData
         
         %% IMRData
         
+        function loc  = freesurferLocation(this, varargin)
+            ip = inputParser;
+            addParameter(ip, 'typ', 'path', @ischar);
+            parse(ip, varargin{:});
+            
+            loc = locationType(ip.Results.typ, ...
+                fullfile(this.freesurfersDir, [this.sessionLocation('typ', 'folder') '_' this.vLocation('typ', 'folder')], ''));
+        end   
+        
         function obj  = adc(this, varargin)
             obj = this.mrObject('ep2d_diff_26D_lgfov_nopat_ADC', varargin{:});
+        end
+        function obj  = aparcAsegBinarized(this, varargin)
+            fqfn = fullfile(this.vLocation, sprintf('aparcAsegBinarized_%s.4dfp.ifh', this.resolveTag));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = atlas(this, varargin)
             ip = inputParser;
@@ -123,17 +140,13 @@ classdef SessionData < mlpipeline.SessionData
                 fullfile(getenv('REFDIR'), ...
                          sprintf('%s%s%s', ip.Results.desc, ip.Results.suffix, this.filetypeExt)));
         end
+        function obj  = brainmaskBinarizeBlended(this, varargin)
+            fqfn = fullfile(this.vLocation, sprintf('brainmaskBinarizeBlended_%s.4dfp.ifh', this.resolveTag));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
         function obj  = dwi(this, varargin)
             obj = this.mrObject('ep2d_diff_26D_lgfov_nopat_TRACEW', varargin{:});
         end
-        function loc  = freesurferLocation(this, varargin)
-            ip = inputParser;
-            addParameter(ip, 'typ', 'path', @ischar);
-            parse(ip, varargin{:});
-            
-            loc = locationType(ip.Results.typ, ...
-                fullfile(this.freesurfersDir, [this.sessionLocation('typ', 'folder') '_' this.vLocation('typ', 'folder')], ''));
-        end   
         function obj  = mask(this, varargin)
             %  @param named tracer is a string identifier.
             %  @param named snumber is the scan number; is numeric.
@@ -144,22 +157,8 @@ classdef SessionData < mlpipeline.SessionData
             %  @returns ipr, the struct ip.Results obtained by parse.            
             %  @returns schr, the s-number as a string.
             
-            if (isempty(this.selectedMask))
-                fqfn = fullfile(this.vLocation, sprintf('brainmaskBinarizeBlended_%s.4dfp.ifh', this.resolveTag));
-            else
-                assert(lexist(this.selectedMask, 'file'));
-                fqfn = this.selectedMask;
-            end
-            obj = this.fqfilenameObject(fqfn, varargin{:});
-        end
-        function obj  = maskAparcAseg(this, varargin)
-            if (isempty(this.selectedMask))
-                fqfn = fullfile(this.vLocation, sprintf('aparcAsegBinarized_%s.4dfp.ifh', this.resolveTag));
-            else
-                assert(lexist(this.selectedMask, 'file'));
-                fqfn = this.selectedMask;
-            end
-            obj = this.fqfilenameObject(fqfn, varargin{:});
+            assert(lexist(this.selectedMask, 'file'));
+            obj = this.fqfilenameObject(this.selectedMask, varargin{:});
         end
         function obj  = mpr(this, varargin)
             obj = this.T1(varargin{:});
@@ -200,7 +199,7 @@ classdef SessionData < mlpipeline.SessionData
                 
         %% IPETData
         
-        function loc = petLocation(this, varargin)
+        function loc  = petLocation(this, varargin)
             if (lstrfind(upper(this.tracer), 'FDG'))
                 loc = fullfile(this.vLocation(varargin{:}), sprintf('%s_V%i-%s', upper(this.tracer), this.vnumber, this.acTag), '');
             else
@@ -240,6 +239,21 @@ classdef SessionData < mlpipeline.SessionData
                 this.subjectsDir, ...
                 sprintf('%s-%s-timings.txt', ipr.tracer, this.acTag));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function loc  = tracerConvertedLocation(this, varargin)
+            %  @param named tracer is a string identifier.
+            %  @param named snumber is the scan number; is numeric.
+            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
+            %  See also:  imagingType.
+            %  @param named frame is numeric.
+            %  @param named rnumber is the revision number; is numeric.
+            %  @returns ipr, the struct ip.Results obtained by parse.            
+            %  @returns schr, the s-number as a string.
+            
+            [ipr,schar] = this.iprLocation(varargin{:});
+            loc = locationType(ipr.typ, ...
+                fullfile(this.vLocation, ...
+                         sprintf('%s%s_V%i%s', ipr.tracer, schar, this.vnumber, this.convertedSuffix), ''));
         end
         function loc  = tracerLocation(this, varargin)
             %  @param named tracer is a string identifier.

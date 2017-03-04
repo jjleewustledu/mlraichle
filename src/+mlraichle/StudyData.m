@@ -91,7 +91,7 @@ classdef StudyData < mlpipeline.StudyData
     
     %% PROTECTED
     
-	methods (Access = protected)   
+	methods (Access = protected)
         function this = assignSessionDataCompositeFromPaths(this, varargin)
             %% ASSIGNSESSIONDATACOMPOSITEFROMPATHS
             %  @param [1...N] that is dir, add to this.sessionDataComposite_.
