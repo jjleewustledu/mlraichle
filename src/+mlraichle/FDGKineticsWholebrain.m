@@ -12,42 +12,232 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
 	properties (Constant)
         REUSE_APARCASEG = true
  		REUSE_BRAINMASK = true
+        HCTS = [35.7 33.6 33.4 34.5 41.4; ...
+                31.3 32.5 34.6 34.5 37.2]; % KLUDGE:  better placed in .xlsx subject data files
  	end
 
-	methods 
-		  
+	methods		  
  		function this = FDGKineticsWholebrain(varargin)
  			%% FDGKINETICSWHOLEBRAIN
  			%  Usage:  this = FDGKineticsWholebrain()
 
  			this = this@mlraichle.F18DeoxyGlucoseKinetics(varargin{:});
+            this.sessionData.parcellation = 'wholebrain';
  		end
     end 
 
     methods (Static)
-        function [summary,this] = godo(datobj)
+        function jobs = godoChpcPart(varargin)
+            diary on   
+            
+            import mlraichle.*;
+            ip = inputParser;
+            addOptional(ip, 'dirToolArg', 'HYGLY2*', @ischar);
+            addOptional(ip, 'vs', 1:2, @isnumeric);
+            addParameter(ip, 'hcts', FDGKineticsWholebrain.HCTS, @isnumeric); 
+            parse(ip, varargin{:});                     
+            
+            studyd = StudyData;
+            pwd0   = pushd(studyd.subjectsDir);
+            dth    = mlsystem.DirTool(ip.Results.dirToolArg);
+            hcts   = ip.Results.hcts;
+            jobs   = {};
+            if (hostnameMatch('innominate'))
+                c = parcluster('chpc_remote_r2016b');
+            elseif (hostnameMatch('william'))
+                c = parcluster('chpc_remote_r2016a');
+            else
+                error('mlraichle:unsupportedHost', 'FDGKineticsWholebrain.godoChpc.hostname->%s', hostname);
+            end
+            ClusterInfo.setEmailAddress('jjlee.wustl.edu@gmail.com');
+            ClusterInfo.setMemUsage('32000');
+            ClusterInfo.setWallTime('02:00:00');
+            %ClusterInfo.setPrivateKeyFile('~/id_rsa.pem');
+            for d = 1:length(dth.dns)
+                datobj.sessionFolder = dth.dns{d};
+                for v = ip.Results.vs
+                    datobj.vnumber = v;
+                    datobj.hct = hcts(v,d);
+                    try
+                        pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
+                        %CHPC.pushToChpc(datobj);
+                        j = c.batch(@mlraichle.FDGKineticsWholebrain.godo3, 1, {datobj});
+                        jobs = [jobs j]; %#ok<AGROW>
+                        popd(pwd1);
+                    catch ME
+                        disp(ME);
+                        struct2str(ME.stack);
+                        handwarning(ME);                        
+                    end
+                end
+            end
+            popd(pwd0);
+            
+            diary off
+        end
+        function jobs = godoChpc
+            
+            diary on
+            
+            hcts = [35.7 33.6 33.4 34.5 41.4; ...
+                    31.3 32.5 34.6 34.5 37.2];
+                
+            import mlraichle.*;
+            studyd = StudyData;
+            pwd0   = pushd(studyd.subjectsDir);
+            dth    = mlsystem.DirTool('HYGLY2*');
+            jobs   = {};
+            if (hostnameMatch('innominate'))
+                c = parcluster('chpc_remote_r2016b');
+            elseif (hostnameMatch('william'))
+                c = parcluster('chpc_remote_r2016a');
+            else
+                error('mlraichle:unsupportedHost', 'FDGKineticsWholebrain.godoChpc.hostname->%s', hostname);
+            end
+            ClusterInfo.setEmailAddress('jjlee.wustl.edu@gmail.com');
+            ClusterInfo.setMemUsage('32000');
+            ClusterInfo.setWallTime('02:00:00');
+            %ClusterInfo.setPrivateKeyFile('~/id_rsa.pem');
+            for d = 1:length(dth.dns)
+                datobj.sessionFolder = dth.dns{d};
+                for v = 1:2
+                    datobj.vnumber = v;
+                    datobj.hct = hcts(v,d);
+                    try
+                        pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
+                        %CHPC.pushToChpc(datobj);
+                        j = c.batch(@mlraichle.FDGKineticsWholebrain.godo3, 1, {datobj});
+                        jobs = [jobs j]; %#ok<AGROW>
+                        popd(pwd1);
+                    catch ME
+                        disp(ME);
+                        struct2str(ME.stack);
+                        handwarning(ME);
+                    end
+                end
+            end
+            popd(pwd0);
+            
+            diary off
+        end
+        function sessions = godoWilliam
+            tic 
+            
+            hcts = [35.7 33.6 33.4 34.5 41.4; ...
+                    31.3 32.5 34.6 34.5 37.2];
+            
+            import mlraichle.*;
+            studyd = StudyData;
+            pwd0   = pushd(studyd.subjectsDir);
+            dth    = mlsystem.DirTool('HYGLY2*');
+            sessions = cell(length(dth.dns), 2);
+            for d = 1:length(dth.dns)
+                datobj.sessionFolder = dth.dns{d};
+                for v = 1:2
+                    datobj.vnumber = v;
+                    datobj.hct = hcts(v,d);
+                    pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
+                    sessions{d,v} = FDGKineticsWholebrain.godo3(datobj);
+                    saveFigures(sprintf('fig_%s', datestr(now,30)));
+                    popd(pwd1);
+                end
+            end
+            popd(pwd0);
+            
+            toc
+        end
+        function goPlotOnWilliam
+            
+            hcts = [35.7 33.6 33.4 34.5 41.4; ...
+                    31.3 32.5 34.6 34.5 37.2];
+            
+            import mlraichle.*;
+            studyd = StudyData;
+            pwd0   = pushd(studyd.subjectsDir);
+            dth    = mlsystem.DirTool('HYGLY2*');
+            for d = 1:length(dth.dns)
+                datobj.sessionFolder = dth.dns{d};
+                for v = 1:2
+                    datobj.vnumber = v;
+                    datobj.hct = hcts(v,d);
+                    sessd = CHPC.staticSessionData(datobj);
+                    FDGKineticsWholebrain.godoPlots(sessd);
+                end
+            end
+            popd(pwd0);
+        end
+        function goWritetable            
+            import mlraichle.*;
+            studyd = StudyData;
+            pwd0   = pushd(studyd.subjectsDir);
+            fp     = fullfile(pwd0, sprintf('mlraiche_FDGKineticsWholebrain_goWritetable_%s', datestr(now, 30)));
+            dth    = mlsystem.DirTool('HYGLY2*');
+            for d = 1:length(dth.dns)
+                datobj.sessionFolder = dth.dns{d};
+                for v = 1:2
+                    datobj.vnumber = v;
+                    pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
+                    sessd = CHPC.staticSessionData(datobj);
+                    CHPC.pullFromChpc(sessd);
+                    this = FDGKineticsWholebrain(sessd, 'mask', '');
+                    this.writetable('fileprefix', fp, 'Range', sprintf('A%i:U%i', 2*d+v, 2*d+v), 'writeHeader', 1==d&&1==v);
+                    popd(pwd1);
+                end
+            end
+            popd(pwd0);
+        end
+        function summary = godo3(datobj)
+            import mlraichle.*;
+            sessd = CHPC.staticSessionData(datobj);
+            summary = FDGKineticsWholebrain.godo2(sessd);
+        end
+        function summary = godo2(sessd)
             try
-                sessf = datobj.sessf;
-                v = datobj.v;
-                
                 import mlraichle.*;
-                studyd = StudyData;
-                vloc = fullfile(studyd.subjectsDir, sessf, sprintf('V%i', v), '');
-                assert(isdir(vloc));
-                sessd = SessionData('studyData', studyd, 'sessionPath', fileparts(vloc));
-                sessd.vnumber = v;
-                sessd.attenuationCorrected = true;
-                
-                sessd = FDGKineticsWholebrain.godoMasks(sessd);
-
-                pwd0 = pushd(vloc);
-                [this,summary] = FDGKineticsWholebrain.doBayes(sessd);
+                [m,sessd] = FDGKineticsWholebrain.godoMasks(sessd);
+                fprintf('FDGKineticsWholebrain.godo2:  returned from godoMasks\n');
+                pwd0 = pushd(sessd.vLocation);
+                this = FDGKineticsWholebrain(sessd, 'mask', m, 'hct', sessd.hct);
+                summary.(m.fileprefix) = this.doBayes;
+                fprintf('FDGKineticsWholebrain.godo2:  returned from doBayes\n');
+                popd(pwd0);
+            catch ME
+                fprintf('%s\n', ME.identifier);
+                fprintf('%s\n', ME.message);
+                fprintf('%s\n', struct2str(ME.stack));
+                handwarning(ME);
+            end
+        end
+        function state = godo(sessd)
+            try
+                import mlraichle.*;
+                [m,sessd] = FDGKineticsWholebrain.godoMasks(sessd);
+                assert(isdir(sessd.vLocation));
+                pwd0 = pushd(sessd.vLocation);
+                this = FDGKineticsWholebrain(sessd, 'mask', m);
+                state = this.doBayes;
                 popd(pwd0);
             catch ME
                 handwarning(ME);
             end
         end
-        function [sessd,ct4rb]  = godoMasks(sessd)
+        function godoPlots(sessd)            
+            try
+                import mlraichle.*;
+                [m,sessd] = FDGKineticsWholebrain.godoMasks(sessd);
+                assert(isdir(sessd.vLocation));
+                pwd0 = pushd(sessd.vLocation);
+                this = FDGKineticsWholebrain(sessd, 'mask', m);
+                state = this.stateOfBayes; this = state.this;
+                this.plotAnnealing;
+                this.plot;
+                saveFigures(sprintf('fig_%s_wholebrain', strrep(class(this), '.','_')));
+                popd(pwd0);
+            catch ME
+                handwarning(ME);
+            end
+        end
+        function [m, sessd,ct4rb] = godoMasks(sessd)
             assert(isa(sessd, 'mlraichle.SessionData'));
             try
                 import mlraichle.*;
@@ -55,48 +245,13 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                 pwd0 = pushd(sessd.vLocation);
                 [~,msktn] = FDGKineticsWholebrain.mskt(sessd);
                 [~,ct4rb] = FDGKineticsWholebrain.brainmaskBinarized(sessd, msktn);                
-                aa = FDGKineticsWholebrain.aparcAsegBinarized(sessd, ct4rb);
-                sessd.selectedMask = [aa.fqfp '.4dfp.ifh'];
+                m = FDGKineticsWholebrain.aparcAsegBinarized(sessd, ct4rb);
+                sessd.selectedMask = [m.fqfp '.4dfp.ifh'];
                 popd(pwd0);
             catch ME
                 handwarning(ME);
             end
-        end
-        function [this,summary] = doBayes(sessd)
-            tic
-            assert(isa(sessd, 'mlraichle.SessionData'));
-            cd(sessd.vLocation);
-            import mlpet.* mlraichle.*;
-            this = FDGKineticsWholebrain(sessd);
-            this.showAnnealing = true;
-            this.showBeta      = true;
-            this.showPlots     = false;
-            this               = this.estimateParameters;
-            this.plot;            
-            save('this_mlraichle_FDGKineticsWholebrain_doBayes', 'this');   
-            
-            kmin = this.kmin;
-            summary.bestFitParams = this.bestFitParams;
-            summary.meanParams = this.meanParams;
-            summary.stdParams  = this.stdParams;
-            summary.kmin = kmin;
-            summary.chi = kmin(1)*kmin(3)/(kmin(2) + kmin(3));
-            summary.Kd = 100*this.v1*kmin(1);
-            summary.CMR = (this.v1/0.0105)*summary.chi;
-            summary.free = summary.CMR/(100*kmin(3));            
-            
-            lg = mlpipeline.Logger(sprintf('FDGKineticsWholebrain_godo_%s_V%i', sessd.sessionFolder, sessd.vnumber));
-            lg.add('\n%s is working in %s\n', mfilename, sessd.vLocation);
-            lg.add('[k_1 ... k_4] / min^{-1} -> %s\n', mat2str(summary.kmin));
-            lg.add('chi = frac{k_1 k_3}{k_2 + k_3} / min^{-1} -> %s\n', mat2str(summary.chi));
-            lg.add('Kd = K_1 = V_B k1 / (mL min^{-1} (100g)^{-1}) -> %s\n', mat2str(summary.Kd));
-            lg.add('CMRglu/[glu] = V_B chi / (mL min^{-1} (100g)^{-1}) -> %s\n', mat2str(summary.CMR));
-            lg.add('free glu/[glu] = CMRglu/(100 k3) -> %s\n', mat2str(summary.free));
-            lg.add('\n');
-            lg.save;
-            
-            toc
-        end   
+        end 
         
         function [m,n] = mskt(sessd)
             import mlfourdfp.*;
@@ -178,7 +333,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             aa = mlfourd.ImagingContext(nn);
         end
         
-        function teardown(sessd)            
+        function teardown(sessd)
         end
     end
     

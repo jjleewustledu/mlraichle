@@ -1,4 +1,4 @@
-classdef HyperglycemiaDirector 
+classdef HyperglycemiaDirector
 	%% HYPERGLYCEMIADIRECTOR  
 
 	%  $Revision$
@@ -10,13 +10,15 @@ classdef HyperglycemiaDirector
  	
 
 	properties
-        sessionData
- 		visitDirector
         umapDirector
         fdgDirector
         hoDirector
         ooDirector
         ocDirector
+    end
+    
+    properties (Dependent)
+        sessionData
     end
     
     methods %% GET
@@ -49,10 +51,42 @@ classdef HyperglycemiaDirector
             this.ocDirector   = this.ocDirector.analyze;
         end
         
+        function this = constructNAC(this)
+            this.sessionData_.attenuationCorrected = false;
+            this = this.assignTracerDirectors;
+            
+            this.fdgDirector.constructNAC;
+            this.hoDirector.constructNAC;
+            this.ooDirector.constructNAC;
+            this.ocDirector.constructNAC;            
+            this.umapDirector.constructUmaps;            
+            this.fdgDirector.prepareJSRecon;
+            this.hoDirector.prepareJSRecon;
+            this.ooDirector.prepareJSRecon;
+            this.ocDirector.prepareJSRecon;
+        end
+        function this = constructAC(this)
+            this.sessionData_.attenuationCorrected = true;
+            this = this.assignTracerDirectors;
+            
+            this.fdgDirector.ensureJSRecon;
+            this.fdgDirector.constructAC;
+            this.fdgDirector.constructKinetics;
+            this.hoDirector.ensureJSRecon;
+            this.hoDirector.constructAC;
+            this.hoDirector.constructHemodynamics;
+            this.ooDirector.ensureJSRecon;
+            this.ooDirector.constructAC;
+            this.ooDirector.constructHemodynamics;
+            this.ocDirector.ensureJSRecon;
+            this.ocDirector.constructAC;
+            this.ocDirector.constructHemodynamics;
+        end
         function this = constructUmaps(this)
-            mlfourdfp.CarneyUmapBuilder.buildUmapAll;
+            
             %mmrb = mlsiemens.MMRBuilder('sessionData', this.sessionData);
         end
+        
         function this = sortDownloads(this, downloadPath)
             import mlfourdfp.*;
             DicomSorter.sessionSort(downloadPath, this.sessionData_.vLocation);
@@ -84,21 +118,14 @@ classdef HyperglycemiaDirector
         
  		function this = HyperglycemiaDirector(varargin)
  			%% HYPERGLYCEMIADIRECTOR
- 			%  Usage:  this = HyperglycemiaDirector()
+ 			%  Usage:  this = HyperglycemiaDirector('sessionData', theSessionData)
 
-            ip = inputParser;
+ 			ip = inputParser;
+            ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             
-            this.sessionData_ = ip.Results.sessionData;
-            
- 			import mlraichle.*;
-%             this.visitDirector = VisitDirector(varargin{:});
-%             this.umapDirector  = UmapDirector( UmapBuilder(varargin{:}));
-%             this.fdgDirector   = FdgDirector(  FdgBuilder(varargin{:}));
-%             this.hoDirector    = HoDirector(   HoBuilder(varargin{:}));
-%             this.ooDirector    = OoDirector(   OoBuilder(varargin{:}));
-%             this.ocDirector    = OcDirector(   OcBuilder(varargin{:}));
+            this.sessionData_ = ip.Results.sessionData;            
  		end
     end 
     
@@ -106,6 +133,19 @@ classdef HyperglycemiaDirector
     
     properties (Access = private)
         sessionData_
+    end
+    
+    methods (Access = private)
+        function this = assignTracerDirectors(this)
+ 			import mlraichle.*;
+            if (~this.sessionData.attenuationCorrected)
+                this.umapDirector = UmapDirector(UmapBuilder('sessionData', this.sessionData));
+            end
+            this.fdgDirector  = FdgDirector( FdgBuilder( 'sessionData', this.sessionData));
+            this.hoDirector   = HoDirector(  HoBuilder(  'sessionData', this.sessionData));
+            this.ooDirector   = OoDirector(  OoBuilder(  'sessionData', this.sessionData));
+            this.ocDirector   = OcDirector(  OcBuilder(  'sessionData', this.sessionData));
+        end
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

@@ -52,7 +52,6 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
     %                     notes: []
     %                       dta: [1x1 mlpet.Caprac]
     %                dtaNyquist: [1x1 struct]
-    %                  dtaOnTsc: [1x1 struct]
     %                       tsc: [1x72 mlsiemens.BiographMMR]
     %                tscNyquist: [1x1 struct]
     %                      kmin: [3.0226 0.3287 0.1304 0.0133]
@@ -121,7 +120,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
         k2 = 0.3093/60
         k3 = 0.1862/60
         k4 = 0.01382/60
-        u0 = 11 % for tscCounts
+        u0 = 11 % timeshift for tscCounts; u0 > 0 shifts tsc to later in time
         v1 = 0.0383
         
         sk1 = 1.254/60
@@ -137,7 +136,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
         
         dta
         dtaNyquist
-        dtaOnTsc
+        hct
         tsc
         tscNyquist
         
@@ -170,13 +169,13 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
             N = 5;
             
             % From Powers xlsx "Final Normals WB PET PVC & ETS"
-            m('fu') = struct('fixed', 1, 'min', 1e-2,                              'mean', this.fu, 'max', 1e2);  
-            m('k1') = struct('fixed', 0, 'min', max(1.4951/60    - N*this.sk1, 0), 'mean', this.k1, 'max',   6.6234/60   + N*this.sk1);
-            m('k2') = struct('fixed', 0, 'min', max(0.04517/60   - N*this.sk2, 0), 'mean', this.k2, 'max',   1.7332/60   + N*this.sk2);
-            m('k3') = struct('fixed', 0, 'min', max(0.05827/60   - N*this.sk3, 0), 'mean', this.k3, 'max',   0.41084/60  + N*this.sk3);
-            m('k4') = struct('fixed', 0, 'min', max(0.0040048/60 - N*this.sk4, 0), 'mean', this.k4, 'max',   0.017819/60 + N*this.sk4);
-            m('u0') = struct('fixed', 0, 'min', 0,                                 'mean', this.u0, 'max', 100);  
-            m('v1') = struct('fixed', 1, 'min', 0.01,                              'mean', this.v1, 'max',   0.1);  
+            m('fu') = struct('fixed', 1, 'min', this.fu/4,                          'mean', this.fu, 'max',   4*this.fu);  
+            m('k1') = struct('fixed', 0, 'min', max(1.4951/60 - 0.2*N*this.sk1, 0), 'mean', this.k1, 'max',   6.6234/60   + 5*N*this.sk1);
+            m('k2') = struct('fixed', 0, 'min', max(0.04517/60    - N*this.sk2, 0), 'mean', this.k2, 'max',   1.7332/60   +   N*this.sk2);
+            m('k3') = struct('fixed', 0, 'min', max(0.05827/60    - N*this.sk3, 0), 'mean', this.k3, 'max',   0.41084/60  +   N*this.sk3);
+            m('k4') = struct('fixed', 0, 'min', max(0.0040048/60  - N*this.sk4, 0), 'mean', this.k4, 'max',   0.017819/60 +   N*this.sk4);
+            m('u0') = struct('fixed', 0, 'min', 0,                                  'mean', this.u0, 'max', 200);  
+            m('v1') = struct('fixed', 1, 'min', 0.01,                               'mean', this.v1, 'max',   0.1);  
         end
         function p  = get.parameters(this)
             p   = [this.finalParams('fu'), this.finalParams('k1'), this.finalParams('k2'), ...
@@ -185,64 +184,6 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
     end
     
     methods (Static)
-        function [outputs,studyDat,sessDats] = loopChpc(N)
-            assert(isnumeric(N));
-            studyDat = mlraichle.StudyDataSingleton.instance; 
-            iter = studyDat.createIteratorForSessionData;            
-            outputs = cell(1,N);            
-            sessDats = cell(1,N);
-            n = 0;
-            while (iter.hasNext && n < N)
-                try
-                    n = n + 1;
-                    sessDats{n} = iter.next;
-                    fprintf('%s:  n->%i, %s\n', mfilename, n, sessDats{n}.sessionPath);
-                catch ME
-                    handwarning(ME);
-                end
-            end
-                    
-            parfor p = 1:N 
-                try
-                    [outputs{p}.fdgk,outputs{p}.kmin,outputs{p}.k1k3overk2k3] = mlraichle.F18DeoxyGlucoseKinetics.runPowers(sessDats{p});
-                    saveFigures(fullfile(sessDats{p}.sessionPath, sprintf('fig_%s', datestr(now,30)), ''));
-                    %studyDat = mlpipeline.StudyDataSingletons.instance('powers');
-                    %studyDat.saveWorkspace(sessDats{p}.sessionPath);
-                catch ME
-                    handwarning(ME);
-                end
-            end
-        end
-        function [outputs,studyDat,sessDats] = loopSessionsLocally(N)
-            assert(isnumeric(N));
-            studyDat = mlraichle.StudyDataSingleton.instance;            
-            iter = studyDat.createIteratorForSessionData;            
-            outputs = cell(1,N);            
-            sessDats = cell(1,N);
-            n = 0;
-            while (iter.hasNext && n < N)
-                try
-                    n = n + 1;
-                    sessDats{n} = iter.next;
-                    fprintf('%s:  n->%i, %s\n', mfilename, n, sessDats{n}.sessionPath);
-                catch ME
-                    handwarning(ME);
-                end
-            end
-                    
-            for p = 1:N  
-                try
-                    %studyDat.diaryOn(sessDats{p}.sessionPath);
-                    [outputs{p}.fdgk,outputs{p}.kmin,outputs{p}.k1k3overk2k3] = mlraichle.F18DeoxyGlucoseKinetics.runPowers(sessDats{p});
-                    saveFigures(fullfile(sessDats{p}.sessionPath, sprintf('fig_%s', datestr(now,30)), ''));
-                    %studyDat = mlpipeline.StudyDataSingletons.instance('powers');
-                    %studyDat.saveWorkspace(sessDats{p}.sessionPath);
-                    %studyDat.diaryOff;
-                catch ME
-                    handwarning(ME);
-                end
-            end
-        end
         function alpha_ = a(k2, k3, k4)
             k234   = k2 + k3 + k4;
             alpha_ = k234 - sqrt(k234^2 - 4*k2*k4);
@@ -296,7 +237,8 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
         end
         function conc   = pchip(t, conc, t_, Dt)
             %% SLIDE slides discretized function conc(t) to conc(t_ - Dt);
-            %  Dt > 0 will slide conc(t) towards lower values of t.
+            %  Dt > 0 will slide conc(t) towards to later values of t.
+            %  Dt < 0 will slide conc(t) towards to earlier values of t.
             %  It works for inhomogeneous t according to the ability of pchip to interpolate.
             %  It may not preserve information according to the Nyquist-Shannon theorem.  
             %  @param t    is the initial t    sampling
@@ -305,10 +247,75 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
             %  @param Dt   is the shift of t_
             
             tspan = t(end) - t(1);
-            tinc  = t(2) - t(1);
-            t     = [(t - tspan - tinc) t];   % prepend times
+            dt    = t(2) - t(1);
+            t     = [(t - tspan - dt) t];   % prepend times
             conc  = [zeros(size(conc)) conc]; % prepend zeros
-            conc  = pchip(t, conc, t_ - Dt); % interpolate onto t shifted by Dt; Dt > 0 shifts to right
+            conc  = pchip(t, conc, t_ - Dt); % interpolate onto t shifted by Dt; Dt > 0 shifts conc to right
+        end
+        function [t,interp1,interp2, Dt] = interpolateAll(t1, conc1, t2, conc2)
+            %% INTERPOLATEALL interpolates variably sampled {t1 conc1} and {t2 conc2} to {t interp1} and {t interp2}
+            %  so that t satisfies Nyquist sampling.  [t1 conc1] is dta and [t2 conc2] is tsc.
+            %  As the FDG dta sampled from the radial artery typically lags the tsc, interpolateAll
+            %  shifts tsc to later times to preserve causality.  Dt = t(max(dta)) - t(inflow(tsc)).
+            %  Slides tsc to inertial-frame of dta.
+            
+            dt = min([timeDifferences(t1) timeDifferences(t2)]) / 2;
+            tInf = min([t1 t2]);
+            tSup = max([t1 t2]);
+            
+            import mlraichle.*;
+            Dt = F18DeoxyGlucoseKinetics.lagRadialArtery(t1, conc1, t2, conc2);
+            conc2 = F18DeoxyGlucoseKinetics.slide(conc2, t2, Dt); 
+            t  = tInf:dt:tSup;
+            [t1,conc1,t2,conc2] = F18DeoxyGlucoseKinetics.interpolateBoundaries(t1, conc1, t2, conc2);
+            interp1 = pchip(t1,conc1,t);
+            interp2 = pchip(t2,conc2,t);
+
+            function timeDiffs = timeDifferences(times)
+                timeDiffs = times(2:end) - times(1:end-1);
+            end
+        end 
+        function [t1,conc1,t2,conc2] = interpolateBoundaries(t1, conc1, t2, conc2)
+            %% INTERPOLATEBOUNDARIES prepends or appends time and concentration datapoints to manage boundaries
+            %  when invoking pchip.  The first or last times and concentrations are repeated as needed to fill
+            %  boundary values.
+            
+            if (t1(1) < t2(1))
+                t2    = [t1(1)    t2];
+                conc2 = [conc2(1) conc];
+            end
+            if (t1(1) > t2(1))                
+                t1    = [t2(1)    t1];
+                conc1 = [conc1(1) conc];
+            end
+            if (t1(end) < t2(end))
+                t1 =    [t1    t2(end)];
+                conc1 = [conc1 conc1(end)];
+            end
+            if (t1(end) > t2(end))
+                t2 =    [t2    t1(end)];
+                conc2 = [conc2 conc2(end)];
+            end
+        end
+        function Dt     = lagRadialArtery(tdta, dta, ttsc, tsc)
+            [~,idx_start_dta] = max(dta);
+            [~,idx_start_tsc] = max(tsc > 0.1*max(tsc));
+            Dt = tdta(idx_start_dta) - ttsc(idx_start_tsc);
+        end  
+        function Cp     = wb2plasma(Cwb, hct, t)
+            hct = hct/100;
+            lambda = mlraichle.F18DeoxyGlucoseKinetics.rbcOverPlasma(t);
+            Cp = Cwb./(1 + hct*(lambda - 1));
+        end
+        function rop    = rbcOverPlasma(t)
+            %% RBCOVERPLASMA is [FDG(RBC)]/[FDG(plasma)]
+            
+            t   = t/60;      % sec -> min
+            a0  = 0.814104;  % FINAL STATS param  a0 mean  0.814192	 std 0.004405
+            a1  = 0.000680;  % FINAL STATS param  a1 mean  0.001042	 std 0.000636
+            a2  = 0.103307;  % FINAL STATS param  a2 mean  0.157897	 std 0.110695
+            tau = 50.052431; % FINAL STATS param tau mean  116.239401	 std 51.979195
+            rop = a0 + a1*t + a2*(1 - exp(-t/tau));
         end
     end
     
@@ -321,10 +328,16 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
             ip = inputParser;
             addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'mask', varargin{1}.aparcAsegBinarized('typ','mlfourd.ImagingContext'), ...
-                                           @(x) isa(x, 'mlfourd.ImagingContext'));
+                                           @(x) isa(x, 'mlfourd.ImagingContext') || isempty(x));
+            addParameter(ip, 'hct', 42.05, @isnumeric); % mean of normal values for men, women
             parse(ip, varargin{:});
             this.sessionData = ip.Results.sessionData;
+            if (isempty(ip.Results.mask))
+                return
+            end
             this.mask = ip.Results.mask;
+            this.hct = ip.Results.hct;
+            if (this.hct < 1); this.hct = this.hct*100; end
             assert(strcmp(this.sessionData.tracer, 'FDG'));
             assert(this.sessionData.attenuationCorrected);
             
@@ -335,18 +348,124 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
             this.tsc              = this.dta.scannerData;
             fprintf('mlraichle.F18DeoxyGlucoseKinetics.ctor:  returned from dta.scannerData\n');
             this.independentData  = {ensureRowVector(this.tsc.times)};
-            this.dependentData    = {ensureRowVector(this.tsc.specificActivity)};
-            [t,dtaBecq1,tscBecq1] =  this.interpolateAll( ...
+            this.dependentData    = {ensureRowVector(this.tsc.specificActivity)};            
+            this.jeffreysPrior    = this.buildJeffreysPrior;
+            [t,dtaBecq1,tscBecq1,this.u0] =  this.interpolateAll( ...
                 this.dta.times, this.dta.specificActivity, this.tsc.times, this.tsc.specificActivity);
             this.dtaNyquist  = struct('times', t, 'specificActivity', dtaBecq1);
             this.tscNyquist  = struct('times', t, 'specificActivity', tscBecq1);
-            this.dtaOnTsc    = struct('times', this.tsc.times, ...
-                                      'specificActivity', pchip(this.dta.times, this.dta.specificActivity, this.tsc.times));
             
             this.expectedBestFitParams_ = ...
                 [this.fu this.k1 this.k2 this.k3 this.k4 this.u0 this.v1]';
         end
         
+        function state = doBayes(this)
+            tic
+            
+            this.showPlots = true;
+            this = this.estimateParameters;
+            fileprefix = sprintf('%s_doBayes_state_%s', ...
+                strrep(class(this), '.', '_'), ...
+                this.sessionData.parcellation);
+            saveFigures(sprintf('fig_%s', fileprefix));
+            mnii = mlfourd.MaskingNIfTId(this.mask.niftid);
+            
+            state.this = this;
+            state.class = class(this);
+            state.datestr = datestr(now, 30);
+            state.fileprefix = fileprefix;
+            state.bestFitParams = this.bestFitParams;
+            state.meanParams = this.meanParams;
+            state.stdParams  = this.stdParams;
+            state.kmin = this.kmin;
+            state.LC = 1/state.bestFitParams(1);
+            state.chi = this.kmin(1)*this.kmin(3)/(this.kmin(2) + this.kmin(3));
+            state.Kd = 100*this.v1*this.kmin(1);
+            state.CMR = (this.v1/0.0105)*state.chi;
+            state.free = state.CMR/(100*this.kmin(3)); 
+            state.maskCount = mnii.count;
+            state.tracerLocation = this.sessionData.tracerLocation;
+            state.parcellation = this.sessionData.parcellation;
+            state.hct = this.hct;
+            save([state.fileprefix '.mat'], 'state');
+            
+            lg = mlpipeline.Logger(state.fileprefix);
+            lg.add('\n%s is working in %s\n', mfilename, pwd);
+            lg.add('fileprefix -> %s\n', state.fileprefix);            
+            lg.add('bestFitParams / s^{-1} -> %s\n', mat2str(state.bestFitParams));
+            lg.add('meanParams / s^{-1} -> %s\n', mat2str(state.meanParams));
+            lg.add('stdParams / s^{-1} -> %s\n', mat2str(state.stdParams)); 
+            lg.add('[k_1 ... k_4] / min^{-1} -> %s\n', mat2str(state.kmin));
+            lg.add('LC -> %s\n', mat2str(state.LC));
+            lg.add('chi = frac{k_1 k_3}{k_2 + k_3} / min^{-1} -> %s\n', mat2str(state.chi));
+            lg.add('Kd = K_1 = V_B k1 / (mL min^{-1} (100g)^{-1}) -> %s\n', mat2str(state.Kd)); 
+            lg.add('CMRglu/[glu] = V_B chi / (mL min^{-1} (100g)^{-1}) -> %s\n', mat2str(state.CMR));
+            lg.add('free glu/[glu] = CMRglu/(100 k3) -> %s\n', mat2str(state.free));
+            lg.add('mnii.count -> %i\n', state.maskCount);
+            lg.add('sessd.tracerLocation -> %s\n', state.tracerLocation);
+            lg.add('sessd.parcellation -> %s\n', state.parcellation);
+            lg.add('sessd.hct -> %g\n', state.hct);
+            lg.add('\n');
+            lg.save('w');                      
+            
+            toc
+        end 
+        function [state,fqfp] = stateOfBayes(this) %#ok<STOUT>
+            fp = sprintf('%s_doBayes_state_%s', ...
+                strrep(class(this), '.', '_'), ...
+                this.sessionData.parcellation);
+            fqfp = fullfile(this.sessionData.vLocation, fp);
+            load([fqfp '.mat'], 'state');
+        end
+        function writetable(this, varargin)
+            ip = inputParser;
+            addParameter(ip, 'fileprefix', '', @ischar);
+            addParameter(ip, 'Sheet', 1, @isnumeric);
+            addParameter(ip, 'Range', 'A3:U3', @ischar);
+            addParameter(ip, 'writeHeader', true, @islogical);
+            parse(ip, varargin{:});            
+            [state,fqfp] = this.stateOfBayes;
+            if (~isempty(ip.Results.fileprefix))
+                fqfp = myfileprefix(ip.Results.fileprefix);
+            end
+            
+            if (ip.Results.writeHeader)
+                H = cell2table({'subject', 'visit', 'ROI', 'plasma glu (mg/dL)', 'Hct', 'WB glu (mmol/L)', 'CBV (mL/100g)', ...
+                     'k1 (1/s)', 'std(k1)', 'k2 (1/s)', 'std(k2)', 'k3 (1/s)', 'std(k3)', 'k4 (1/s)', 'std(k4)', 't_offset (s)', 'std(t_offset)', ...
+                     'chi', 'Kd', 'CMR', 'free', '', 'CTXglu', 'CMRglu', 'free glu'});
+                writetable(H, [fqfp '.xlsx'], 'Sheet', ip.Results.Sheet, 'Range', 'A2:Y2', 'WriteVariableNames', false);
+            end
+            
+            subjid = state.this.sessionData.sessionFolder;
+            sp = state.stdParams;
+            that = state.this;
+            v = that.sessionData.vnumber;
+            roi = this.translateYeo7(that.sessionData.parcellation);
+            T = cell2table({subjid, v, roi, 90, state.hct, [], 100*that.v1, ...
+                that.k1, sp(2), that.k2, sp(3), that.k3, sp(4), that.k4, sp(5), that.u0, sp(6), ...
+                state.chi, state.Kd, state.CMR, state.free});
+            writetable(T, [fqfp '.xlsx'], 'Sheet', ip.Results.Sheet, 'Range', ip.Results.Range, 'WriteVariableNames', false);
+        end
+        function rsn  = translateYeo7(~, roi)
+            switch (roi)
+                case 'yeo1'
+                    rsn = 'visual';
+                case 'yeo2'
+                    rsn = 'somatomotor';
+                case 'yeo3'
+                    rsn = 'dorsal attention';
+                case 'yeo4'
+                    rsn = 'ventral attention';
+                case 'yeo5'
+                    rsn = 'limbic';
+                case 'yeo6'
+                    rsn = 'frontoparietal';
+                case 'yeo7'
+                    rsn = 'default';
+                otherwise
+                    rsn = roi;
+            end
+        end
         function mmr  = prepareTsc(this)
             this.sessionData.tracer = 'FDG';
             pic = mlpet.PETImagingContext( ...
@@ -364,6 +483,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
         end
         function dta  = prepareDta(this)
             dta = mlpet.Caprac('scannerData', this.tsc, 'efficiencyFactor', this.capracEfficiency);
+            dta.specificActivity = mlraichle.F18DeoxyGlucoseKinetics.wb2plasma(dta.specificActivity, this.hct, dta.times);
         end
         function this = simulateItsMcmc(this)
             this = mlraichle.F18DeoxyGlucoseKinetics.simulateMcmc( ...
@@ -388,13 +508,12 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
             tNyquist = this.tscNyquist.times;
             qNyquist = F18DeoxyGlucoseKinetics.qpet( ...
                 this.dtaNyquist.specificActivity, this.fu, this.k1, this.k2, this.k3, this.k4, tNyquist, this.v1);
-            qpet     = this.pchip(tNyquist, qNyquist, this.tsc.times, this.u0);
+            qpet     = this.pchip(tNyquist, qNyquist, this.tsc.times, -this.u0);
         end
         function this = estimateParameters(this, varargin)
             ip = inputParser;
             addOptional(ip, 'mapParams', this.mapParams, @(x) isa(x, 'containers.Map'));
             parse(ip, varargin{:});
-            
             this = this.runMcmc(ip.Results.mapParams, 'keysToVerify', {'fu' 'k1' 'k2' 'k3' 'k4' 'u0' 'v1'});            
             this.kmin = 60*[this.k1 this.k2 this.k3 this.k4];
             this.sdpar = this.annealingSdpar;
@@ -404,7 +523,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
             tNyquist = this.tscNyquist.times;
             qNyquist = F18DeoxyGlucoseKinetics.qpet( ...
                 this.dtaNyquist.specificActivity, fu, k1, k2, k3, k4, tNyquist, v1);
-            ed{1}    = this.pchip(tNyquist, qNyquist, this.tsc.times, u0);
+            ed{1}    = this.pchip(tNyquist, qNyquist, this.tsc.times, -u0);
         end
         function ps   = adjustParams(this, ps)
             theParams = this.theParameters;
@@ -413,15 +532,15 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
                 ps(theParams.paramsIndices('k3')) = ps(theParams.paramsIndices('k4'));
                 ps(theParams.paramsIndices('k4')) = tmp;
             end
-        end
+        end   
         
         function plot(this, varargin)
             figure;
             max_dta   = max(this.dta.specificActivity);
             max_data1 = max([max(this.tsc.specificActivity) max(this.itsQpet)]);
-            plot(this.dta.times, this.dta.specificActivity/max_dta, '-o',  ...
-                 this.times{1},  this.itsQpet       /max_data1, ...
-                 this.tsc.times, this.tsc.specificActivity/max_data1, '-s', varargin{:});
+            plot(this.dta.times, this.dta.specificActivity/ max_dta, '-o',  ...
+                 this.times{1},  this.itsQpet             / max_data1, ...
+                 this.tsc.times, this.tsc.specificActivity/ max_data1, '-s', varargin{:});
             legend('data DTA', 'Bayesian TSC', 'data TSC');  
             title(this.detailedTitle, 'Interpreter', 'none');
             xlabel(this.xLabel);
@@ -433,7 +552,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
             switch (par)
                 case 'k1'
                     for v = 1:length(vars)
-                        args{v} = { vars(v) this.k2 this.k3 this.k4 this.u0 this.v1}; 
+                        args{v} = { vars(v) this.k2 this.k3 this.k4 this.u0 this.v1};  %#ok<*AGROW>
                     end
                 case 'k2'
                     for v = 1:length(vars)
@@ -475,7 +594,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
                 argsv = args{v};
                 qpet  = mlraichle.F18DeoxyGlucoseKinetics.qpet( ...
                     this.dtaNyquist.specificActivity, argsv{1}, argsv{2}, argsv{3}, argsv{4}, this.tscNyquist.times, argsv{6});
-                qpet  = this.pchip(this.tscNyquist.times, qpet, this.tscNyquist.times, argsv{5});
+                qpet  = this.pchip(this.tscNyquist.times, qpet, this.tscNyquist.times, -argsv{5});
                 plot(this.tscNyquist.times, qpet);
             end
             title(sprintf('k1 %g, k2 %g, k3 %g, k4 %g, u0 %g, v1 %g', ...

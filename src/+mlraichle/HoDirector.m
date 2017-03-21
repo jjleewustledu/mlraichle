@@ -1,4 +1,4 @@
-classdef HoDirector 
+classdef HoDirector < mlpet.TracerDirector 
 	%% HODIRECTOR  
 
 	%  $Revision$
@@ -17,10 +17,33 @@ classdef HoDirector
 		  
  		function this = HoDirector(varargin)
  			%% HODIRECTOR
- 			%  Usage:  this = HoDirector()
-
- 			
- 		end
+ 			%  Usage:  this = HoDirector(hoBuilder)
+            %  @param hoBuilder is an mlpipeline.IImageBuilder
+            
+            this = this@mlpet.TracerDirector(varargin{:});
+            assert(isa(this.builder, 'mlraichle.HoBuilder')); 			
+        end
+        
+        function ensureJSRecon(this)
+        end
+        function this = constructNAC(this)
+            %this.builder.transferFromRawData;
+            %this.builder.transferToE7tools('HO');
+            %this.builder.transferFromE7tools('HO-Converted-NAC');
+            this.builder.buildNACImageFrames;
+            this.builder.motionCorrectNACImageFrames;
+            this.builder.buildCarneyUmap;
+            this.builder.motionCorrectUmaps;
+            this.builder.product.view;
+            this.builder.transferToE7tools('HO-Converted-NAC');
+        end
+        function this = constructAC(this)
+            %this.builder.transferFromE7tools('HO-Converted-Frame*');
+            %this.builder.buildACImageFrames;
+            %this.builder.motionCorrectACImageFrames;
+            this.builder.buildHoAC;
+            this.builder.product.view;
+        end
  	end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

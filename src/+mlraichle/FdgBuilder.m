@@ -1,4 +1,4 @@
-classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
+classdef FdgBuilder < mlfourdfp.AbstractTracerBuilder
 	%% FDGBUILDER  
 
 	%  $Revision$
@@ -15,7 +15,7 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
     end
     
     methods (Static)
-        function assembleFdgAfterAC
+        function staticAssembleFdgAfterAC
             import mlsystem.* mlfourdfp.*;
             studyd = mlraichle.StudyData;            
             eSess = DirTool(fullfile(studyd.subjectsDir, 'HYGLY*'));
@@ -359,27 +359,67 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
 	methods 
 		  
  		function this = FdgBuilder(varargin)
- 			%% FdgBuilder
+ 			%% FDGBUILDER
  			%  Usage:  this = FdgBuilder()
 
- 			this = this@mlfourdfp.AbstractTracerResolveBuilder(varargin{:});
-            this.sessionData.tracer = 'FDG';            
-            this.finished = mlpipeline.Finished(this, 'path', this.logPath, 'tag', lower(this.sessionData.tracer));
+ 			this = this@mlfourdfp.AbstractTracerBuilder(varargin{:});
+            this.sessionData.tracer = 'FDG';
+            %this.finished = mlpipeline.Finished( ...
+            %    this, 'path', this.logPath, 'tag', lower(this.sessionData.tracer));
         end
         
-        function this = motionCorrectNACimageComposite(this)
+        function this = buildFdgAC(this)
+            
+            import mlsystem.* mlfourdfp.*;
+            sessd = this.sessionData;
+            Fdg = sprintf('FDG_V%i', sessd.vnumber);
+            pthFdgAC = fullfile(sessd.vLocation, [Fdg '-AC'], '');     
+            if (isdir(pthFdgAC))
+                movefile(pthFdgAC, [pthFdgAC '-Backup-' datestr(now, 30)]);
+            end
+            ensuredir(pthFdgAC);
+            
+            firstFortranFrame_ = 1;
+            fdgACRevision = sessd.fdgACRevision('typ', 'fp');
+            fdgLMPrefix = sprintf('FDG_%s-LM-00-OP', sessd.vLocation('typ','folder'));
+            bv = this.buildVisitor;
+            eFrame = DirTool(fullfile(sessd.vLocation, sprintf('%s-Converted-Frame*', Fdg), ''));
+            for iFrame = 1:length(eFrame.fqdns)
+                try
+                    pwd0 = pushd(eFrame.fqdns{iFrame});
+                    fortranFrame = this.frameNumber(eFrame.dns{iFrame}, 1);
+                    fdgFramename = this.frameFileprefix(fdgACRevision, fortranFrame);
+                    bv.sif_4dfp(fdgLMPrefix);
+                    fdgT4 = sprintf('%s_frame%i_to_resolved_t4', ...
+                        sessd.fdgNACRevision('typ', 'fp'), fortranFrame);
+                    sessdNac = sessd;
+                    sessdNac.attenuationCorrected = false;
+                    fqFdgT4 = fullfile(sessdNac.fdgT4Location, fdgT4);
+                    bv.cropfrac_4dfp(0.5, fdgLMPrefix, fdgACRevision);
+                    if (fortranFrame >= firstFortranFrame_ && lexist(fqFdgT4, 'file'))
+                        bv.lns(fqFdgT4);
+                        bv.t4img_4dfp(fdgT4, fdgACRevision, 'options', ['-O' fdgACRevision]);
+                        bv.move_4dfp([fdgACRevision '_on_resolved'], ...
+                            fullfile(pthFdgAC, [fdgFramename '_on_resolved']));
+                    else
+                        bv.move_4dfp(fdgACRevision, ...
+                            fullfile(pthFdgAC, [fdgFramename '_on_resolved']));
+                    end
+                    delete('*.4dfp.*')
+                    delete([fdgACRevision '_frame*_to_resolved_t4']);
+                    popd(pwd0);
+                catch ME
+                    handwarning(ME);
+                end
+            end
+            pwd1 = pushd(fullfile(pthFdgAC, ''));
+            ipr.dest = fdgACRevision;
+            ipr.frames = ones(1, length(eFrame.fqdns));
+            this.pasteFrames(ipr, 'on_resolved');
+            bv.imgblur_4dfp([fdgACRevision '_on_resolved'], 5.5);
+            delete(fullfile(pthFdgAC, [fdgACRevision '_frame*_on_resolved.4dfp.*']));
+            popd(pwd1);
         end
-        function this = buildCarneyUmap(this)
-        end
-        function this = motionCorrectUmaps(this)
-        end
-        function this = buildACimageComposite(this)
-        end
-        function this = motionCorrectACimageComposite(this)
-        end
-        function this = assembleFdg(this)
-        end
-        
         function        printSessionData(this)
             mlraichle.FdgBuilder.printv('FdgBuilder.printSessionData -> \n');
             disp(this.sessionData);
@@ -427,17 +467,6 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerResolveBuilder
         end        
         
     end 
-    
-    %% PRIVATE
-    
-    methods (Access = 'private')
-        function fr = firstFortranTimeFrame(this)
-            NNativeFrames = this.imageComposite.readLength(this.sessionData.tracerRevision('typ', 'fqfp'));
-            NUmapFrames   = this.imageComposite.readLength(this.sessionData.tracerResolved('typ', 'fqfp'));
-            fr = NNativeFrames - NUmapFrames + 1;
-        end
-    end
-        
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end

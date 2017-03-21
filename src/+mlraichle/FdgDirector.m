@@ -1,5 +1,5 @@
 classdef FdgDirector < mlpet.TracerDirector
-	%% FDGDIRECTOR  
+	%% FDGDIRECTOR is a strategy
 
 	%  $Revision$
  	%  was created 26-Dec-2016 12:49:55
@@ -15,17 +15,19 @@ classdef FdgDirector < mlpet.TracerDirector
 	methods
  		function this = FdgDirector(varargin)
  			%% FDGDIRECTOR
- 			%  Usage:  this = FdgDirector(builder_object)
+ 			%  Usage:  this = FdgDirector(fdgBuilder)
+            %  @param fdgBuilder is an mlpipeline.IImageBuilder
             
             this = this@mlpet.TracerDirector(varargin{:});
             assert(isa(this.builder, 'mlraichle.FdgBuilder'));
         end
         
-        function this = constructFdgNAC(this)
+        function ensureJSRecon(this)
+        end
+        function this = constructNAC(this)
             %this.builder.transferFromRawData;
             %this.builder.transferToE7tools('FDG');
             %this.builder.transferFromE7tools('FDG-Converted-NAC');
-            this.builder = this.configureNAC(this.builder);
             this.builder.buildNACImageFrames;
             this.builder.motionCorrectNACImageFrames;
             this.builder.buildCarneyUmap;
@@ -34,12 +36,11 @@ classdef FdgDirector < mlpet.TracerDirector
             this.builder.transferToE7tools('FDG-Converted-AC');
         end
         
-        function this = constructFdgAC(this)
-            this.builder.transferFromE7tools('FDG-Converted-Frame*');
-            this.builder = this.configureAC(this.builder);
-            this.builder.buildACImageFrames;
-            this.builder.motionCorrectACImageFrames;
-            this.builder.assembleFdg;
+        function this = constructAC(this)
+            %this.builder.transferFromE7tools('FDG-Converted-Frame*');
+            %this.builder.buildACImageFrames;
+            %this.builder.motionCorrectACImageFrames;
+            this.builder.buildFdgAC;
             this.builder.product.view;
         end
     end 
