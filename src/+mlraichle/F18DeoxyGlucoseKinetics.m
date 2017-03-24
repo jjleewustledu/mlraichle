@@ -113,7 +113,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
         capracEfficiency = 1 %171.2/248.6
         mask
         
-        fu = 1.8903 % FUDGE stdev.s -> 0.4089
+        fu = 1 % 1.8903 % FUDGE stdev.s -> 0.4089
         % Joanne Markham used the notation K_1 = V_B*k_{21}, rate from compartment 1 to 2.
         % Mean values from Powers xlsx "Final Normals WB PET PVC & ETS"
         k1 = 3.946/60
@@ -129,10 +129,11 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
         sk4 = 0.004525/60
         
         sessionData
-        Ca     
+        Ca  
+        LC = 0.418 % Huang 1980
+        notes
         xLabel = 'times/s'
         yLabel = 'activity / (Bq / cc)'
-        notes
         
         dta
         dtaNyquist
@@ -232,7 +233,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
             fprintf('[k_1 ... k_4] / min^{-1} -> %s\n', mat2str(kmin));
             fprintf('chi = frac{k_1 k_3}{k_2 + k_3} / min^{-1} -> %s\n', mat2str(k1k3overk2k3));
             fprintf('Kd = K_1 = V_B k1 / (mL min^{-1} (100g)^{-1}) -> %s\n', mat2str(100*this.v1*kmin(1)));
-            fprintf('CMRglu/[glu] = V_B chi / (mL min^{-1} (100g)^{-1}) -> %s\n', mat2str((this.v1/0.0105)*k1k3overk2k3));
+            fprintf('CMRglu/[glu] = V_B chi / (mL min^{-1} (100g)^{-1}) -> %s\n', mat2str((this.v1/0.0105)*(1/this.LC)*k1k3overk2k3));
             fprintf('\n');
         end
         function conc   = pchip(t, conc, t_, Dt)
@@ -378,10 +379,10 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractKinetics & mlkinetics.F18
             state.meanParams = this.meanParams;
             state.stdParams  = this.stdParams;
             state.kmin = this.kmin;
-            state.LC = 1/state.bestFitParams(1);
+            state.LC = this.LC;
             state.chi = this.kmin(1)*this.kmin(3)/(this.kmin(2) + this.kmin(3));
             state.Kd = 100*this.v1*this.kmin(1);
-            state.CMR = (this.v1/0.0105)*state.chi;
+            state.CMR = (this.v1/0.0105)*(1/state.LC)*state.chi;
             state.free = state.CMR/(100*this.kmin(3)); 
             state.maskCount = mnii.count;
             state.tracerLocation = this.sessionData.tracerLocation;
