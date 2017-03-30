@@ -75,7 +75,7 @@ classdef RBCPartition < mlkinetics.AbstractKinetics & mlkinetics.F18
             
             this.independentData = {ensureRowVector(this.tData)};
             this.dependentData   = {ensureRowVector(this.rbcData)};            
-            this.jeffreysPrior   = this.buildJeffreysPrior;
+            this.jeffreysPrior  = this.buildJeffreysPrior;
             
             this.showPlots = true;
             this.showAnnealing = true;

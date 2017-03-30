@@ -16,7 +16,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                 31.3 32.5 34.6 34.5 37.2]; % KLUDGE:  better placed in .xlsx subject data files
  	end
 
-	methods		  
+	methods
  		function this = FDGKineticsWholebrain(varargin)
  			%% FDGKINETICSWHOLEBRAIN
  			%  Usage:  this = FDGKineticsWholebrain()
@@ -166,7 +166,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             end
             popd(pwd0);
         end
-        function goWritetable            
+        function goWritetable
             import mlraichle.*;
             studyd = StudyData;
             pwd0   = pushd(studyd.subjectsDir);
@@ -221,14 +221,14 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                 handwarning(ME);
             end
         end
-        function godoPlots(sessd)            
+        function godoPlots(sessd)
             try
                 import mlraichle.*;
-                [m,sessd] = FDGKineticsWholebrain.godoMasks(sessd);
+                [~,sessd] = FDGKineticsWholebrain.godoMasks(sessd);
                 assert(isdir(sessd.vLocation));
                 pwd0 = pushd(sessd.vLocation);
-                this = FDGKineticsWholebrain(sessd, 'mask', m);
-                state = this.stateOfBayes; this = state.this;
+                this = FDGKineticsWholebrain.load( ...
+                    fullfile(sessd.vLocation, sprintf('mlpowers_FDGKineticsWholebrain_%s', sessd.parcellation)), 'this');
                 this.plotAnnealing;
                 this.plot;
                 saveFigures(sprintf('fig_%s_wholebrain', strrep(class(this), '.','_')));

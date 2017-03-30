@@ -13,7 +13,6 @@ classdef SessionData < mlpipeline.SessionData
         epoch
         filetypeExt = '.4dfp.ifh'
         hct
-        parcellation
         petPlatform = 'mmr'     
         selectedMask
     end
