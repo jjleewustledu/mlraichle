@@ -13,13 +13,12 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
     %%
 
 	properties                
-        LC = 0.418 % Huang 1980
+        LC = 0.64 % Powers PNAS 2007
         notes = ''
         xLabel = 'times/s'
         yLabel = 'activity / (Bq / cc)'
         
-        capracEfficiency = 171.2/248.6
-        hct
+        capracEfficiency = 1 % 171.2/248.6
     end
     
     methods (Static)        
@@ -44,7 +43,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
  			this = this@mlkinetics.AbstractF18DeoxyGlucoseKinetics(varargin{:});
         end
         
-        function mmr  = prepareTsc(this)
+        function this = prepareTsc(this)
             this.sessionData.tracer = 'FDG';
             pic = mlpet.PETImagingContext( ...
                 [this.sessionData.fdgACRevision('typ','fqfp') '_on_resolved.4dfp.ifh']);
@@ -58,10 +57,12 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
             num.img = ensureRowVector(num.img);
             mmr.img = num.img;
             mmr.fileprefix = [mmr.fileprefix '_tsc'];
+            this.tsc_ = mmr;
         end
-        function dta  = prepareDta(this)
+        function this = prepareDta(this)
             dta = mlpet.Caprac('scannerData', this.tsc, 'efficiencyFactor', this.capracEfficiency);
             dta.specificActivity = mlraichle.F18DeoxyGlucoseKinetics.wb2plasma(dta.specificActivity, this.hct, dta.times);
+            this.dta_ = dta;
         end        
         function this = simulateItsMcmc(this)
             this = mlraichle.F18DeoxyGlucoseKinetics.simulateMcmc( ...

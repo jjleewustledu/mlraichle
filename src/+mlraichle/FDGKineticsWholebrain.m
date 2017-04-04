@@ -42,7 +42,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             dth    = mlsystem.DirTool(ip.Results.dirToolArg);
             hcts   = ip.Results.hcts;
             jobs   = {};
-            if (hostnameMatch('innominate'))
+            if (hostnameMatch('ophthalmic'))
                 c = parcluster('chpc_remote_r2016b');
             elseif (hostnameMatch('william'))
                 c = parcluster('chpc_remote_r2016a');
@@ -87,7 +87,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             pwd0   = pushd(studyd.subjectsDir);
             dth    = mlsystem.DirTool('HYGLY2*');
             jobs   = {};
-            if (hostnameMatch('innominate'))
+            if (hostnameMatch('ophthalmic'))
                 c = parcluster('chpc_remote_r2016b');
             elseif (hostnameMatch('william'))
                 c = parcluster('chpc_remote_r2016a');
@@ -97,7 +97,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             ClusterInfo.setEmailAddress('jjlee.wustl.edu@gmail.com');
             ClusterInfo.setMemUsage('32000');
             ClusterInfo.setWallTime('02:00:00');
-            %ClusterInfo.setPrivateKeyFile('~/id_rsa.pem');
+            %ClusterInfo.setPrivateKeyFile('~/.ssh/id_rsa');
             for d = 1:length(dth.dns)
                 datobj.sessionFolder = dth.dns{d};
                 for v = 1:2
@@ -170,7 +170,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             import mlraichle.*;
             studyd = StudyData;
             pwd0   = pushd(studyd.subjectsDir);
-            fp     = fullfile(pwd0, sprintf('mlraiche_FDGKineticsWholebrain_goWritetable_%s', datestr(now, 30)));
+            fqfp   = fullfile(pwd0, sprintf('mlraiche_FDGKineticsWholebrain_goWritetable_%s', datestr(now, 30)));
             dth    = mlsystem.DirTool('HYGLY2*');
             for d = 1:length(dth.dns)
                 datobj.sessionFolder = dth.dns{d};
@@ -179,8 +179,12 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                     pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
                     sessd = CHPC.staticSessionData(datobj);
                     CHPC.pullFromChpc(sessd);
-                    this = FDGKineticsWholebrain(sessd, 'mask', '');
-                    this.writetable('fileprefix', fp, 'Range', sprintf('A%i:U%i', 2*d+v, 2*d+v), 'writeHeader', 1==d&&1==v);
+                    this = FDGKineticsWholebrain.load('mlraichle_FDGKineticsWholebrain_.mat');
+                    try
+                        this.writetable('fqfp', fqfp, 'Range', sprintf('A%i:U%i', 2*d+v, 2*d+v), 'writeHeader', 1==d&&1==v);
+                    catch ME
+                        handwarning(ME);
+                    end
                     popd(pwd1);
                 end
             end

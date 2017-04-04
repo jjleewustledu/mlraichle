@@ -11,8 +11,8 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
 
 	properties (Constant)
         
-        PARCS = {'striatum' 'thalamus' 'cerebellum' 'brainstem' 'ventralDC' 'white' ...
-                 'yeo1' 'yeo2' 'yeo3' 'yeo4' 'yeo5' 'yeo6' 'yeo7'}; % N=13 
+        PARCS = {'striatum' 'thalamus' 'cerebellum' 'brainstem' 'ventralDC' 'white' 'amygdala' 'hippocampus' ...
+                 'yeo1' 'yeo2' 'yeo3' 'yeo4' 'yeo5' 'yeo6' 'yeo7'}; % N=15
              
         HCTS = [35.7 33.6 33.4 34.5 41.4; ...
                 31.3 32.5 34.6 34.5 37.2]; % KLUDGE:  better placed in .xlsx subject data files
@@ -23,8 +23,10 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
         thalamus   = [10 49]
         cerebellum = [7 46 8 47]
         brainstem  = 16
-        ventralDC  = [28 60 18 54 17 53] % ventral DC, amygdala, hippocampus
+        ventralDC  = [28 60 26 58] % ventral DC, accumbens
         white      = [2 41]
+        amygdala   = [18 54]
+        hippocampus = [17 53]        
         
         %% yeo
         
@@ -61,7 +63,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             parcs  = ip.Results.parcs;
             hcts   = ip.Results.hcts;
             jobs   = {};
-            if (hostnameMatch('innominate'))
+            if (hostnameMatch('ophthalmic'))
                 c = parcluster('chpc_remote_r2016b');
             elseif (hostnameMatch('william'))
                 c = parcluster('chpc_remote_r2016a');
@@ -70,15 +72,15 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             end
             ClusterInfo.setEmailAddress('jjlee.wustl.edu@gmail.com');
             ClusterInfo.setMemUsage('32000');
-            ClusterInfo.setWallTime('02:00:00');
+            ClusterInfo.setWallTime('01:00:00');
             %ClusterInfo.setPrivateKeyFile('~/id_rsa.pem');
             for d = 1:length(dth.dns)
                 datobj.sessionFolder = dth.dns{d};
-                for v = ip.Results.vs
-                    datobj.vnumber = v;
+                for v = 1:length(ip.Results.vs)
+                    datobj.vnumber = ip.Results.vs(v);
                     datobj.hct = hcts(v,d);
                     try
-                        pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
+                        pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', ip.Results.vs(v)), ''));
                         %CHPC.pushToChpc(datobj);
                         for p = 1:length(parcs)
                             datobj.parcellation = parcs{p};
@@ -108,7 +110,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             parcs  = FDGKineticsParc.PARCS;
             hcts   = FDGKineticsParc.HCTS;
             jobs   = {};
-            if (hostnameMatch('innominate'))
+            if (hostnameMatch('ophthalmic'))
                 c = parcluster('chpc_remote_r2016b');
             elseif (hostnameMatch('william'))
                 c = parcluster('chpc_remote_r2016a');
@@ -119,7 +121,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             ClusterInfo.setMemUsage('32000');
             ClusterInfo.setWallTime('02:00:00');
             %ClusterInfo.setPrivateKeyFile('~/id_rsa.pem');
-            for d = 1:length(dth.dns)
+            for d = 3:4 % length(dth.dns)
                 datobj.sessionFolder = dth.dns{d};
                 for v = 1:2
                     datobj.vnumber = v;
@@ -143,6 +145,44 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             popd(pwd0);
             
             diary off
+        end
+        function sessions = godoWilliamPart(varargin)
+            tic 
+            
+            import mlraichle.*;
+            ip = inputParser;
+            addOptional(ip, 'dirToolArg', 'HYGLY2*', @ischar);
+            addOptional(ip, 'vs', 1:2, @isnumeric);
+            addParameter(ip, 'parcs', FDGKineticsParc.PARCS, @iscell);
+            addParameter(ip, 'hcts', FDGKineticsParc.HCTS, @isnumeric); 
+            parse(ip, varargin{:}); 
+            
+            studyd = StudyData;
+            pwd0   = pushd(studyd.subjectsDir);
+            dth    = mlsystem.DirTool(ip.Results.dirToolArg);
+            parcs  = ip.Results.parcs;
+            hcts   = ip.Results.hcts;
+            sessions = cell(length(dth.dns), 2);
+            for d = 1:length(dth.dns)
+                datobj.sessionFolder = dth.dns{d};
+                for v = 1:length(ip.Results.vs)
+                    datobj.vnumber = ip.Results.vs(v);
+                    datobj.hct = hcts(v,d);
+                    pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', ip.Results.vs(v)), ''));
+                    states = {};
+                    for p = 1:length(parcs)
+                        datobj.parcellation = parcs{p};
+                        s = FDGKineticsParc.godo3(datobj);
+                        states = [states s]; %#ok<AGROW>
+                        saveFigures(sprintf('fig_%s', datestr(now,30)));
+                    end
+                    popd(pwd1);
+                    sessions{d,v} = states;
+                end
+            end
+            popd(pwd0);
+            
+            toc
         end
         function sessions = godoWilliam
             tic 
@@ -201,7 +241,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             parcs  = FDGKineticsParc.PARCS;
             studyd = StudyData;
             pwd0   = pushd(studyd.subjectsDir);
-            fp     = fullfile(pwd0, sprintf('mlraiche_FDGKineticsParc_goWritetable_%s', datestr(now, 30)));
+            fqfp   = fullfile(pwd0, sprintf('mlraiche_FDGKineticsParc_goWritetable_%s', datestr(now, 30)));
             dth    = mlsystem.DirTool('HYGLY2*');
             for d = 1:length(dth.dns)
                 datobj.sessionFolder = dth.dns{d};
@@ -212,9 +252,13 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                         pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
                         sessd = CHPC.staticSessionData(datobj);
                         CHPC.pullFromChpc(sessd);
-                        this = FDGKineticsParc(sessd, 'mask', '');
+                        this = FDGKineticsParc.load(sprintf('mlraichle_FDGKineticsParc_%s.mat', datobj.parcellation));
                         row = 2*d + v + 2*length(dth.dns)*(p-1);
-                        this.writetable('fileprefix', fp, 'Range', sprintf('A%i:U%i', row, row), 'writeHeader', 1==d&&1==v&&1==p);
+                        try
+                            this.writetable('fqfp', fqfp, 'Range', sprintf('A%i:U%i', row, row), 'writeHeader', 1==d&&1==v&&1==p);
+                        catch ME
+                            handwarning(ME);
+                        end
                         popd(pwd1);
                     end
                 end
@@ -232,6 +276,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                 [m,sessd] = FDGKineticsParc.godoMasks(sessd);
                 fprintf('FDGKineticsParc.godo2:  returned from godoMasks\n');
                 pwd0 = pushd(sessd.vLocation);
+                fprintf('FDGKineticsParc.godo2:  working in %s on %s\n', pwd, sessd.parcellation);
                 this = FDGKineticsParc(sessd, 'mask', m, 'hct', sessd.hct);
                 summary.(m.fileprefix) = this.doBayes;
                 fprintf('FDGKineticsParc.godo2:  returned from doBayes\n');
@@ -260,7 +305,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                 handwarning(ME);
             end
         end
-        function godoPlots(sessd)            
+        function godoPlots(sessd)
             try
                 import mlraichle.*;
                 [m,sessd] = FDGKineticsParc.godoMasks(sessd);
@@ -363,13 +408,13 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
         end
         function y = resolveYeo7(~, mat, ~, bmr2Nii)
             ymni = fullfile(getenv('PPG'), 'jjlee2', 'Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz');
-            yNii = 'Yeo7_op_fdg.nii.gz';
-            
-            mlbash(sprintf('flirt -in %s -ref %s -applyxfm -init %s -out %s -interp nearestneighbour', ymni, bmr2Nii, mat, yNii));  
-            
-            y = mlfourd.ImagingContext(yNii);
-            y.fourdfp;
-            y.save;
+            yNii = 'Yeo7_op_fdg.nii.gz';            
+            if (~lexist('Yeo7_op_fdg.4dfp.ifh', 'file'))
+                mlbash(sprintf('flirt -in %s -ref %s -applyxfm -init %s -out %s -interp nearestneighbour', ymni, bmr2Nii, mat, yNii));
+                y = mlfourd.ImagingContext(yNii);
+                y.fourdfp;
+                y.save;
+            end
         end
         
         function teardown(sessd)

@@ -32,7 +32,7 @@ classdef CHPC < mldistcomp.CHPC
             c = mldistcomp.CHPC( ...
                 mlraichle.CHPC.staticSessionData(datobj));
         end
-        function pushToChpc(datobj)            
+        function pushToChpc(datobj)
             import mlraichle.*;
             sessd           = CHPC.staticSessionData(datobj);
             chpc            = CHPC(sessd); 
