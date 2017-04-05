@@ -414,7 +414,10 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                 y = mlfourd.ImagingContext(yNii);
                 y.fourdfp;
                 y.save;
+                return
             end
+            
+            y = mlfourd.ImagingContext('Yeo7_op_fdg.4dfp.ifh');
         end
         
         function teardown(sessd)
