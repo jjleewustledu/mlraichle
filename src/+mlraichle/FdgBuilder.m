@@ -465,7 +465,6 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerBuilder
             this.teardownT4s;
             this.teardownResolve;
         end        
-        
     end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

@@ -28,7 +28,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
             qpet = F18DeoxyGlucoseKinetics.pchip(t, qpet, t, u0);
             dta_ = struct('times', t, 'specificActivity', Aa);
             tsc_ = struct('times', t, 'specificActivity', qpet);
-            this = F18DeoxyGlucoseKinetics(sessd, 'hct', 40, 'dta', dta_, 'tsc', tsc_);
+            this = F18DeoxyGlucoseKinetics(sessd, 'dta', dta_, 'tsc', tsc_);
             this.mapParams = mapParams;
             [this,lg] = this.doBayes;
             fprintf('%s\n', char(lg));

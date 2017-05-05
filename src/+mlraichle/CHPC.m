@@ -24,9 +24,6 @@ classdef CHPC < mldistcomp.CHPC
             if (isfield(datobj, 'parcellation') && ~isempty(datobj.parcellation))
                 sessd.parcellation = datobj.parcellation;
             end
-            if (isfield(datobj, 'hct') && ~isempty(datobj.hct))
-                sessd.hct = datobj.hct;
-            end
         end
         function c = staticChpc(datobj)
             c = mldistcomp.CHPC( ...
@@ -45,6 +42,7 @@ classdef CHPC < mldistcomp.CHPC
             chpcMriPth      = fullfile(chpc.freesurferLocation, ...
                               sprintf('%s_%s', sessd.sessionFolder, sessd.vfolder), 'mri', '');
             
+            chpc.scpToChpc(sessd.bloodGlucoseAndHctXlsx, chpc.chpcSubjectsDir);
             chpc.scpToChpc(sessd.CCIRRadMeasurementsTable, chpcVPth);
             
             chpc.sshMkdir(chpcMriPth);

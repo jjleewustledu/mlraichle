@@ -13,10 +13,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
         
         PARCS = {'striatum' 'thalamus' 'cerebellum' 'brainstem' 'ventralDC' 'white' 'amygdala' 'hippocampus' ...
                  'yeo1' 'yeo2' 'yeo3' 'yeo4' 'yeo5' 'yeo6' 'yeo7'}; % N=15
-             
-        HCTS = [35.7 33.6 33.4 34.5 41.4; ...
-                31.3 32.5 34.6 34.5 37.2]; % KLUDGE:  better placed in .xlsx subject data files
-                     
+                
         %% aparc+aseg
         
  		striatum   = [11 50 12 51 13 52] % caudate, putamen, pallidus
@@ -54,14 +51,12 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             addOptional(ip, 'dirToolArg', 'HYGLY2*', @ischar);
             addOptional(ip, 'vs', 1:2, @isnumeric);
             addParameter(ip, 'parcs', FDGKineticsParc.PARCS, @iscell);
-            addParameter(ip, 'hcts', FDGKineticsParc.HCTS, @isnumeric); 
             parse(ip, varargin{:});                     
             
             studyd = StudyData;
             pwd0   = pushd(studyd.subjectsDir);
             dth    = mlsystem.DirTool(ip.Results.dirToolArg);
             parcs  = ip.Results.parcs;
-            hcts   = ip.Results.hcts;
             jobs   = {};
             if (hostnameMatch('ophthalmic'))
                 c = parcluster('chpc_remote_r2016b');
@@ -78,7 +73,6 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                 datobj.sessionFolder = dth.dns{d};
                 for v = 1:length(ip.Results.vs)
                     datobj.vnumber = ip.Results.vs(v);
-                    datobj.hct = hcts(v,d);
                     try
                         pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', ip.Results.vs(v)), ''));
                         %CHPC.pushToChpc(datobj);
@@ -108,7 +102,6 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             pwd0   = pushd(studyd.subjectsDir);
             dth    = mlsystem.DirTool('HYGLY2*');
             parcs  = FDGKineticsParc.PARCS;
-            hcts   = FDGKineticsParc.HCTS;
             jobs   = {};
             if (hostnameMatch('ophthalmic'))
                 c = parcluster('chpc_remote_r2016b');
@@ -121,11 +114,10 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             ClusterInfo.setMemUsage('32000');
             ClusterInfo.setWallTime('02:00:00');
             %ClusterInfo.setPrivateKeyFile('~/id_rsa.pem');
-            for d = 3:4 % length(dth.dns)
+            for d = 1:2 %%%length(dth.dns)
                 datobj.sessionFolder = dth.dns{d};
                 for v = 1:2
                     datobj.vnumber = v;
-                    datobj.hct = hcts(v,d);
                     try
                         pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
                         %CHPC.pushToChpc(datobj);
@@ -154,20 +146,19 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             addOptional(ip, 'dirToolArg', 'HYGLY2*', @ischar);
             addOptional(ip, 'vs', 1:2, @isnumeric);
             addParameter(ip, 'parcs', FDGKineticsParc.PARCS, @iscell);
-            addParameter(ip, 'hcts', FDGKineticsParc.HCTS, @isnumeric); 
             parse(ip, varargin{:}); 
             
             studyd = StudyData;
             pwd0   = pushd(studyd.subjectsDir);
-            dth    = mlsystem.DirTool(ip.Results.dirToolArg);
+            dtarg  = ip.Results.dirToolArg;
+            if (~lstrfind('*', dtarg)); dtarg = [dtarg '*']; end
+            dth    = mlsystem.DirTool(dtarg);
             parcs  = ip.Results.parcs;
-            hcts   = ip.Results.hcts;
             sessions = cell(length(dth.dns), 2);
             for d = 1:length(dth.dns)
                 datobj.sessionFolder = dth.dns{d};
                 for v = 1:length(ip.Results.vs)
                     datobj.vnumber = ip.Results.vs(v);
-                    datobj.hct = hcts(v,d);
                     pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', ip.Results.vs(v)), ''));
                     states = {};
                     for p = 1:length(parcs)
@@ -191,14 +182,12 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             studyd = StudyData;
             pwd0   = pushd(studyd.subjectsDir);
             dth    = mlsystem.DirTool('HYGLY22*');
-            hcts   = FDGKineticsParc.HCTS;
             parcs  = FDGKineticsParc.PARCS;
             sessions = cell(length(dth.dns), 2);
             for d = 1:1 % length(dth.dns)
                 datobj.sessionFolder = dth.dns{d};
                 for v = 2:2
                     datobj.vnumber = v;
-                    datobj.hct = hcts(v,d);
                     pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
                     states = {};
                     for p = 11:13 % length(parcs)
@@ -215,9 +204,8 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             
             toc
         end
-        function goPlotOnWilliam            
+        function goPlotOnWilliam
             import mlraichle.*;
-            hcts   = FDGKineticsParc.HCTS;
             parcs  = FDGKineticsParc.PARCS;             
             studyd = StudyData;
             pwd0   = pushd(studyd.subjectsDir);
@@ -226,7 +214,6 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                 datobj.sessionFolder = dth.dns{d};
                 for v = 1:2
                     datobj.vnumber = v;
-                    datobj.hct = hcts(v,d);
                     for p = 1:length(parcs)
                         datobj.parcellation = parcs{p};
                         sessd = CHPC.staticSessionData(datobj);
@@ -236,7 +223,11 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             end
             popd(pwd0);
         end
-        function goWritetable            
+        function goWritetable(varargin)
+            ip = inputParser;
+            addOptional(ip, 'pullFromChpc', true, @islogical);
+            parse(ip, varargin{:});
+            
             import mlraichle.*;
             parcs  = FDGKineticsParc.PARCS;
             studyd = StudyData;
@@ -251,11 +242,17 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                         datobj.parcellation = parcs{p};
                         pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
                         sessd = CHPC.staticSessionData(datobj);
-                        CHPC.pullFromChpc(sessd);
+                        if (ip.Results.pullFromChpc)
+                            CHPC.pullFromChpc(sessd);
+                        end
                         this = FDGKineticsParc.load(sprintf('mlraichle_FDGKineticsParc_%s.mat', datobj.parcellation));
+                        if (isempty(this.sessionData.bloodGlucoseAndHct)) %% KLUDGE:   not sure why this is not in this.
+                            this.sessionData.bloodGlucoseAndHct = BloodGlucoseAndHct( ...
+                                fullfile(this.sessionData.subjectsDir, this.sessionData.bloodGlucoseAndHctXlsx));
+                        end
                         row = 2*d + v + 2*length(dth.dns)*(p-1);
                         try
-                            this.writetable('fqfp', fqfp, 'Range', sprintf('A%i:U%i', row, row), 'writeHeader', 1==d&&1==v&&1==p);
+                            this.writetable('fqfp', fqfp, 'Range', sprintf('A%i:V%i', row, row), 'writeHeader', 1==d&&1==v&&1==p);
                         catch ME
                             handwarning(ME);
                         end
@@ -277,7 +274,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                 fprintf('FDGKineticsParc.godo2:  returned from godoMasks\n');
                 pwd0 = pushd(sessd.vLocation);
                 fprintf('FDGKineticsParc.godo2:  working in %s on %s\n', pwd, sessd.parcellation);
-                this = FDGKineticsParc(sessd, 'mask', m, 'hct', sessd.hct);
+                this = FDGKineticsParc(sessd, 'mask', m);
                 summary.(m.fileprefix) = this.doBayes;
                 fprintf('FDGKineticsParc.godo2:  returned from doBayes\n');
                 popd(pwd0);

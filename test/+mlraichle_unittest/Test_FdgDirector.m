@@ -22,19 +22,11 @@ classdef Test_FdgDirector < matlab.unittest.TestCase
 	methods (Test)
         function test_constructFdgNAC(this)
             this.testObj = this.testObj.constructFdgNAC;
-            this.verifyClass(this.testObj.product, 'mlpet.PETImagingContext');
-            this.verifyEqual(this.testObj.product.entropy, nan);
-            if (this.view)
-                this.testObj.product.view;
-            end
+            this.verifyTestObjProduct('mlpet.PETImagingContext', nan);
         end
         function test_constructFdgAC(this)
             this.testObj = this.testObj.constructFdgAC;
-            this.verifyClass(this.testObj.product, 'mlpet.PETImagingContext');
-            this.verifyEqual(this.testObj.product.entropy, nan);
-            if (this.view)
-                this.testObj.product.view;
-            end
+            this.verifyTestObjProduct('mlpet.PETImagingContext', nan);
         end
 	end
 
@@ -42,10 +34,10 @@ classdef Test_FdgDirector < matlab.unittest.TestCase
 		function setupFdgDirector(this)
  			import mlraichle.*;
             studyd = SynthStudyData;
-            sessd  = SessionData('studyData', studyd, ...
-                                 'sessionPath', fullfile(getenv('PPG'), 'jjleeSynth', 'HYGLY09', ''));
- 			this.testObj_ = FdgDirector( ...
-                            FdgBuilder('sessionData', sessd));
+            sessd  = SessionData( ...
+                'studyData', studyd, ...
+                'sessionPath', fullfile(studyd.subjectsDir, 'HYGLY09', ''));
+ 			this.testObj_ = FdgDirector(FdgBuilder('sessionData', sessd));
  		end
 	end
 
@@ -54,13 +46,22 @@ classdef Test_FdgDirector < matlab.unittest.TestCase
  			this.testObj = this.testObj_;
  			this.addTeardown(@this.cleanFiles);
  		end
-	end
+    end
 
+    %% PRIVATE
+    
 	properties (Access = private)
  		testObj_
  	end
 
 	methods (Access = private)
+        function verifyTestObjProduct(this, typ, H)            
+            this.verifyClass(this.testObj.product, typ);
+            this.verifyEqual(this.testObj.product.entropy, H);
+            if (this.view)
+                this.testObj.product.view;
+            end
+        end
 		function cleanFiles(this)
  		end
 	end

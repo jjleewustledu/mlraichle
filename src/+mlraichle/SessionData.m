@@ -10,16 +10,19 @@ classdef SessionData < mlpipeline.SessionData
  	
 
     properties
+        bloodGlucoseAndHctXlsx = 'BG_and_Hct_for_metabolism_processing.xlsx'
+        bloodGlucoseAndHct
         epoch
         filetypeExt = '.4dfp.ifh'
-        hct
         petPlatform = 'mmr'     
         selectedMask
     end
     
 	properties (Dependent)
         acTag
+        bloodGlucose
         convertedTag
+        hct
         petBlur
         rawdataDir
         vfolder
@@ -37,6 +40,9 @@ classdef SessionData < mlpipeline.SessionData
                 g = 'NAC';
             end
         end
+        function g = get.bloodGlucose(this)
+            g = this.bloodGlucoseAndHct.bloodGlucose(this.sessionFolder, this.vnumber);
+        end
         function g = get.convertedTag(this)
             g = 'Converted';
             if (~isempty(this.epoch))
@@ -48,6 +54,9 @@ classdef SessionData < mlpipeline.SessionData
                 return
             end
             g = [g this.attenuationCorrectionTag];
+        end
+        function g = get.hct(this)
+            g = this.bloodGlucoseAndHct.Hct(this.sessionFolder, this.vnumber);
         end
         function g = get.petBlur(~)
             g = mlpet.MMRRegistry.instance.petPointSpread;
@@ -63,6 +72,8 @@ classdef SessionData < mlpipeline.SessionData
 	methods
  		function this = SessionData(varargin)
  			this = this@mlpipeline.SessionData(varargin{:});
+            this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct( ...
+                fullfile(this.subjectsDir, this.bloodGlucoseAndHctXlsx));
         end
         function [ipr,schar,this] = iprLocation(this, varargin)
             %% IPRLOCATION
@@ -207,7 +218,6 @@ classdef SessionData < mlpipeline.SessionData
                 loc = fullfile(this.vLocation(varargin{:}), sprintf('%s%i_V%i-%s', upper(this.tracer), this.snumber, this.vnumber, this.acTag), '');
             end
         end
-        
         function obj  = CCIRRadMeasurementsTable(this)
             obj = fullfile( ...
                 this.vLocation, 'CCIR_rad_measurements.xlsx');
