@@ -51,40 +51,37 @@ classdef HyperglycemiaDirector
             this.ocDirector   = this.ocDirector.analyze;
         end
         
-        function this = constructNAC(this)
+        function this = constructNac(this)
             this.sessionData_.attenuationCorrected = false;
             this = this.assignTracerDirectors;
             
-            this.fdgDirector.constructNAC;
-            this.hoDirector.constructNAC;
-            this.ooDirector.constructNAC;
-            this.ocDirector.constructNAC;            
-            this.umapDirector.constructUmaps;            
+            this.fdgDirector.constructNac;
+            this.hoDirector.constructNac;
+            this.ooDirector.constructNac;
+            this.ocDirector.constructNac;        
             this.fdgDirector.prepareJSRecon;
             this.hoDirector.prepareJSRecon;
             this.ooDirector.prepareJSRecon;
             this.ocDirector.prepareJSRecon;
         end
-        function this = constructAC(this)
-            this.sessionData_.attenuationCorrected = true;
-            this = this.assignTracerDirectors;
-            
-            this.fdgDirector.ensureJSRecon;
-            this.fdgDirector.constructAC;
-            this.fdgDirector.constructKinetics;
-            this.hoDirector.ensureJSRecon;
-            this.hoDirector.constructAC;
-            this.hoDirector.constructHemodynamics;
-            this.ooDirector.ensureJSRecon;
-            this.ooDirector.constructAC;
-            this.ooDirector.constructHemodynamics;
-            this.ocDirector.ensureJSRecon;
-            this.ocDirector.constructAC;
-            this.ocDirector.constructHemodynamics;
+        function this = constructUmap(this)
+            this.umapDirector = this.umapDirector.constructUmap;
         end
-        function this = constructUmaps(this)
-            
-            %mmrb = mlsiemens.MMRBuilder('sessionData', this.sessionData);
+        function this = constructAc(this)
+            tracerNames = {'fdg' 'ho' 'oc' 'oo'};
+            for tn = 1:length(tracerNames)
+                this.(tracerNames{tn}) = this.(tracerNames{tn}).resolveNac;
+                this.(tracerNames{tn}) = this.(tracerNames{tn}).resolveUmaps;
+                this.(tracerNames{tn}) = this.(tracerNames{tn}).prepareJSReconAc;
+            end
+        end
+        function this = constructKinetics(this)
+            tracerNames = {'fdg' 'ho' 'oc' 'oo'};
+            for tn = 1:length(tracerNames)
+                this.(tracerNames{tn}) = this.(tracerNames{tn}).gatherConvertedAc;
+                this.(tracerNames{tn}) = this.(tracerNames{tn}).resolveTof;
+                this.(tracerNames{tn}) = this.(tracerNames{tn}).constructKinetics;
+            end           
         end
         
         function this = sortDownloads(this, downloadPath)
@@ -103,6 +100,8 @@ classdef HyperglycemiaDirector
         function this = sortDownloadCT(this, downloadPath)
             import mlfourdfp.*;
             DicomSorter.sessionSort(downloadPath, this.sessionData_.sessionPath);
+        end
+        function this = sortDownloadFreesurfer(this, downloadPath)
         end
         
  		function this = HyperglycemiaDirector(varargin)

@@ -31,14 +31,14 @@ classdef SessionData < mlpipeline.SessionData
     methods %% GET
         function g = get.acTag(this)
             if (this.attenuationCorrected)
-                if (strcmp(this.subjectsFolder, 'jjlee'))
-                    g = 'AC';
+                if (this.absScatterCorrected)
+                    g = 'AC-Abs';
                     return
                 end
-                g = 'Abs';
-            else
-                g = 'NAC';
+                g = 'AC';
+                return
             end
+            g = 'NAC';
         end
         function g = get.bloodGlucose(this)
             g = this.bloodGlucoseAndHct.bloodGlucose(this.sessionFolder, this.vnumber);
@@ -49,11 +49,7 @@ classdef SessionData < mlpipeline.SessionData
                 assert(isnumeric(this.epoch));
                 g = sprintf('%s-Epoch%i', g, this.epoch);
             end
-            if (~this.attenuationCorrected)
-                g = [g '-NAC'];
-                return
-            end
-            g = [g this.attenuationCorrectionTag];
+            g = [g '-' this.acTag];
         end
         function g = get.hct(this)
             g = this.bloodGlucoseAndHct.Hct(this.sessionFolder, this.vnumber);
@@ -213,9 +209,11 @@ classdef SessionData < mlpipeline.SessionData
         
         function loc  = petLocation(this, varargin)
             if (lstrfind(upper(this.tracer), 'FDG'))
-                loc = fullfile(this.vLocation(varargin{:}), sprintf('%s_V%i-%s', upper(this.tracer), this.vnumber, this.acTag), '');
+                loc = fullfile(this.vLocation(varargin{:}), ...
+                               sprintf('%s_V%i-%s', upper(this.tracer), this.vnumber, this.acTag), '');
             else
-                loc = fullfile(this.vLocation(varargin{:}), sprintf('%s%i_V%i-%s', upper(this.tracer), this.snumber, this.vnumber, this.acTag), '');
+                loc = fullfile(this.vLocation(varargin{:}), ...
+                               sprintf('%s%i_V%i-%s', upper(this.tracer), this.snumber, this.vnumber, this.acTag), '');
             end
         end
         function obj  = CCIRRadMeasurementsTable(this)
@@ -245,6 +243,9 @@ classdef SessionData < mlpipeline.SessionData
             p    = inst.petPointSpread(varargin{:});
         end
         function obj  = timingData(this, varargin)
+            %% TIMINGDATA is DEPRECATED; 
+            %  prefer using mlpet.IScannerData.readTimingData
+            
             ipr = this.iprLocation(varargin{:});
             fqfn = fullfile( ...
                 this.subjectsDir, ...
@@ -282,7 +283,8 @@ classdef SessionData < mlpipeline.SessionData
                 return
             end
             loc = locationType(ipr.typ, ...
-                  fullfile(this.vLocation, sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.acTag), ''));
+                  fullfile(this.vLocation, ...
+                           sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.acTag), ''));
         end
         function loc  = tracerListmodeLocation(this, varargin)
             %  @param named tracer is a string identifier.
@@ -585,39 +587,6 @@ classdef SessionData < mlpipeline.SessionData
     end
     
     methods (Access = protected)
-        function tag  = attenuationCorrectionTag(this)
-            if (strcmp(this.subjectsFolder, 'jjlee2'))
-                switch (this.tracer)
-                    case 'FDG'
-                        tag = '-Abs';
-                    case 'HO'
-                        tag = '-Abs';
-                    case 'OO'
-                        tag = '-Abs';
-                    case 'OC'
-                        tag = '-Abs';
-                    otherwise
-                        tag = '-AC';
-                end
-                return
-            end
-            if (strcmp(this.subjectsFolder, 'jjlee'))
-                switch (this.tracer)
-                    case 'FDG'
-                        tag = '-AC';
-                    case 'HO'
-                        tag = '';
-                    case 'OO'
-                        tag = '-Abs';
-                    case 'OC'
-                        tag = '-Abs';
-                    otherwise
-                        tag = '-AC';
-                end
-                return
-            end
-            tag = '';
-        end
         function        ensureCTFqfilename(~, fqfn) %#ok<INUSD>
             %assert(lexist(fqfn, 'file'));
         end

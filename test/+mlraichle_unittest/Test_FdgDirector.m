@@ -22,11 +22,11 @@ classdef Test_FdgDirector < matlab.unittest.TestCase
 	methods (Test)
         function test_constructFdgNAC(this)
             this.testObj = this.testObj.constructFdgNAC;
-            this.verifyTestObjProduct('mlpet.PETImagingContext', nan);
+            this.verifyTestObjProduct;
         end
         function test_constructFdgAC(this)
             this.testObj = this.testObj.constructFdgAC;
-            this.verifyTestObjProduct('mlpet.PETImagingContext', nan);
+            this.verifyTestObjProduct;
         end
 	end
 
@@ -38,6 +38,7 @@ classdef Test_FdgDirector < matlab.unittest.TestCase
                 'studyData', studyd, ...
                 'sessionPath', fullfile(studyd.subjectsDir, 'HYGLY09', ''));
  			this.testObj_ = FdgDirector(FdgBuilder('sessionData', sessd));
+ 			this.addTeardown(@this.cleanFiles);
  		end
 	end
 
@@ -55,12 +56,14 @@ classdef Test_FdgDirector < matlab.unittest.TestCase
  	end
 
 	methods (Access = private)
-        function verifyTestObjProduct(this, typ, H)            
-            this.verifyClass(this.testObj.product, typ);
-            this.verifyEqual(this.testObj.product.entropy, H);
+        function verifyTestObjProduct(this)
+            this.verifyClass(this.testObj.product, 'mlpet.PETImagingContext');
             if (this.view)
                 this.testObj.product.view;
             end
+        end
+        function verifyTestObjEntropy(this, H)
+            this.verifyEqual(this.testObj.product.entropy, H);
         end
 		function cleanFiles(this)
  		end

@@ -34,8 +34,7 @@ classdef FdgDirector < mlpet.TracerDirector
             this.builder.motionCorrectUmaps;
             this.builder.product.view;
             this.builder.transferToE7tools('FDG-Converted-AC');
-        end
-        
+        end        
         function this = constructAC(this)
             %this.builder.transferFromE7tools('FDG-Converted-Frame*');
             %this.builder.buildACImageFrames;

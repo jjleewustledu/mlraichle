@@ -21,7 +21,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
         capracEfficiency = 1 % 171.2/248.6
     end
     
-    methods (Static)        
+    methods (Static)
         function this = simulateMcmc(Aa, fu, k1, k2, k3, k4, t, u0, v1, mapParams)
             import mlraichle.*;
             qpet = F18DeoxyGlucoseKinetics.qpet(Aa, fu, k1, k2, k3, k4, t, v1);
