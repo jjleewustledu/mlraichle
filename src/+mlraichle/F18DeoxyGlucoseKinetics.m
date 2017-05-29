@@ -61,7 +61,6 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
         end
         function this = prepareDta(this)
             dta = mlpet.Caprac('scannerData', this.tsc, 'efficiencyFactor', this.capracEfficiency);
-            dta.specificActivity = mlraichle.F18DeoxyGlucoseKinetics.wb2plasma(dta.specificActivity, this.hct, dta.times);
             this.dta_ = dta;
         end        
         function this = simulateItsMcmc(this)
