@@ -17,9 +17,13 @@ classdef StudyData < mlpipeline.StudyData
         dicomExtension = 'dcm'
     end
     
+    properties (Dependent)
+        subjectsDir
+    end
+    
     methods
- 		function this = StudyData(varargin)
- 			this = this@mlpipeline.StudyData(varargin{:});
+        function g    = get.subjectsDir(this)
+            g = fullfile(getenv('PPG'), this.subjectsFolder, '');
         end
         
         function d    = freesurfersDir(~)
@@ -74,9 +78,6 @@ classdef StudyData < mlpipeline.StudyData
             end
             sess = mlraichle.SessionData('studyData', this, varargin{:});
         end  
-        function d    = subjectsDir(this)
-            d = fullfile(getenv('PPG'), this.subjectsFolder, '');
-        end
         function f    = subjectsDirFqdns(this)
             dt = mlsystem.DirTools(this.subjectsDir);
             f = {};
@@ -87,6 +88,10 @@ classdef StudyData < mlpipeline.StudyData
                 end
             end
         end
+        
+ 		function this = StudyData(varargin)
+ 			this = this@mlpipeline.StudyData(varargin{:});
+        end        
     end
     
     %% PROTECTED

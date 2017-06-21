@@ -1,4 +1,4 @@
-classdef OoDirector 
+classdef OoDirector < mlpet.TracerDirector  
 	%% OODIRECTOR  
 
 	%  $Revision$
@@ -6,7 +6,7 @@ classdef OoDirector
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
- 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
+ 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John J. Lee.
  	
 
 	properties
@@ -17,9 +17,12 @@ classdef OoDirector
 		  
  		function this = OoDirector(varargin)
  			%% OODIRECTOR
- 			%  Usage:  this = OoDirector()
+            %  @param required 'builder' is an 'mlraichle.OoBuilder'
 
- 			
+            ip = inputParser;
+            addRequired(ip, 'builder', @(x) isa(x, 'mlraichle.OoBuilder'));
+            parse(ip, varargin{:});
+            this = this@mlpet.TracerDirector(varargin{:});
  		end
  	end 
 

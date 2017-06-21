@@ -10,16 +10,12 @@ classdef SessionData < mlpipeline.SessionData
  	
 
     properties
-        bloodGlucoseAndHctXlsx = 'BG_and_Hct_for_metabolism_processing.xlsx'
-        bloodGlucoseAndHct
         epoch
         filetypeExt = '.4dfp.ifh'
-        petPlatform = 'mmr'     
-        selectedMask
     end
     
 	properties (Dependent)
-        acTag
+        attenuationTag
         bloodGlucose
         convertedTag
         hct
@@ -28,11 +24,11 @@ classdef SessionData < mlpipeline.SessionData
         vfolder
     end
     
-    methods %% GET
-        function g = get.acTag(this)
+    methods
+        function g = get.attenuationTag(this)
             if (this.attenuationCorrected)
                 if (this.absScatterCorrected)
-                    g = 'AC-Abs';
+                    g = 'Abs';
                     return
                 end
                 g = 'AC';
@@ -49,7 +45,7 @@ classdef SessionData < mlpipeline.SessionData
                 assert(isnumeric(this.epoch));
                 g = sprintf('%s-Epoch%i', g, this.epoch);
             end
-            g = [g '-' this.acTag];
+            g = [g '-' this.attenuationTag];
         end
         function g = get.hct(this)
             g = this.bloodGlucoseAndHct.Hct(this.sessionFolder, this.vnumber);
@@ -63,79 +59,11 @@ classdef SessionData < mlpipeline.SessionData
         function g = get.vfolder(this)
             g = sprintf('V%i', this.vnumber);
         end
-    end
-
-	methods
- 		function this = SessionData(varargin)
- 			this = this@mlpipeline.SessionData(varargin{:});
-            this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct( ...
-                fullfile(this.subjectsDir, this.bloodGlucoseAndHctXlsx));
-        end
-        function [ipr,schar,this] = iprLocation(this, varargin)
-            %% IPRLOCATION
-            %  @param named tracer is a string identifier.
-            %  @param named snumber is the scan number; is numeric.
-            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  imagingType.
-            %  @param named frame is numeric.
-            %  @param named rnumber is the revision number; is numeric.
-            %  @returns ipr, the struct ip.Results obtained by parse.            
-            %  @returns schr, the s-number as a string.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'ac', this.attenuationCorrected, @islogical);
-            addParameter(ip, 'tracer', this.tracer, @ischar);
-            addParameter(ip, 'frame', nan, @isnumeric);
-            addParameter(ip, 'rnumber', this.rnumber, @isnumeric);
-            addParameter(ip, 'snumber', this.snumber, @isnumeric);
-            addParameter(ip, 'vnumber', this.vnumber, @isnumeric);
-            addParameter(ip, 'typ', 'path', @ischar);
-            parse(ip, varargin{:});            
-            ipr = ip.Results;
-            this.attenuationCorrected = ip.Results.ac;
-            this.tracer  = ip.Results.tracer; 
-            this.rnumber = ip.Results.rnumber;
-            this.snumber = ip.Results.snumber;
-            this.vnumber = ip.Results.vnumber;           
-            
-            if (~lstrfind(upper(ipr.tracer), 'OC') && ...
-                ~lstrfind(upper(ipr.tracer), 'OO') && ...
-                ~lstrfind(upper(ipr.tracer), 'HO'))
-                ipr.snumber = nan;
-            end
-            if (isnan(ipr.snumber))
-                schar = '';
-            else
-                schar = num2str(ip.Results.snumber);
-            end
-        end
-        function loc  = vLocation(this, varargin)
-            ip = inputParser;
-            addParameter(ip, 'typ', 'path', @ischar);
-            parse(ip, varargin{:});
-            
-            loc = locationType(ip.Results.typ, ...
-                fullfile(this.sessionPath, sprintf('V%i', this.vnumber), ''));
-        end
         
-        %% IMRData
-        
-        function loc  = freesurferLocation(this, varargin)
-            ip = inputParser;
-            addParameter(ip, 'typ', 'path', @ischar);
-            parse(ip, varargin{:});
-            
-            loc = locationType(ip.Results.typ, ...
-                fullfile(this.freesurfersDir, [this.sessionLocation('typ', 'folder') '_' this.vLocation('typ', 'folder')], ''));
-        end   
+        %% IMRData         
         
         function obj  = adc(this, varargin)
             obj = this.mrObject('ep2d_diff_26D_lgfov_nopat_ADC', varargin{:});
-        end
-        function obj  = aparcAsegBinarized(this, varargin)
-            fqfn = fullfile(this.vLocation, sprintf('aparcAsegBinarized_%s.4dfp.ifh', this.resolveTag));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = atlas(this, varargin)
             ip = inputParser;
@@ -148,26 +76,17 @@ classdef SessionData < mlpipeline.SessionData
                 fullfile(getenv('REFDIR'), ...
                          sprintf('%s%s%s', ip.Results.desc, ip.Results.suffix, this.filetypeExt)));
         end
-        function obj  = brainmaskBinarizeBlended(this, varargin)
-            fqfn = fullfile(this.vLocation, sprintf('brainmaskBinarizeBlended_%s.4dfp.ifh', this.resolveTag));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
-        end
         function obj  = dwi(this, varargin)
             obj = this.mrObject('ep2d_diff_26D_lgfov_nopat_TRACEW', varargin{:});
         end
-        function obj  = mask(this, varargin)
-            %  @param named tracer is a string identifier.
-            %  @param named snumber is the scan number; is numeric.
-            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  imagingType.
-            %  @param named frame is numeric.
-            %  @param named rnumber is the revision number; is numeric.
-            %  @returns ipr, the struct ip.Results obtained by parse.            
-            %  @returns schr, the s-number as a string.
+        function loc  = freesurferLocation(this, varargin)
+            ip = inputParser;
+            addParameter(ip, 'typ', 'path', @ischar);
+            parse(ip, varargin{:});
             
-            assert(lexist(this.selectedMask, 'file'));
-            obj = this.fqfilenameObject(this.selectedMask, varargin{:});
-        end
+            loc = locationType(ip.Results.typ, ...
+                fullfile(this.freesurfersDir, [this.sessionLocation('typ', 'folder') '_' this.vLocation('typ', 'folder')], ''));
+        end  
         function obj  = mpr(this, varargin)
             obj = this.T1(varargin{:});
         end
@@ -207,18 +126,9 @@ classdef SessionData < mlpipeline.SessionData
                 
         %% IPETData
         
-        function loc  = petLocation(this, varargin)
-            if (lstrfind(upper(this.tracer), 'FDG'))
-                loc = fullfile(this.vLocation(varargin{:}), ...
-                               sprintf('%s_V%i-%s', upper(this.tracer), this.vnumber, this.acTag), '');
-            else
-                loc = fullfile(this.vLocation(varargin{:}), ...
-                               sprintf('%s%i_V%i-%s', upper(this.tracer), this.snumber, this.vnumber, this.acTag), '');
-            end
-        end
-        function obj  = CCIRRadMeasurementsTable(this)
+        function obj  = CCIRRadMeasurements(this)
             obj = fullfile( ...
-                this.vLocation, 'CCIR_rad_measurements.xlsx');
+                this.vLocation, 'CCIRRadMeasurements.xlsx');
         end
         function obj  = ct(this, varargin)
             obj = this.ctObject('ct', varargin{:});
@@ -238,9 +148,21 @@ classdef SessionData < mlpipeline.SessionData
         function obj  = petfov(this, varargin)
             obj = this.mrObject('AIFFOV%s%s', varargin{:});
         end
-        function p    = petPointSpread(varargin)
+        function loc  = petLocation(this, varargin)
+            if (lstrfind(upper(this.tracer), 'FDG'))
+                loc = fullfile(this.vLocation(varargin{:}), ...
+                               sprintf('%s_V%i-%s', upper(this.tracer), this.vnumber, this.attenuationTag), '');
+            else
+                loc = fullfile(this.vLocation(varargin{:}), ...
+                               sprintf('%s%i_V%i-%s', upper(this.tracer), this.snumber, this.vnumber, this.attenuationTag), '');
+            end
+        end
+        function p    = petPointSpread(~, varargin)
             inst = mlpet.MMRRegistry.instance;
             p    = inst.petPointSpread(varargin{:});
+        end
+        function suff = petPointSpreadSuffix(this, varargin)
+            suff = sprintf('_b%i', floor(10*mean(this.petPointSpread(varargin{:}))));
         end
         function obj  = timingData(this, varargin)
             %% TIMINGDATA is DEPRECATED; 
@@ -249,7 +171,7 @@ classdef SessionData < mlpipeline.SessionData
             ipr = this.iprLocation(varargin{:});
             fqfn = fullfile( ...
                 this.subjectsDir, ...
-                sprintf('%s-%s-timings.txt', ipr.tracer, this.acTag));
+                sprintf('%s-%s-timings.txt', ipr.tracer, this.attenuationTag));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function loc  = tracerConvertedLocation(this, varargin)
@@ -284,7 +206,7 @@ classdef SessionData < mlpipeline.SessionData
             end
             loc = locationType(ipr.typ, ...
                   fullfile(this.vLocation, ...
-                           sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.acTag), ''));
+                           sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.attenuationTag), ''));
         end
         function loc  = tracerListmodeLocation(this, varargin)
             %  @param named tracer is a string identifier.
@@ -402,22 +324,6 @@ classdef SessionData < mlpipeline.SessionData
                     lower(ipr.tracer), schar, this.vnumber, ipr.rnumber, this.builder.resolveTag));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
-        function obj  = tracerResolved1(this, varargin)
-            [ipr,schar] = this.iprLocation(varargin{:});
-            fqfn = fullfile( ...
-                this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
-                sprintf('%s%sv%ir%i_on_resolved.4dfp.ifh', ...
-                    lower(ipr.tracer), schar, this.vnumber, ipr.rnumber));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
-        end
-        function obj  = tracerResolvedSumt1(this, varargin)
-            [ipr,schar] = this.iprLocation(varargin{:});
-            fqfn = fullfile( ...
-                this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
-                sprintf('%s%sv%ir%i_on_resolved_sumt.4dfp.ifh', ...
-                    lower(ipr.tracer), schar, this.vnumber, ipr.rnumber));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
-        end
         function obj  = tracerRevision(this, varargin)
             %  @param named tracer is a string identifier.
             %  @param named snumber is the scan number; is numeric.
@@ -473,21 +379,21 @@ classdef SessionData < mlpipeline.SessionData
             if (lstrfind(ipr.tracer, 'FDG'))
                 loc = locationType(ipr.typ, ...
                     fullfile(this.vLocation, ...
-                             sprintf('%s_V%i-%s', ipr.tracer, this.vnumber, this.acTag), 'T4', ''));
+                             sprintf('%s_V%i-%s', ipr.tracer, this.vnumber, this.attenuationTag), 'T4', ''));
                 return
             end
             if (lstrfind(ipr.tracer, 'HO') || lstrfind(ipr.tracer, 'OO'))
                 ipr.tracer = 'OO';
             end            
-            if (isdir(fullfile(this.vLocation, sprintf('OO1_V%i-%s', this.vnumber, this.acTag))))
+            if (isdir(fullfile(this.vLocation, sprintf('OO1_V%i-%s', this.vnumber, this.attenuationTag))))
                 schar = '1';
             end
-            if (isdir(fullfile(this.vLocation, sprintf('OO2_V%i-%s', this.vnumber, this.acTag))))
+            if (isdir(fullfile(this.vLocation, sprintf('OO2_V%i-%s', this.vnumber, this.attenuationTag))))
                 schar = '2';
             end
             loc = locationType(ipr.typ, ...
                 fullfile(this.vLocation, ...
-                         sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.acTag), 'T4', ''));
+                         sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.attenuationTag), 'T4', ''));
         end
         function obj  = umapSynth(this, varargin)
             ip = inputParser;
@@ -503,11 +409,11 @@ classdef SessionData < mlpipeline.SessionData
             end
             fqfn = fullfile( ...
                 this.tracerLocation('typ', 'path'), ...
-                sprintf('umapSynth_op_%s.4dfp.ifh', this.tracerRevision('typ', 'fp')));
+                sprintf('umapSynthv%i_op_%s.4dfp.ifh', this.vnumber, this.tracerRevision('typ', 'fp')));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end     
 
-        %% idiomatic objects
+        %% idiomatic 
         
         function obj = ctObject(this, varargin)
             ip = inputParser;
@@ -541,6 +447,45 @@ classdef SessionData < mlpipeline.SessionData
             parse(ip, varargin{:});
             
             obj = imagingType(ip.Results.typ, ip.Results.fqfp);
+        end
+        function [ipr,schar,this] = iprLocation(this, varargin)
+            %% IPRLOCATION
+            %  @param named tracer is a string identifier.
+            %  @param named snumber is the scan number; is numeric.
+            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
+            %  See also:  imagingType.
+            %  @param named frame is numeric.
+            %  @param named rnumber is the revision number; is numeric.
+            %  @returns ipr, the struct ip.Results obtained by parse.            
+            %  @returns schr, the s-number as a string.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'ac', this.attenuationCorrected, @islogical);
+            addParameter(ip, 'tracer', this.tracer, @ischar);
+            addParameter(ip, 'frame', nan, @isnumeric);
+            addParameter(ip, 'rnumber', this.rnumber, @isnumeric);
+            addParameter(ip, 'snumber', this.snumber, @isnumeric);
+            addParameter(ip, 'vnumber', this.vnumber, @isnumeric);
+            addParameter(ip, 'typ', 'path', @ischar);
+            parse(ip, varargin{:});            
+            ipr = ip.Results;
+            this.attenuationCorrected = ip.Results.ac;
+            this.tracer  = ip.Results.tracer; 
+            this.rnumber = ip.Results.rnumber;
+            this.snumber = ip.Results.snumber;
+            this.vnumber = ip.Results.vnumber;           
+            
+            if (~lstrfind(upper(ipr.tracer), 'OC') && ...
+                ~lstrfind(upper(ipr.tracer), 'OO') && ...
+                ~lstrfind(upper(ipr.tracer), 'HO'))
+                ipr.snumber = nan;
+            end
+            if (isnan(ipr.snumber))
+                schar = '';
+            else
+                schar = num2str(ip.Results.snumber);
+            end
         end
         function obj = mrObject(this, varargin)
             ip = inputParser;
@@ -579,12 +524,23 @@ classdef SessionData < mlpipeline.SessionData
             this.ensurePETFqfilename(fqfn);
             obj = imagingType(ip.Results.typ, fqfn);
         end  
+        function loc = vLocation(this, varargin)
+            ip = inputParser;
+            addParameter(ip, 'typ', 'path', @ischar);
+            parse(ip, varargin{:});
+            
+            loc = locationType(ip.Results.typ, ...
+                fullfile(this.sessionPath, sprintf('V%i', this.vnumber), ''));
+        end        
+        
+ 		function this = SessionData(varargin)
+ 			this = this@mlpipeline.SessionData(varargin{:});
+            this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct( ...
+                fullfile(this.subjectsDir, this.bloodGlucoseAndHctXlsx));
+        end
     end
     
     %% PROTECTED
-    
-    properties (Access = protected)
-    end
     
     methods (Access = protected)
         function        ensureCTFqfilename(~, fqfn) %#ok<INUSD>
@@ -696,6 +652,12 @@ classdef SessionData < mlpipeline.SessionData
     
     %% HIDDEN, DEPRECATED
     
+    properties (Hidden)
+        bloodGlucoseAndHct
+        bloodGlucoseAndHctXlsx = 'BG_and_Hct_for_metabolism_processing.xlsx'
+        selectedMask
+    end
+    
     methods (Hidden)
         function obj  = fdgAC(this, varargin)
             obj = this.tracerAC('tracer', 'FDG', varargin{:});
@@ -743,6 +705,19 @@ classdef SessionData < mlpipeline.SessionData
         function obj  = fdgListmodeUmap(this, varargin)
             obj = this.tracerListmodeUmap('tracer', 'FDG', varargin{:});
         end
+        function obj  = mask(this, varargin)
+            %  @param named tracer is a string identifier.
+            %  @param named snumber is the scan number; is numeric.
+            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
+            %  See also:  imagingType.
+            %  @param named frame is numeric.
+            %  @param named rnumber is the revision number; is numeric.
+            %  @returns ipr, the struct ip.Results obtained by parse.            
+            %  @returns schr, the s-number as a string.
+            
+            assert(lexist(this.selectedMask, 'file'));
+            obj = this.fqfilenameObject(this.selectedMask, varargin{:});
+        end
         function obj  = tracerAC(this, varargin)
             this.attenuationCorrected = true;
             obj = this.tracerSif(varargin{:});
@@ -782,7 +757,23 @@ classdef SessionData < mlpipeline.SessionData
         function loc  = tracerNACT4Location(this, varargin)
             this.attenuationCorrected = false;
             loc = this.tracerT4Location(varargin{:});
+        end    
+        function obj  = tracerResolved1(this, varargin)
+            [ipr,schar] = this.iprLocation(varargin{:});
+            fqfn = fullfile( ...
+                this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
+                sprintf('%s%sv%ir%i_on_resolved.4dfp.ifh', ...
+                    lower(ipr.tracer), schar, this.vnumber, ipr.rnumber));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
+        function obj  = tracerResolvedSumt1(this, varargin)
+            [ipr,schar] = this.iprLocation(varargin{:});
+            fqfn = fullfile( ...
+                this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
+                sprintf('%s%sv%ir%i_on_resolved_sumt.4dfp.ifh', ...
+                    lower(ipr.tracer), schar, this.vnumber, ipr.rnumber));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end    
     end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

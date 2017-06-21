@@ -25,6 +25,20 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
     end 
 
     methods (Static)
+        function this = goConstructKinetics(varargin)
+            ip = inputParser;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            parse(ip, varargin{:});
+            
+            try
+                pwd1 = pushd(ip.Results.sessionData.vLocation);
+                this = mlraichle.CHPC.batchSerial(@mlraichle.FDGKineticsWholebrain.godo__, 1, {ip.Results.sessionData});
+                popd(pwd1);
+            catch ME
+                handwarning(ME, struct2str(ME.stack));
+            end
+        end
+        
         function jobs = godoChpcPart(varargin)
             diary on   
             
@@ -190,6 +204,13 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                 handwarning(ME);
             end
         end
+        function this = godo__(sessd)
+            import mlraichle.*;
+            sessd = CHPC.staticSessionData(sessd);
+            [m,sessd] = FDGKineticsWholebrain.godoMasks(sessd);
+            this = FDGKineticsWholebrain(sessd, 'mask', m);
+            this = this.doBayes;
+        end
         function summary = godo3(datobj)
             import mlraichle.*;
             sessd = CHPC.staticSessionData(datobj);
@@ -255,12 +276,12 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             catch ME
                 handwarning(ME);
             end
-        end 
+        end
         
         function [m,n] = mskt(sessd)
             import mlfourdfp.*;
             f = [sessd.tracerResolved1('typ','fqfp') '_sumt'];
-            f1 = mybasename(FourdfpVisitor.ensureSafeOn(f));
+            f1 = mybasename(FourdfpVisitor.ensureSafeFileprefix(f));
             if (lexist([f1 '_mskt.4dfp.ifh'], 'file') && lexist([f1 '_msktNorm.4dfp.ifh'], 'file'))
                 m = mlfourd.ImagingContext([f1 '_mskt.4dfp.ifh']);
                 n = mlfourd.ImagingContext([f1 '_msktNorm.4dfp.ifh']);

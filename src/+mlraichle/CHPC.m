@@ -43,7 +43,7 @@ classdef CHPC < mldistcomp.CHPC
                               sprintf('%s_%s', sessd.sessionFolder, sessd.vfolder), 'mri', '');
             
             chpc.scpToChpc(sessd.bloodGlucoseAndHctXlsx, chpc.chpcSubjectsDir);
-            chpc.scpToChpc(sessd.CCIRRadMeasurementsTable, chpcVPth);
+            chpc.scpToChpc(sessd.CCIRRadMeasurements, chpcVPth);
             
             chpc.sshMkdir(chpcMriPth);
             chpc.scpToChpc(sessd.brainmask('typ','mgz'), chpcMriPth);

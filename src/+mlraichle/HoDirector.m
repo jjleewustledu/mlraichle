@@ -6,24 +6,14 @@ classdef HoDirector < mlpet.TracerDirector
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
- 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
+ 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John J. Lee.
  	
 
 	properties
  		
  	end
 
-	methods 
-		  
- 		function this = HoDirector(varargin)
- 			%% HODIRECTOR
- 			%  Usage:  this = HoDirector(hoBuilder)
-            %  @param hoBuilder is an mlpipeline.IImageBuilder
-            
-            this = this@mlpet.TracerDirector(varargin{:});
-            assert(isa(this.builder, 'mlraichle.HoBuilder')); 			
-        end
-        
+	methods        
         function ensureJSRecon(this)
         end
         function this = constructNAC(this)
@@ -43,6 +33,16 @@ classdef HoDirector < mlpet.TracerDirector
             %this.builder.motionCorrectACImageFrames;
             this.builder.buildHoAC;
             this.builder.product.view;
+        end
+        
+ 		function this = HoDirector(varargin)
+ 			%% HODIRECTOR
+            %  @param required 'builder' is an 'mlraichle.HoBuilder'
+
+            ip = inputParser;
+            addRequired(ip, 'builder', @(x) isa(x, 'mlraichle.HoBuilder'));
+            parse(ip, varargin{:});
+            this = this@mlpet.TracerDirector(varargin{:});
         end
  	end 
 

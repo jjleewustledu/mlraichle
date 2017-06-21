@@ -1,4 +1,4 @@
-classdef HoBuilder < mlfourdfp.AbstractTracerBuilder
+classdef HoBuilder < mlpet.TracerKineticsBuilder
 	%% HOBUILDER  
 
 	%  $Revision$
@@ -12,17 +12,7 @@ classdef HoBuilder < mlfourdfp.AbstractTracerBuilder
  	end
 
 	methods 
-		  
- 		function this = HoBuilder(varargin)
- 			%% HOBUILDER
- 			%  Usage:  this = HoBuilder()
- 			
- 			this = this@mlfourdfp.AbstractTracerBuilder(varargin{:});
-            this.sessionData.tracer = 'HO';
-            %this.finished = mlpipeline.Finished( ...
-            %    this, 'path', this.logPath, 'tag', lower(this.sessionData.tracer));
-        end
-        
+		          
         function this = buildHoAC(this)
             
             import mlsystem.* mlfourdfp.*;
@@ -69,9 +59,27 @@ classdef HoBuilder < mlfourdfp.AbstractTracerBuilder
             bv.imgblur_4dfp([trRev '_' this.resolveTag], 5.5);
             %delete(fullfile(trLoc, [trRev '_epoch*_' this.resolveTag '.4dfp.*']));
             popd(pwd1);
+        end        
+        
+ 		function this = HoBuilder(varargin)
+ 			%% HOBUILDER
+ 			%  Usage:  this = HoBuilder()
+ 			
+ 			this = this@mlpet.TracerKineticsBuilder(varargin{:});
+            
+            assert(isa(this.sessionData, 'mlraichle.SessionData'));
+            assert(isa(this.buildVisitor, 'mlfourdfp.FourdfpVisitor'));
+            this.sessionData_.tracer = 'HO';
+            this.sessionData_.attenuationCorrected = true;                    
+            this.kinetics_ = mlraichle.HoKinetics( ...
+                'scanData', mlraichle.ScanData('sessionData', this.sessionData), ...
+                'roisBuild', this.roisBuilder);
+            
+            %this.finished = mlpipeline.Finished( ...
+            %    this, 'path', this.logPath, 'tag', lower(this.sessionData.tracer));
         end
     end 
-
+    
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end
 

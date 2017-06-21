@@ -1,4 +1,4 @@
-classdef FdgBuilder < mlfourdfp.AbstractTracerBuilder
+classdef FdgBuilder < mlpet.TracerKineticsBuilder
 	%% FDGBUILDER  
 
 	%  $Revision$
@@ -6,13 +6,13 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerBuilder
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
- 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
+ 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John J. Lee.
  	
 
-    properties 
+    properties
         framesPartitions
         partitionBoundaries
-    end
+    end    
     
     methods (Static)
         function staticAssembleFdgAfterAC
@@ -362,8 +362,10 @@ classdef FdgBuilder < mlfourdfp.AbstractTracerBuilder
  			%% FDGBUILDER
  			%  Usage:  this = FdgBuilder()
 
- 			this = this@mlfourdfp.AbstractTracerBuilder(varargin{:});
-            this.sessionData.tracer = 'FDG';
+ 			this = this@mlpet.TracerKineticsBuilder(varargin{:});
+            this.sessionData_.tracer = 'FDG';
+            this.kinetics_ = mlraichle.FdgKinetics('sessionData', this.sessionData);
+            
             %this.finished = mlpipeline.Finished( ...
             %    this, 'path', this.logPath, 'tag', lower(this.sessionData.tracer));
         end

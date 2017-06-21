@@ -6,7 +6,7 @@ classdef FdgDirector < mlpet.TracerDirector
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
- 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
+ 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John J. Lee.
  	
 
 	properties 
@@ -15,11 +15,12 @@ classdef FdgDirector < mlpet.TracerDirector
 	methods
  		function this = FdgDirector(varargin)
  			%% FDGDIRECTOR
- 			%  Usage:  this = FdgDirector(fdgBuilder)
-            %  @param fdgBuilder is an mlpipeline.IImageBuilder
-            
+            %  @param required 'builder' is an 'mlraichle.FdgBuilder'
+
+            ip = inputParser;
+            addRequired(ip, 'builder', @(x) isa(x, 'mlraichle.FdgBuilder'));
+            parse(ip, varargin{:});
             this = this@mlpet.TracerDirector(varargin{:});
-            assert(isa(this.builder, 'mlraichle.FdgBuilder'));
         end
         
         function ensureJSRecon(this)

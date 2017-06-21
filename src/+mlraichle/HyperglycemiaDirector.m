@@ -15,23 +15,27 @@ classdef HyperglycemiaDirector
         hoDirector
         ooDirector
         ocDirector
+        trDirectors = { 'hoDirector'} %%%'fdgDirector' 'ocDirector' 'ooDirector'}
     end
     
     properties (Dependent)
         sessionData
     end
     
-    methods %% GET
-        function g = get.sessionData(this)
-            g = this.sessionData_;
-        end
-    end
-
     methods (Static)
         
     end
     
-	methods 
+    methods 
+        
+        %% GET
+        
+        function g = get.sessionData(this)
+            g = this.sessionData_;
+        end
+        
+        %%
+        
         function this = analyzeCohort(this)
         end     
         function this = analyzeSubject(this)
@@ -51,9 +55,10 @@ classdef HyperglycemiaDirector
             this.ocDirector   = this.ocDirector.analyze;
         end
         
+        % construct methods are interleaved with JSRecon12 processes
+        
         function this = constructNac(this)
             this.sessionData_.attenuationCorrected = false;
-            this = this.assignTracerDirectors;
             
             this.fdgDirector.constructNac;
             this.hoDirector.constructNac;
@@ -75,12 +80,30 @@ classdef HyperglycemiaDirector
                 this.(tracerNames{tn}) = this.(tracerNames{tn}).prepareJSReconAc;
             end
         end
-        function this = constructKinetics(this)
-            tracerNames = {'fdg' 'ho' 'oc' 'oo'};
-            for tn = 1:length(tracerNames)
-                this.(tracerNames{tn}) = this.(tracerNames{tn}).gatherConvertedAc;
-                this.(tracerNames{tn}) = this.(tracerNames{tn}).resolveTof;
-                this.(tracerNames{tn}) = this.(tracerNames{tn}).constructKinetics;
+        function this = constructKinetics(this, varargin)
+            %% CONSTRUCTKINETICS iterates through this.trDirectors.
+            %  @params named 'roisBuild' is an 'mlrois.IRoisBuilder'
+            
+            ip = inputParser;
+            addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
+            parse(ip, varargin{:});
+            
+            for td = 1:length(this.trDirectors)
+                this.(this.trDirectors{td}).roisBuilder = ip.Results.roisBuild;
+                this.(this.trDirectors{td}) = this.(this.trDirectors{td}).constructKinetics(varargin{:});
+            end
+        end
+        function tf   = constructKineticsPassed(this, varargin)
+            %% CONSTRUCTKINETICSPASSED
+            %  @params named 'roisBuild' is an 'mlrois.IRoisBuilder'
+            
+            ip = inputParser;
+            addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
+            parse(ip, varargin{:});
+            
+            tf = true;
+            for td = 1:length(this.trDirectors)
+                tf = tf && this.(this.trDirectors{td}).constructKineticsPassed(varargin{:});
             end           
         end
         
@@ -106,14 +129,15 @@ classdef HyperglycemiaDirector
         
  		function this = HyperglycemiaDirector(varargin)
  			%% HYPERGLYCEMIADIRECTOR
- 			%  Usage:  this = HyperglycemiaDirector('sessionData', theSessionData)
+ 			%  @param parameter 'sessionData' is a 'mlpipeline.ISessionData'
 
  			ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             
-            this.sessionData_ = ip.Results.sessionData;            
+            this.sessionData_ = ip.Results.sessionData;  
+            this = this.assignTracerDirectors;          
  		end
     end 
     
@@ -126,13 +150,12 @@ classdef HyperglycemiaDirector
     methods (Access = private)
         function this = assignTracerDirectors(this)
  			import mlraichle.*;
-            if (~this.sessionData.attenuationCorrected)
-                this.umapDirector = UmapDirector(UmapBuilder('sessionData', this.sessionData));
-            end
-            this.fdgDirector  = FdgDirector( FdgBuilder( 'sessionData', this.sessionData));
+            
+            %this.umapDirector = UmapDirector(UmapBuilder('sessionData', this.sessionData));
+            %this.fdgDirector  = FdgDirector( FdgBuilder( 'sessionData', this.sessionData));
             this.hoDirector   = HoDirector(  HoBuilder(  'sessionData', this.sessionData));
-            this.ooDirector   = OoDirector(  OoBuilder(  'sessionData', this.sessionData));
-            this.ocDirector   = OcDirector(  OcBuilder(  'sessionData', this.sessionData));
+            %this.ooDirector   = OoDirector(  OoBuilder(  'sessionData', this.sessionData));
+            %this.ocDirector   = OcDirector(  OcBuilder(  'sessionData', this.sessionData));
         end
     end
 

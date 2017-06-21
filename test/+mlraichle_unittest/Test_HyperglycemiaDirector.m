@@ -10,15 +10,20 @@ classdef Test_HyperglycemiaDirector < matlab.unittest.TestCase
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/test/+mlraichle_unittest.
- 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
+ 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2016, 2017 John J. Lee.
  	
 
 	properties
  		registry
  		testObj
+        brainmaskBldr
  	end
 
 	methods (Test)
+        function test_ctor(this)
+            disp(this.testObj.sessionData);
+            this.brainmaskBldr.product.view;
+        end
         
         function test_analyzeCohort(this)
         end
@@ -29,22 +34,33 @@ classdef Test_HyperglycemiaDirector < matlab.unittest.TestCase
         function test_analyzeTracers(this)
         end
         
-		function test_buildUmap(this)
+		function test_constructKinetics(this)
+            this.testObj = this.testObj.constructKinetics('roisBuild', this.brainmaskBldr);
+            this.verifyTrue(this.testObj.constructKineticsPassed);
         end
-		function test_buildFdg(this)
+        
+		function test_sortDownloads(this)
         end
-		function test_buildHo(this)
+		function test_sortDownloadCT(this)
         end
-		function test_buildOo(this)
-        end
-		function test_buildOc(this)
+		function test_sortDownloadFreesurfer(this)
         end
 	end
 
  	methods (TestClassSetup)
 		function setupHyperglycemiaDirector(this)
  			import mlraichle.*;
- 			this.testObj_ = HyperglycemiaDirector;
+            sessd = mlraichle.SessionData( ...
+                'studyData', mlraichle.StudyData, ...
+                'sessionPath', fullfile(getenv('PPG'), 'jjleeSynth', 'HYGLY28', ''), ...
+                'vnumber', 1, ...
+                'tracer', 'HO', ...
+                'snumber', 1, ...
+                'abs', true, ...
+                'ac', true);
+            sessd.subjectsFolder = 'jjleeSynth'; %% KLUDGE
+            this.brainmaskBldr = mlpet.BrainmaskBuilder('sessionData', sessd);
+ 			this.testObj_ = HyperglycemiaDirector('sessionData', sessd);
  		end
 	end
 

@@ -93,7 +93,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             
             diary off
         end
-        function jobs = godoChpc
+        function [jobs,those] = godoChpc
             
             diary on            
             
@@ -103,6 +103,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             dth    = mlsystem.DirTool('HYGLY2*');
             parcs  = FDGKineticsParc.PARCS;
             jobs   = {};
+            those  = {};
             if (hostnameMatch('ophthalmic'))
                 c = parcluster('chpc_remote_r2016b');
             elseif (hostnameMatch('william'))
@@ -123,8 +124,9 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                         %CHPC.pushToChpc(datobj);
                         for p = 1:length(parcs)
                             datobj.parcellation = parcs{p};
-                            j = c.batch(@mlraichle.FDGKineticsParc.godo3, 1, {datobj});
+                            j = c.batch(@mlraichle.FDGKineticsParc.godo3, 2, {datobj});
                             jobs = [jobs j]; %#ok<AGROW>
+                            those = [those j.fetchOutputs{2}];
                         end
                         popd(pwd1);
                     catch ME
@@ -262,12 +264,12 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             end
             popd(pwd0);
         end
-        function summary = godo3(datobj)
+        function [summary,this] = godo3(datobj)
             import mlraichle.*;
             sessd = CHPC.staticSessionData(datobj);
-            summary = FDGKineticsParc.godo2(sessd);
+            [summary,this] = FDGKineticsParc.godo2(sessd);
         end
-        function summary = godo2(sessd)
+        function [summary,this] = godo2(sessd)
             try
                 import mlraichle.*;
                 [m,sessd] = FDGKineticsParc.godoMasks(sessd);
@@ -380,7 +382,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             %    sessd.nifti_4dfp_4(bm);
             %end
                      
-            fdgBrain = fv.ensureSafeOn([sessd.tracerResolvedSumt1('typ','fp') '_brain']); % created by FDGKineticsWholebrain.godoMasks?
+            fdgBrain = fv.ensureSafeFileprefix([sessd.tracerResolvedSumt1('typ','fp') '_brain']); % created by FDGKineticsWholebrain.godoMasks?
             ct4rb = mlfourdfp.CompositeT4ResolveBuilder( ...
                 'sessionData', sessd, ...
                 'theImages', {fdgBrain mybasename(bmNii)}, ...

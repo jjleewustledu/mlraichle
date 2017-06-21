@@ -22,6 +22,23 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
     end
     
     methods (Static)
+        function that = goConstructKinetics(varargin)
+            %% GOCONSTRUCTKINETICS
+            %  @param optional 'roisBuild' is a 'mlrois.IRoisBuilder'.
+            %  @returns 'that' which is 'mlraichle.FDGKineticsWholebrain' or 'mlraichle.FDGKineticsParc'.
+            
+            ip = inputParser;
+            addParameter(ip, 'roisBuild', [], @(x) isa(x, 'mlrois.IRoisBuilder'));
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
+            parse(ip, varargin{:});
+            
+            import mlraichle.*;
+            if (isa(ip.Results.rois, 'mlrois.Wholebrain'))
+                that = FDGKineticsWholebrain.goConstructKinetics('sessionData', ip.Results.sessionData);
+                return
+            end            
+            that = FDGKineticsParc.goConstructKinetics('sessionData', ip.Results.sessionData);
+        end
         function this = simulateMcmc(Aa, fu, k1, k2, k3, k4, t, u0, v1, mapParams)
             import mlraichle.*;
             qpet = F18DeoxyGlucoseKinetics.qpet(Aa, fu, k1, k2, k3, k4, t, v1);
