@@ -15,10 +15,11 @@ classdef Herscovitch1985 < mlsiemens.Herscovitch1985
  		function this = Herscovitch1985(varargin)
  			%% HERSCOVITCH1985
             %  @params named scanData is an mlpipeline.IScanData
+            %  @params named roisBuild is an mlrois.IRoisBuilder
 
             ip = inputParser;
             addParameter(ip, 'scanData',  [], @(x) isa(x, 'mlpipeline.IScanData'));
-            addParameter(ip, 'roisBuild', [], @(x) isa(x, 'mlrois.IRoisBuidler'));
+            addParameter(ip, 'roisBuild', [], @(x) isa(x, 'mlrois.IRoisBuilder'));
             parse(ip, varargin{:});
             
  			this = this@mlsiemens.Herscovitch1985( ...
