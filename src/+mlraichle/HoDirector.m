@@ -1,4 +1,4 @@
-classdef HoDirector < mlpet.TracerDirector 
+classdef HoDirector < mlpet.TracerKineticsDirector 
 	%% HODIRECTOR  
 
 	%  $Revision$
@@ -31,7 +31,7 @@ classdef HoDirector < mlpet.TracerDirector
             %this.builder.transferFromE7tools('HO-Converted-Frame*');
             %this.builder.buildACImageFrames;
             %this.builder.motionCorrectACImageFrames;
-            this.builder.buildHoAC;
+            this.builder.buildTracerAC;
             this.builder.product.view;
         end
         
@@ -42,7 +42,7 @@ classdef HoDirector < mlpet.TracerDirector
             ip = inputParser;
             addRequired(ip, 'builder', @(x) isa(x, 'mlraichle.HoBuilder'));
             parse(ip, varargin{:});
-            this = this@mlpet.TracerDirector(varargin{:});
+            this = this@mlpet.TracerKineticsDirector(varargin{:});
         end
  	end 
 

@@ -60,7 +60,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
  			this = this@mlkinetics.AbstractF18DeoxyGlucoseKinetics(varargin{:});
         end
         
-        function this = prepareTsc(this)
+        function this = prepareScannerData(this)
             this.sessionData.tracer = 'FDG';
             pic = mlpet.PETImagingContext( ...
                 [this.sessionData.fdgACRevision('typ','fqfp') '_on_resolved.4dfp.ifh']);
@@ -76,15 +76,15 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
             mmr.fileprefix = [mmr.fileprefix '_tsc'];
             this.tsc_ = mmr;
         end
-        function this = prepareDta(this)
+        function this = prepareArterialData(this)
             dta = mlpet.Caprac('scannerData', this.tsc, 'efficiencyFactor', this.capracEfficiency);
             this.dta_ = dta;
         end        
         function this = simulateItsMcmc(this)
             this = mlraichle.F18DeoxyGlucoseKinetics.simulateMcmc( ...
-                   this.dtaNyquist.specificActivity, ...
+                   this.arterialNyquist.specificActivity, ...
                    this.fu, this.k1, this.k2, this.k3, this.k4, ...
-                   this.dtaNyquist.times, this.u0, this.v1, this.mapParams);
+                   this.arterialNyquist.times, this.u0, this.v1, this.mapParams);
         end
 
  	end 

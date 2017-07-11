@@ -1,4 +1,4 @@
-classdef HoKinetics < mlraichle.Herscovitch1985
+classdef HoKinetics < mlkinetics.AbstractHoKinetics
 	%% HOKINETICS  
     %  See also:  mlpet.AbstractHerscovitch1985
 
@@ -8,25 +8,15 @@ classdef HoKinetics < mlraichle.Herscovitch1985
  	%% It was developed on Matlab 9.2.0.538062 (R2017a) for MACI64.  Copyright 2017 John Joowon Lee.
  	
 	properties
- 		aif
-        scanner
  	end
 
-	methods 
-		  
-        function this = constructKinetics(this, varargin)
-            pwd0 = pushd(this.sessionData.tracerLocation);
-            popd(pwd0);
-        end
-        function tf = constructKineticsPassed(this, varargin)
-            tf = false;
-        end
+	methods		  
         
  		function this = HoKinetics(varargin)
  			%% HOKINETICS
  			%  Usage:  this = HoKinetics()
  			
- 			this = this@mlraichle.Herscovitch1985(varargin{:});
+ 			this = this@mlkinetics.AbstractHoKinetics(varargin{:});
  		end
  	end 
 

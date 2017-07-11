@@ -12,63 +12,51 @@ classdef HoBuilder < mlpet.TracerKineticsBuilder
  	end
 
 	methods 
-		          
-        function this = buildHoAC(this)
+		            
+        function this = gatherConvertedAC(this)
+            %% GATHERCONVERTEDAC ensures working directories, cropped tracer field-of-view, tracer blurred to point-spread, 
+            %  HO_sumt, T1 and umapSynth.  Working format is 4dfp.
             
-            import mlsystem.* mlfourdfp.*;
-            sessd = this.sessionData;
-            trLoc = sessd.tracerLocation; 
-            if (isdir(trLoc))
-                movefile(trLoc, [trLoc '-Backup-' datestr(now, 30)]);
-            end
-            ensuredir(trLoc);
+            bv       = this.buildVisitor;
+            meth     = [class(this) '.gatherConvertedAC'];
+            sessd    = this.sessionData;
+            sessdNAC = sessd;
+            sessdNAC.attenuationCorrected = false;
             
-            trRev = sessd.tracerRevision('typ', 'fp');
-            trLM = sprintf('%s_V%i-LM-00-OP', sessd.tracer, sessd.vnumber);
-            bv = this.buildVisitor;
-            for ie = 1:this.Nepochs
-                try
-                    sessd.epoch = ie; 
-                    pwd0 = pushd(sessd.tracerConvertedLocation);
-                    bv.sif_4dfp(trLM);
-                    tracerT4 = sprintf('%s_%s_t4', sessd.tracerRevision('typ', 'fp'), this.resolveTag);
-                    sessdNac = sessd;
-                    sessdNac.attenuationCorrected = false;
-                    fqTracerT4 = fullfile(sessdNac.fdgT4Location, tracerT4);
-                    bv.cropfrac_4dfp(0.5, trLM, trRev);
-                    if (lexist(fqTracerT4, 'file'))
-                        bv.lns(fqTracerT4);
-                        bv.t4img_4dfp(tracerT4, trRev, 'options', ['-O' trRev]);
-                        bv.move_4dfp([trRev '_' this.resolveTag], ...
-                            fullfile(trLoc, [sessd.tracerRevision '_' this.resolveTag]));
-                    else
-                        bv.move_4dfp(trRev, ...
-                            fullfile(trLoc, [sessd.tracerRevision '_' this.resolveTag]));
-                    end
-                    %delete('*.4dfp.*')
-                    %delete([trRev '_epoch*_to_' this.resolveTag '_t4']);
-                    popd(pwd0);
-                catch ME
-                    handwarning(ME);
+            % actions
+            
+            pwd0 = sessd.petLocation;
+            ensuredir(pwd0);
+            pushd(pwd0);
+            assert(lexist_4dfp(sessd.tracerListmodeMhdr), '%s could not find %s', meth, sessd.tracerListmodeMhdr);            
+            if (~lexist_4dfp(sessd.ho))
+                if (~lexist_4dfp(sessd.tracerListmodeSif('typ', 'fqfp')))
+                    bv.sif_4dfp(sessd.tracerListmodeMhdr, sessd.tracerListmodeSif('typ', 'fqfp'));
                 end
+                bv.cropfrac_4dfp(0.5, sessd.tracerListmodeSif('typ', 'fqfp'), sessd.ho);
             end
-            pwd1 = pushd(fullfile(trLoc, ''));
-            ipr.dest = trRev;
-            ipr.frames = ones(1, this.Nepochs);
-            this.pasteFrames(ipr, this.resolveTag);
-            bv.imgblur_4dfp([trRev '_' this.resolveTag], 5.5);
-            %delete(fullfile(trLoc, [trRev '_epoch*_' this.resolveTag '.4dfp.*']));
-            popd(pwd1);
-        end        
+            if (~lexist_4dfp(sessd.ho('suffix', sessd.petPointSpreadSuffix)))
+                bv.imgblur_4dfp(sessd.ho, mean(sessd.petPointSpread));
+            end
+            if (~lexist_4dfp(sessd.ho('suffix', '_sumt')))
+                m =  bv.ifhMatrixSize(sessd.ho('typ', 'fqfn'));
+                bv.actmapf_4dfp(sprintf('"%i+"', m(4)), sessd.ho, 'options', '-asumt');
+            end
+            assert(lexist_4dfp(sessd.T1));
+            assert(lexist_4dfp(sessdNAC.umapSynth));
+            popd(pwd0);
+        end     
         
  		function this = HoBuilder(varargin)
  			%% HOBUILDER
  			%  Usage:  this = HoBuilder()
  			
  			this = this@mlpet.TracerKineticsBuilder(varargin{:});
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', mlraichle.SessionData, @(x) isa(x, 'mlraichle.SessionData'));
+            parse(ip, varargin{:});
             
-            assert(isa(this.sessionData, 'mlraichle.SessionData'));
-            assert(isa(this.buildVisitor, 'mlfourdfp.FourdfpVisitor'));
             this.sessionData_.tracer = 'HO';
             this.sessionData_.attenuationCorrected = true;                    
             this.kinetics_ = mlraichle.HoKinetics( ...

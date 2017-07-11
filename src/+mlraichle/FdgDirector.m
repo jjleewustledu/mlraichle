@@ -1,4 +1,4 @@
-classdef FdgDirector < mlpet.TracerDirector
+classdef FdgDirector < mlpet.TracerKineticsDirector
 	%% FDGDIRECTOR is a strategy
 
 	%  $Revision$
@@ -20,7 +20,7 @@ classdef FdgDirector < mlpet.TracerDirector
             ip = inputParser;
             addRequired(ip, 'builder', @(x) isa(x, 'mlraichle.FdgBuilder'));
             parse(ip, varargin{:});
-            this = this@mlpet.TracerDirector(varargin{:});
+            this = this@mlpet.TracerKineticsDirector(varargin{:});
         end
         
         function ensureJSRecon(this)

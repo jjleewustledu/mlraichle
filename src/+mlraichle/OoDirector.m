@@ -1,4 +1,4 @@
-classdef OoDirector < mlpet.TracerDirector  
+classdef OoDirector < mlpet.TracerKineticsDirector  
 	%% OODIRECTOR  
 
 	%  $Revision$
@@ -22,7 +22,7 @@ classdef OoDirector < mlpet.TracerDirector
             ip = inputParser;
             addRequired(ip, 'builder', @(x) isa(x, 'mlraichle.OoBuilder'));
             parse(ip, varargin{:});
-            this = this@mlpet.TracerDirector(varargin{:});
+            this = this@mlpet.TracerKineticsDirector(varargin{:});
  		end
  	end 
 
