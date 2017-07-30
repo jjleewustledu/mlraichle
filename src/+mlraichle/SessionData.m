@@ -16,7 +16,7 @@ classdef SessionData < mlpipeline.SessionData
     
 	properties (Dependent)
         attenuationTag
-        bloodGlucose
+        plasmaGlucose
         convertedTag
         hct
         petBlur
@@ -24,6 +24,17 @@ classdef SessionData < mlpipeline.SessionData
         vfolder
     end
     
+    methods (Static)
+        function this = loadSession(subjFold, sessid, varargin)
+            assert(ischar(sessid), ...
+                'mlraichle:unsupportedTypeclass', 'class(SessionData.loadSession.sessid) -> %s', class(sessid));
+            pth = fullfile(getenv('PPG'), subjFold, sessid, '');
+            assert(isdir(pth), ...
+                'mlraichle:pathNotFound', 'SessionData.loadSession.pth -> %s', pth);
+            this = mlraichle.SessionData('sessionPath', pth, varargin{:});
+        end
+    end
+
     methods
         function g = get.attenuationTag(this)
             if (this.attenuationCorrected)
@@ -36,8 +47,8 @@ classdef SessionData < mlpipeline.SessionData
             end
             g = 'NAC';
         end
-        function g = get.bloodGlucose(this)
-            g = this.bloodGlucoseAndHct.bloodGlucose(this.sessionFolder, this.vnumber);
+        function g = get.plasmaGlucose(this)
+            g = this.bloodGlucoseAndHct.plasmaGlucose(this.sessionFolder, this.vnumber);
         end
         function g = get.convertedTag(this)
             g = 'Converted';
@@ -126,6 +137,17 @@ classdef SessionData < mlpipeline.SessionData
                 
         %% IPETData
         
+        function obj  = arterialSamplerCalCrv(this, varargin)
+            [pth,fp] = this.arterialSamplerCrv(varargin{:});
+            fqfn = fullfile(pth, [fp '_cal.crv']);
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = arterialSamplerCrv(this, varargin)
+            fqfn = fullfile( ...
+                this.vLocation('typ', 'path'), ...
+                sprintf('%s_V%i.crv', this.sessionFolder, this.vnumber));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
         function obj  = CCIRRadMeasurements(this)
             obj = fullfile( ...
                 this.vLocation, 'CCIRRadMeasurements.xlsx');
@@ -413,7 +435,7 @@ classdef SessionData < mlpipeline.SessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end     
 
-        %% idiomatic 
+        %%  
         
         function obj = ctObject(this, varargin)
             ip = inputParser;
@@ -524,6 +546,9 @@ classdef SessionData < mlpipeline.SessionData
             this.ensurePETFqfilename(fqfn);
             obj = imagingType(ip.Results.typ, fqfn);
         end  
+        function a   = seriesDicomAsterisk(this, varargin)
+            a = this.studyData.seriesDicomAsterisk(varargin{:});
+        end
         function loc = vLocation(this, varargin)
             ip = inputParser;
             addParameter(ip, 'typ', 'path', @ischar);
@@ -535,8 +560,17 @@ classdef SessionData < mlpipeline.SessionData
         
  		function this = SessionData(varargin)
  			this = this@mlpipeline.SessionData(varargin{:});
-            this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct( ...
-                fullfile(this.subjectsDir, this.bloodGlucoseAndHctXlsx));
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'studyData', mlraichle.StudyData, @(x) isa(x, 'mlpipeline.StudyDataHandle'));
+            parse(ip, varargin{:});            
+            this.studyData_ = ip.Results.studyData;
+            filename = fullfile(this.subjectsDir, this.bloodGlucoseAndHctXlsx);
+            if (lexist(filename, 'file'))
+                this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct(filename);
+            else
+                warning('mlraichle:dataNotAvailable', 'SessionData.cotr.%s', this.bloodGlucoseAndHctXlsx);
+            end
         end
     end
     

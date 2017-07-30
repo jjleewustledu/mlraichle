@@ -21,7 +21,7 @@ classdef BloodGlucoseAndHct
             warning('on', 'MATLAB:table:ModifiedVarnames');
         end
         
-        function bg = bloodGlucose(this, subj, v)
+        function bg = plasmaGlucose(this, subj, v)
             ip = inputParser;
             addRequired(ip, 'subj', @ischar);
             addRequired(ip, 'v', @isnumeric);

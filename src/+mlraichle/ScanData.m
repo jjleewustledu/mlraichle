@@ -1,4 +1,4 @@
-classdef ScanData < mlpipeline.ScanData
+classdef ScanData < mlsiemens.ScanData
 	%% SCANDATA  
 
 	%  $Revision$
@@ -42,14 +42,14 @@ classdef ScanData < mlpipeline.ScanData
  			%% SCANDATA
  			%  Usage:  this = ScanData()
 
- 			this = this@mlpipeline.ScanData(varargin{:});
+ 			this = this@mlsiemens.ScanData(varargin{:});
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'xlsxObj', [], @(x) ~isempty(x));
             parse(ip, varargin{:});
             
             if (isempty(this.xlsxObj_))
-                this.xlsxObj_ = mlraichle.XlsxObjScanData( ...
+                this.xlsxObj_ = mlsiemens.XlsxObjScanData( ...
                     'filename', this.sessionData.CCIRRadMeasurements, ...
                     'tracer', this.sessionData.tracer, ...
                     'snumber', this.sesssionData.snumber);

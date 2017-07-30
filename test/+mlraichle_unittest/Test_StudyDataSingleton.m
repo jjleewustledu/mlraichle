@@ -32,7 +32,7 @@ classdef Test_StudyDataSingleton < matlab.unittest.TestCase
         end
         function test_subjectsDir(this)
             this.verifyEqual(this.testObj.subjectsDir, ...
-                fullfile(getenv('PPG'), 'jjlee2', ''));
+                mlraichle.RaichleRegistry.instance.subjectsDir);
         end
         function test_register(this)
             sdss = mlpipeline.StudyDataSingletons.instance;
@@ -112,7 +112,7 @@ classdef Test_StudyDataSingleton < matlab.unittest.TestCase
     
     methods (Access = private)
         function pth = aSessionPath(~, fold)
-            pth = fullfile(getenv('PPG'), 'jjlee2', fold, '');
+            pth = fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, fold, '');
         end
     end
 

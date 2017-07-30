@@ -10,7 +10,7 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
     
 
     properties
-        subjectsFolder = 'jjlee2'
+        subjectsFolder = mlraichle.RaichleRegistry.instance.subjectsFolder
     end
 
     properties (SetAccess = protected)
@@ -93,8 +93,8 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
             end
             sess = mlraichle.SessionData('studyData', this, varargin{:});
         end  
-        function d    = subjectsDir(this)
-            d = fullfile(getenv('PPG'), this.subjectsFolder, '');
+        function d    = subjectsDir(~)
+            d = fullfile(getenv('PPG'), mlraichle.RaichleRegistry.instance.subjectsFolder, '');
         end
         function f    = subjectsDirFqdns(this)
             dt = mlsystem.DirTools(this.subjectsDir);

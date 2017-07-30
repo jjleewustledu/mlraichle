@@ -209,7 +209,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             sessd = CHPC.staticSessionData(sessd);
             [m,sessd] = FDGKineticsWholebrain.godoMasks(sessd);
             this = FDGKineticsWholebrain(sessd, 'mask', m);
-            this = this.doBayes;
+            this = this.doItsBayes;
         end
         function summary = godo3(datobj)
             import mlraichle.*;
@@ -223,8 +223,8 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                 fprintf('FDGKineticsWholebrain.godo2:  returned from godoMasks\n');
                 pwd0 = pushd(sessd.vLocation);
                 this = FDGKineticsWholebrain(sessd, 'mask', m);
-                summary.(m.fileprefix) = this.doBayes;
-                fprintf('FDGKineticsWholebrain.godo2:  returned from doBayes\n');
+                summary.(m.fileprefix) = this.doItsBayes;
+                fprintf('FDGKineticsWholebrain.godo2:  returned from doItsBayes\n');
                 popd(pwd0);
             catch ME
                 fprintf('%s\n', ME.identifier);
@@ -240,7 +240,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                 assert(isdir(sessd.vLocation));
                 pwd0 = pushd(sessd.vLocation);
                 this = FDGKineticsWholebrain(sessd, 'mask', m);
-                state = this.doBayes;
+                state = this.doItsBayes;
                 popd(pwd0);
             catch ME
                 handwarning(ME);

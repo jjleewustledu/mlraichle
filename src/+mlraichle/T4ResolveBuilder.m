@@ -271,8 +271,8 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             iVisit = ip.Results.iVisit;
             tag    = ip.Results.tag;
 
-             eSess = mlsystem.DirTool(fullfile(getenv('PPG'), 'jjlee', ''));
-             cd(fullfile(getenv('PPG'), 'jjlee', ''));
+             eSess = mlsystem.DirTool(mlraichle.RaichleRegistry.instance.subjectsDir);
+             cd(mlraichle.RaichleRegistry.instance.subjectsDir);
              eSessFqdns = eSess.fqdns;
              T4ResolveBuilder.printv('serialTriggeringOnConvertedNAC.eSessFqdns->\n%s\n', cell2str(eSessFqdns));
              these = cell(length(eSessFqdns), 2);
@@ -335,7 +335,7 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             iVisit = ip.Results.iVisit;
             tag    = ip.Results.tag;
 
-            eSess = mlsystem.DirTool(fullfile(getenv('PPG'), 'jjlee'));
+            eSess = mlsystem.DirTool(mlraichle.RaichleRegistry.instance.subjectsDir);
             eSessFqdns = eSess.fqdns;
             T4ResolveBuilder.printv('repairTriggeringOnConvertedNAC.eSessFqdns->\n%s\n', cell2str(eSessFqdns));
             for iSess = 1:length(eSessFqdns)
@@ -406,7 +406,7 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             for f = 1:length(files)                
                 try
                     [~,r] = mlbash(sprintf('scp -qr %s %s:%s', ...
-                        fullfile(getenv('PPG'), 'jjlee', sessFold, visit, files{f}), ...
+                        fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, sessFold, visit, files{f}), ...
                         MMRResolveBuilder.CLUSTER_HOSTNAME, ...
                         fullfile(MMRResolveBuilder.CLUSTER_SUBJECTS_DIR, sessFold, visit, '')));
                     fprintf('mlfourdfp.MMRResolveBuilder.scp:  %s\n', r);
@@ -702,7 +702,7 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
         function this = t4ResolvePET2(this)
             subject = 'NP995_09';
             convdir = fullfile(getenv('PPG'), 'converted', subject, '');
-            workdir = fullfile(getenv('PPG'), 'jjlee', subject, 'V2', '');
+            workdir = fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, subject, 'V2', '');
             mpr     = [subject '_mpr'];
 
             mprImg = [mpr '.4dfp.ifh'];
@@ -741,7 +741,7 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
             subject = 'HYGLY09';
             convdir = fullfile(getenv('PPG'), 'converted', subject, 'V1', '');
             nacdir  = fullfile(convdir, '');
-            workdir = fullfile(getenv('PPG'), 'jjlee', subject, '');
+            workdir = fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, subject, '');
             mpr     = [subject '_mpr'];
 
             mprImg = [mpr '.4dfp.img'];

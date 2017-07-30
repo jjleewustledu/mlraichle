@@ -10,7 +10,7 @@ classdef StudyData < mlpipeline.StudyData
     
 
     properties
-        subjectsFolder = 'jjlee2'
+        subjectsDirManual
     end
     
     properties (SetAccess = protected)
@@ -19,12 +19,29 @@ classdef StudyData < mlpipeline.StudyData
     
     properties (Dependent)
         subjectsDir
+        subjectsFolder
     end
     
     methods
+        
+        %% GET
+        
         function g    = get.subjectsDir(this)
-            g = fullfile(getenv('PPG'), this.subjectsFolder, '');
+            if (~isempty(this.subjectsDirManual))
+                g = this.subjectsDirManual;
+                return
+            end
+            g = mlraichle.RaichleRegistry.instance.subjectsDir;
         end
+        function this = set.subjectsFolder(this, s)
+            rr = mlraichle.RaichleRegistry.instance;
+            rr.subjectsFolder = s;
+        end
+        function g    = get.subjectsFolder(this)
+            [~,g] = fileparts(this.subjectsDir);
+        end
+        
+        %%
         
         function d    = freesurfersDir(~)
             d = fullfile(getenv('PPG'), 'freesurfer', '');
@@ -102,7 +119,7 @@ classdef StudyData < mlpipeline.StudyData
             %  @param [1...N] that is dir, add to this.sessionDataComposite_.
             
             for v = 1:length(varargin)
-                if (ischar(varargin{v}) && isdir(varargin{v}))                    
+                if (ischar(varargin{v}) && isdir(varargin{v}) && ~isempty(this.sessionDataComposite_))                    
                     this.sessionDataComposite_ = ...
                         this.sessionDataComposite_.add( ...
                             mlraichle.SessionData('studyData', this, 'sessionPath', varargin{v}));

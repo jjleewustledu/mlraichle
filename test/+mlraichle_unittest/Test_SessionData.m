@@ -14,8 +14,8 @@ classdef Test_SessionData < matlab.unittest.TestCase
  	
 
 	properties
-        sessionPath = fullfile(getenv('PPG'), 'jjlee', 'HYGLY09', '')
-        vPath       = fullfile(getenv('PPG'), 'jjlee', 'HYGLY09', 'V1', '') 
+        sessionPath = fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, 'HYGLY09', '')
+        vPath       = fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, 'HYGLY09', 'V1', '') 
         studyData
  		testObj
         view = false
@@ -31,7 +31,7 @@ classdef Test_SessionData < matlab.unittest.TestCase
         end
         function test_subjectsDir(this)
             this.verifyEqual(this.testObj.subjectsDir, ...
-                fullfile(getenv('PPG'), 'jjlee2', ''));
+                mlraichle.RaichleRegistry.instance.subjectsDir);
         end
         function test_sessionPath(this)
             this.verifyEqual(this.testObj.sessionPath, this.sessionPath);
@@ -110,9 +110,6 @@ classdef Test_SessionData < matlab.unittest.TestCase
         end
         function test_petLocation(this)
             this.verifyEqual(this.testObj.petLocation, fullfile(this.vPath));
-        end
-        function test_scanLocation(this)
-            this.verifyEqual(this.testObj.scanLocation, fullfile(this.vPath));
         end
         
         function test_fdgAC(this)

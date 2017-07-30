@@ -15,7 +15,7 @@ classdef HyperglycemiaDirector
         hoDirector
         ooDirector
         ocDirector
-        trDirectors = { 'hoDirector'} %%%'fdgDirector' 'ocDirector' 'ooDirector'}
+        trDirectors = {'hoDirector'} %%%'fdgDirector' 'ocDirector' 'ooDirector'}
     end
     
     properties (Dependent)
@@ -23,7 +23,33 @@ classdef HyperglycemiaDirector
     end
     
     methods (Static)
-        
+        function this = goSortDownloads(downloadPath, sessionFolder, v, varargin)
+            ip = inputParser;
+            addRequired(ip, 'downloadPath', @isdir);
+            addRequired(ip, 'sessionFolder', @ischar);
+            addRequired(ip, 'v', @isnumeric);
+            addOptional(ip, 'kind', '', @ischar);
+            parse(ip, downloadPath, sessionFolder, v, varargin{:});
+
+            pwd0 = pwd;
+            import mlraichle.*;
+            sessp = fullfile(RaichleRegistry.instance.subjectsDir, sessionFolder, '');
+            if (~isdir(sessp))
+                mkdir(sessp);
+            end
+            sessd = SessionData('studyData', StudyData, 'sessionPath', sessp, 'vnumber', v);
+            this  = HyperglycemiaDirector('sessionData', sessd);
+            switch (lower(ip.Results.kind))
+                case 'ct'
+                    this  = this.sortDownloadCT(downloadPath);
+                case 'freesurfer'
+                    this  = this.sortDownloadFreesurfer(downloadPath);
+                otherwise
+                    this  = this.sortDownloads(downloadPath);
+                    this  = this.sortDownloadFreesurfer(downloadPath);
+            end
+            cd(pwd0);
+        end
     end
     
     methods 
@@ -42,7 +68,7 @@ classdef HyperglycemiaDirector
         end   
         function this = analyzeVisit(this, sessp, v)
             import mlraichle.*;
-            study = StudyData;
+            study = StudyDataSingleton;
             sessd = SessionData('studyData', study, 'sessionPath', sessp);
             sessd.vnumber = v;
             this = this.analyzeTracers('sessionData', sessd);
@@ -109,22 +135,47 @@ classdef HyperglycemiaDirector
         
         function this = sortDownloads(this, downloadPath)
             import mlfourdfp.*;
-            DicomSorter.sessionSort(downloadPath, this.sessionData_.vLocation);
-            
-            rds = RawDataSorter( ...
-                'studyData',   this.sessionData_.studyData, ...
-                'sessionData', this.sessionData_);
-            RawData = fullfile(downloadPath, 'RESOURCES', 'RawData', '');
-            SCANS   = fullfile(downloadPath, 'SCANS', '');
-            rds.dcm_sort_PPG(RawData);
-            rds.moveRawData(RawData);
-            rds.copyUTE(SCANS);            
+            try
+                DicomSorter.sessionSort(downloadPath, this.sessionData_.vLocation, 'sessionData', this.sessionData);
+                rds     = RawDataSorter('sessionData', this.sessionData_);
+                rawData = fullfile(downloadPath, 'RESOURCES', 'RawData', '');
+                scans   = fullfile(downloadPath, 'SCANS', '');
+                rds.dcm_sort_PPG(rawData);
+                rds.moveRawData(rawData);
+                rds.copyUTE(scans);            
+            catch ME
+                handexcept(ME, 'mlraichle:filesystemError', ...
+                    'HyperglycemiaDirector.sortDownloads.downloadPath->%s may be missing folders SCANS, RESOURCES', ...
+                    downloadPath);
+            end
         end
         function this = sortDownloadCT(this, downloadPath)
             import mlfourdfp.*;
-            DicomSorter.sessionSort(downloadPath, this.sessionData_.sessionPath);
+            try
+                DicomSorter.sessionSort(downloadPath, this.sessionData_.sessionPath, 'sessionData', this.sessionData);
+            catch ME
+                handexcept(ME, 'mlraichle:filesystemError', ...
+                    'HyperglycemiaDirector.sortDownloadCT.downloadPath->%s may be missing folder SCANS', downloadPath);
+            end
         end
         function this = sortDownloadFreesurfer(this, downloadPath)
+            try
+                [~,downloadFolder] = fileparts(downloadPath);
+                dt = mlsystem.DirTool(fullfile(downloadPath, 'ASSESSORS', '*freesurfer*'));
+                for idt = 1:length(dt.fqdns)
+                    DATAdir = fullfile(dt.fqdns{idt}, 'DATA', '');
+                    if (~isdir(this.sessionData.freesurferLocation))
+                        if (isdir(fullfile(DATAdir, downloadFolder)))
+                            DATAdir = fullfile(DATAdir, downloadFolder);
+                        end
+                        movefile(DATAdir, this.sessionData.freesurferLocation);
+                    end
+                end
+            catch ME
+                handexcept(ME, 'mlraichle:filesystemError', ...
+                    'HyperglycemiaDirector.sortDownloadFreesurfer.downloadPath->%s may be missing folder ASSESSORS', ...
+                    downloadPath);
+            end
         end
         
  		function this = HyperglycemiaDirector(varargin)
@@ -132,12 +183,11 @@ classdef HyperglycemiaDirector
  			%  @param parameter 'sessionData' is a 'mlpipeline.ISessionData'
 
  			ip = inputParser;
-            ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             
             this.sessionData_ = ip.Results.sessionData;  
-            this = this.assignTracerDirectors;          
+            %this = this.assignTracerDirectors;          
  		end
     end 
     

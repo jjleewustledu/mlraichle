@@ -76,7 +76,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
             mmr.fileprefix = [mmr.fileprefix '_tsc'];
             this.tsc_ = mmr;
         end
-        function this = prepareArterialData(this)
+        function this = prepareAifData(this)
             dta = mlpet.Caprac('scannerData', this.tsc, 'efficiencyFactor', this.capracEfficiency);
             this.dta_ = dta;
         end        

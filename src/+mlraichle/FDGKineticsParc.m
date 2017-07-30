@@ -277,8 +277,8 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                 pwd0 = pushd(sessd.vLocation);
                 fprintf('FDGKineticsParc.godo2:  working in %s on %s\n', pwd, sessd.parcellation);
                 this = FDGKineticsParc(sessd, 'mask', m);
-                summary.(m.fileprefix) = this.doBayes;
-                fprintf('FDGKineticsParc.godo2:  returned from doBayes\n');
+                summary.(m.fileprefix) = this.doItsBayes;
+                fprintf('FDGKineticsParc.godo2:  returned from doItsBayes\n');
                 popd(pwd0);
             catch ME
                 fprintf('%s\n', ME.identifier);
@@ -297,7 +297,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                     assert(isdir(sessd.vLocation));
                     pwd0 = pushd(sessd.vLocation);
                     this = FDGKineticsParc(sessd, 'mask', m);
-                    state.(m.fileprefix) = this.doBayes;
+                    state.(m.fileprefix) = this.doItsBayes;
                     popd(pwd0);
                 end
             catch ME
@@ -387,7 +387,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                 'sessionData', sessd, ...
                 'theImages', {fdgBrain mybasename(bmNii)}, ...
                 'resolveTag', 'op_fdg');            
-            mni = fullfile(getenv('PPG'), 'jjlee2', 'FSL_MNI152_FreeSurferConformed_1mm.nii.gz');
+            mni = fullfile(mlraichle.RaichleRegistry.instance.YeoDir, 'FSL_MNI152_FreeSurferConformed_1mm.nii.gz');
             mniResolved = 'MNI152_op_fdg.nii.gz';
             bmr2Nii = [bm 'r2_op_fdg.nii.gz'];
             mat = [mybasename(mniResolved) '.mat'];
@@ -406,7 +406,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             sessd.nifti_4dfp_4(mybasename(mniResolved));           
         end
         function y = resolveYeo7(~, mat, ~, bmr2Nii)
-            ymni = fullfile(getenv('PPG'), 'jjlee2', 'Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz');
+            ymni = fullfile(mlraichle.RaichleRegistry.instance.YeoDir,'Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz');
             yNii = 'Yeo7_op_fdg.nii.gz';            
             if (~lexist('Yeo7_op_fdg.4dfp.ifh', 'file'))
                 mlbash(sprintf('flirt -in %s -ref %s -applyxfm -init %s -out %s -interp nearestneighbour', ymni, bmr2Nii, mat, yNii));

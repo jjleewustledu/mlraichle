@@ -1,4 +1,4 @@
-classdef HoKinetics < mlkinetics.AbstractHoKinetics
+classdef HoKinetics < mlsiemens.HoKinetics
 	%% HOKINETICS  
     %  See also:  mlpet.AbstractHerscovitch1985
 
@@ -9,14 +9,14 @@ classdef HoKinetics < mlkinetics.AbstractHoKinetics
  	
 	properties
  	end
-
+    
 	methods		  
         
  		function this = HoKinetics(varargin)
  			%% HOKINETICS
  			%  Usage:  this = HoKinetics()
  			
- 			this = this@mlkinetics.AbstractHoKinetics(varargin{:});
+ 			this = this@mlsiemens.HoKinetics(varargin{:});
  		end
  	end 
 

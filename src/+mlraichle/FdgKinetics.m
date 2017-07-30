@@ -23,7 +23,7 @@ classdef FdgKinetics
             sessd = CHPC.staticSessionData(ip.Results.sessionData);
             [m,sessd] = F18DeoxyGlucoseKinetics.godoMasks(sessd, ip.Results.rois);
             this = F18DeoxyGlucoseKinetics(sessd, 'mask', m);
-            this = this.doBayes;
+            this = this.doItsBayes;
         end
     end
     
