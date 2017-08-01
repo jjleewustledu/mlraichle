@@ -1,4 +1,4 @@
-classdef FdgBuilder < mlpet.TracerKineticsBuilder
+classdef FdgBuilder < mlraichle.TracerKineticsBuilder
 	%% FDGBUILDER  
 
 	%  $Revision$
@@ -8,10 +8,10 @@ classdef FdgBuilder < mlpet.TracerKineticsBuilder
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John J. Lee.
  	
-
+    
     properties
-        framesPartitions
-        partitionBoundaries
+        activeFrames % frame1:frameEnd
+        indexOfReference
     end    
     
     methods (Static)
@@ -362,14 +362,91 @@ classdef FdgBuilder < mlpet.TracerKineticsBuilder
  			%% FDGBUILDER
  			%  Usage:  this = FdgBuilder()
 
- 			this = this@mlpet.TracerKineticsBuilder(varargin{:});
+ 			this = this@mlraichle.TracerKineticsBuilder(varargin{:});
             this.sessionData_.tracer = 'FDG';
-            this.kinetics_ = mlraichle.FdgKinetics('sessionData', this.sessionData);
-            
+            this.indexOfReference = this.MAX_MONOLITH_LENGTH;
+            %this.kinetics_ = mlraichle.FdgKinetics('sessionData', this.sessionData);            
             %this.finished = mlpipeline.Finished( ...
             %    this, 'path', this.logPath, 'tag', lower(this.sessionData.tracer));
         end
         
+        function this = motionCorrectNACFrames(this)
+            %% MOTIONCORRECTNACFRAMES may split the NAC monolith into self-similar epochs,
+            %  using hierarchical data and filesystems for scalable organization.
+            
+            this.vendorSupport_.cropfrac(this.vendorSupport_.sif);
+            this.vendorSupport_.ensureTracerLocation;
+            this.vendorSupport_.ensureTracerSymlinks;
+            
+            this.aComposite_ = mlpatterns.CellArrayList;
+            this = this.inspectMonolith;
+            if (~isempty(this.aComposite_)) % do recursion for composites
+                for c = 1:length(this.aComposite_)
+                    if (~isempty(this.aComposite_{c}))
+                        this.aComposite_{c} = this.aComposite_{c}.motionCorrectNACFrames;
+                    end
+                end
+                this = this.reconstituteComposite;
+                this = this.motionCorrectProduct;
+                return
+            end
+            
+            % continue with leaf
+            this.product_ = mlpet.PETImagingContext(this.sessionData.tracerRevision('typ','fqfn'));
+            this = this.motionCorrectProduct;
+        end
+        function this = motionCorrectProduct(this)
+            if (~isempty(this.activeFrames)) % paranoia
+                this.indexOfReference = length(this.activeFrames); end
+            t4rb = mlfourdfp.T4ResolveBuilder( ...
+                'sessionData', this.sessionData, ...
+                'theImages', this.product_.fqfileprefix, ...
+                'indexOfReference', this.indexOfReference);
+            t4rb = t4rb.resolve( ...
+                'source', this.product_.fqfileprefix, ...
+                'resolveTag', sprintf('op_%s_frame%i', this.sessionData.tracerRevision('typ','fp'), this.indexOfReference));
+            this.product_ = t4rb.product;
+            this = this.sumProduct;
+        end
+        function this = reconstituteComposite(this)
+            this.activeFrames = 1:length(this.aComposite_);
+            this.sessionData.epoch = this.activeFrames;      
+            ffp = this.aComposite_{1}.fourdfp;
+            ffp.fqfileprefix = this.sessionData.tracerRevision('typ','fqfp');
+            assert(3 == ffp.rank);
+            for c = 2:length(this.aComposite_)
+                ffp_ = this.aComposite_{c}.fourdfp;
+                assert(3 == ffp_.rank);
+                ffp.img(:,:,:,c) = ffp_.img;
+            end
+            ffp.save;
+            this.product_ = mlpet.PETImagingContext(ffp);
+        end
+        function this = motionCorrectUmaps(this)
+            sd = this.sessionData;            
+            bv = this.buildVisitor;
+            pwd0 = pushd(this.product_.filepath);            
+            bv.lns_4dfp(sd.T1('typ','fqfp'));            
+            bv.lns_4dfp(sd.t2('typ','fqfp'));            
+            bv.lns_4dfp(sd.tof('typ','fqfp'));
+            ctfp = 'ctMaskedOnT1001r2_op_T1001';
+            bv.lns_4dfp(fullfile(sd.vLocation, ctfp));
+            theImages = [this.product_.fileprefix ...
+                         ctfp ...
+                         sd.T1( 'typ','fp') ...
+                         sd.t2( 'typ','fp') ...
+                         sd.tof('typ','fp')];            
+            ct4rb = mlfourdfp.CompositeT4ResolveBuilder('sessionData', sd, 'theImages', theImages, 'NRevisions', 2);
+            ct4rb.resolve('source', theImages);
+            this.product_ = ct4rb.product;            
+            popd(pwd0);
+        end
+        function this = sumProduct(this)
+            assert(isa(this.product_, 'mlfourd.ImagingContext'));
+            this.product_ = this.product_.timeSummed;
+            this.product_.fourdfp;
+            this.product_.save; % _sumt
+        end
         function this = buildFdgAC(this)
             
             import mlsystem.* mlfourdfp.*;
@@ -468,6 +545,58 @@ classdef FdgBuilder < mlpet.TracerKineticsBuilder
             this.teardownResolve;
         end        
     end 
+    
+    %% PROTECTED
+    
+    properties (Access = protected)
+        aComposite_ % cell array for simplicity
+    end
+    
+    methods (Access = protected)
+        function this = inspectMonolith(this)
+            %% INSPECTMONOLITH for reason to split
+            
+            m = this.sessionData.tracerRevision('typ', 'mlfourd.ImagingContext');
+            if (4 == m.rank)
+                sz = m.fourdfp.size;
+                if (sz(4) > this.MAX_MONOLITH_LENGTH)
+                    this.aComposite_ = cell(1, ceil(sz(4)/this.MAX_MONOLITH_LENGTH));
+                    this = this.splitMonolith(m);
+                end
+            end
+        end
+        function this = splitMonolith(this, m)
+            for c = 1:length(this.aComposite_)
+                sessd = this.sessionData;
+                sessd.epoch = c;
+                if (~this.buildVisitor.lexist_4dfp(sessd.tracerRevision('typ','fqfp')))
+                    this = this.saveEpoch(m.fourdfp, sessd);
+                    this.aComposite_{c} = mlraichle.FdgBuilder( ...
+                        'sessionData', sessd, ...
+                        'buildVisitor', this.buildVisitor, ...
+                        'roisBuild', this.roisBuilder, ...
+                        'framesResolveBuild', this.framesResolveBuilder, ...
+                        'compositeResolveBuild', this.compositeResolveBuilder, ...
+                        'vendorSupport', this.vendorSupport_);
+                end
+            end
+        end
+        function this = saveEpoch(this, ffp, sessd)
+            this.activeFrames = this.splitTimes(sessd.epoch, ffp.size);
+            ffp.img = ffp.img(:,:,:,this.activeFrames);
+            ffp.fqfileprefix = sessd.tracerRevision('typ', 'fqfp');
+            ffp.save;
+        end
+        function times = splitTimes(this, epoch, sz)
+            L = floor(sz(4)/this.MAX_MONOLITH_LENGTH);
+            if (epoch*L > sz(4))
+                times = (epoch-1)*L+1:sz(4);
+                return
+            else
+                times = (epoch-1)*L+1:epoch*L;
+            end
+        end
+    end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end
