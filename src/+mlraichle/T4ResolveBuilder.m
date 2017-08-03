@@ -1,4 +1,4 @@
-classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
+classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
 	%% T4RESOLVEBUILDER  
 
 	%  $Revision$
@@ -442,61 +442,6 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
     end
     
 	methods
-        function this = locallyStageTracer(this)
-            this.prepareNACLocation;         
-            this.buildTracerNAC;
-            this.prepareMR;
-            this.pushAncillary;
-        end
-        function        prepareMR(this)
-            %% PREPAREMR runs msktgenMprage as needed for use by resolve.
-            
-            sessd      = this.sessionData;
-            mpr        = sessd.mprage('typ', 'fp');
-            atl        = sessd.atlas('typ', 'fp');
-            mprToAtlT4 = [mpr '_to_' atl '_t4'];            
-            if (~lexist(fullfile(sessd.mprage('typ', 'path'), mprToAtlT4)))
-                cd(sessd.mprage('typ', 'path'));
-                this.msktgenMprage(mpr, atl);
-            end
-        end
-        function        prepareNACLocation(this)
-            %% PREPARENACLOCATION recovers the NAC location from backup or creates it de novo.
-            
-            sessd = this.sessionData;
-            if (this.recoverNACFolder)
-                movefile([sessd.tracerNACLocation '-Backup'], sessd.tracerNACLocation);
-                return
-            end            
-            if (~isdir(sessd.tracerNACLocation))
-                mkdir(sessd.tracerNACLocation);
-            end            
-        end
-        function this = buildTracerNAC(this)
-            %% BUILDTRACERNAC builds 4dfp-formatted tracer NAC images; use to prep data before conveying to clusters.
-            %  See also:  mlfourdfp.FourdfpVisitor.sif_4dfp.
-            
-            sessd = this.sessionData;
-            ori = sessd.tracerLMFrame('typ', 'fqfn', 'frame', length(this.indicesLogical)-1);
-            lm  = sessd.tracerLM( 'typ', 'fqfp');
-            nac = sessd.tracerNAC('typ', 'fqfp');
-            
-            if (this.buildVisitor.lexist_4dfp(nac))
-                return
-            end
-            if (~this.buildVisitor.lexist_4dfp(ori))
-                error('mlfourdfp:processingStreamFailure', 'T4ResolveBuilder.buildTracerNAC could not find %s', ori);
-            end
-            if (~this.buildVisitor.lexist_4dfp(lm))
-                fprintf('mlraichle.T4ResolveBuilder.buildTracerNAC:  building %s\n', lm);
-                cd(fileparts(lm));
-                this.buildVisitor.sif_4dfp(lm);
-            end
-            if (~isdir(sessd.tracerNACLocation))
-                mkdir(sessd.tracerNACLocation);
-            end                
-            movefile([lm '.4dfp.*'], sessd.tracerNACLocation);
-        end
         function        pullTracerNAC(this, varargin)
             %% PULLTRACERNAC calls scp to pull this.CLUSTER_HOSTNAME:this.CLUSTER_SUBJECTS_DIR/<TRACER>_<VISIT>-NAC*
             %  @param visits is a cell-array defaulting to {'V1' 'V2'}
@@ -552,44 +497,12 @@ classdef T4ResolveBuilder < mlfourdfp.MMRResolveBuilder
                 end
             end
         end
-        function        pushAncillary(this)
-            %% PUSHANCILLARY calls scp to push ct.4dfp.* to this.CLUSTER_HOSTNAME:this.CLUSTER_SUBJECTS_DIR
-            
-            sessd = this.sessionData;
-            
-            cd(fullfile(sessd.sessionPath));
-            lists = {'ct.4dfp.*'};
-            for ils = 1:length(lists)
-                try
-                    mlbash(sprintf('scp -qr %s %s:%s', ...
-                        lists{ils}, this.CLUSTER_HOSTNAME, fullfile(this.CLUSTER_SUBJECTS_DIR, sessd.sessionFolder, '')));
-                catch ME
-                    handwarning(ME);
-                end
-            end
-            
-            visits = {'V1' 'V2'};
-            for iv = 1:length(visits)                
-                cd(fullfile(sessd.sessionPath, visits{iv}, ''));
-                listv = {'mpr.4dfp.*' '*_t4' [upper(sessd.tracer) '_V*-NAC']};
-                for ilv = 1:length(listv)
-                    try
-                        mlbash(sprintf('scp -qr %s %s:%s', ...
-                            listv{ilv}, ...
-                            this.CLUSTER_HOSTNAME, ...
-                            fullfile(this.CLUSTER_SUBJECTS_DIR, sessd.sessionFolder, visits{iv}, '')));
-                    catch ME
-                        handwarning(ME);
-                    end
-                end
-            end
-        end
         
  		function this = T4ResolveBuilder(varargin)
  			%% T4RESOLVEBUILDER
  			%  Usage:  this = T4ResolveBuilder()
 
- 			this = this@mlfourdfp.MMRResolveBuilder(varargin{:});
+ 			this = this@mlfourdfp.T4ResolveBuilder(varargin{:});
         end
     end
     

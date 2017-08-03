@@ -7,8 +7,8 @@ classdef HoBuilder < mlpet.TracerKineticsBuilder
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee.
  	
 	properties
- 		Nepochs = 10
-        resolveTag = 'op_epoch1'
+ 		Nepochs 
+        resolveTag
  	end
 
 	methods 
@@ -59,9 +59,9 @@ classdef HoBuilder < mlpet.TracerKineticsBuilder
             
             this.sessionData_.tracer = 'HO';
             this.sessionData_.attenuationCorrected = true;                    
-            this.kinetics_ = mlraichle.HoKinetics( ...
-                'scanData', mlraichle.ScanData('sessionData', this.sessionData), ...
-                'roisBuild', this.roisBuilder);
+            %this.kinetics_ = mlraichle.HoKinetics( ...
+            %    'scanData', mlraichle.ScanData('sessionData', this.sessionData), ...
+            %    'roisBuild', this.roisBuilder);
             
             %this.finished = mlpipeline.Finished( ...
             %    this, 'path', this.logPath, 'tag', lower(this.sessionData.tracer));

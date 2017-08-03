@@ -25,7 +25,10 @@ classdef UmapDirector
  			%% UMAPDIRECTOR
  			%  Usage:  this = UmapDirector()
 
- 			this.builder = mlfourdfp.CarneyUmapBuilder(varargin{:});
+            ip = inputParser;
+            addRequired(ip, 'bldr', @(x) isa(x, 'mlfourdfp.AbstractUmapResolveBuilder'));
+            parse(ip, varargin{:});
+ 			this.builder = ip.Results.bldr;
  		end
  	end 
 

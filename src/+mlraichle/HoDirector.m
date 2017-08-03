@@ -20,8 +20,8 @@ classdef HoDirector < mlpet.TracerKineticsDirector
             %this.builder.transferFromRawData;
             %this.builder.transferToE7tools('HO');
             %this.builder.transferFromE7tools('HO-Converted-NAC');
-            this.builder.buildNACImageFrames;
-            this.builder.motionCorrectNACImageFrames;
+            this.builder.motionCorrectACFrames;
+            this.builder.motionCorrectNACFrames;
             this.builder.buildCarneyUmap;
             this.builder.motionCorrectUmaps;
             this.builder.product.view;
@@ -29,8 +29,8 @@ classdef HoDirector < mlpet.TracerKineticsDirector
         end
         function this = constructAC(this)
             %this.builder.transferFromE7tools('HO-Converted-Frame*');
-            %this.builder.buildACImageFrames;
-            %this.builder.motionCorrectACImageFrames;
+            %this.builder.buildACFrames;
+            %this.builder.motionCorrectACFrames;
             this.builder.buildTracerAC;
             this.builder.product.view;
         end

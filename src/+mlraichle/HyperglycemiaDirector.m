@@ -1,5 +1,5 @@
 classdef HyperglycemiaDirector
-	%% HYPERGLYCEMIADIRECTOR  
+	%% HYPERGLYCEMIADIRECTOR is a high-level, study-level director for other directors and builders.
 
 	%  $Revision$
  	%  was created 26-Dec-2016 12:39:45
@@ -15,7 +15,7 @@ classdef HyperglycemiaDirector
         hoDirector
         ooDirector
         ocDirector
-        trDirectors = {'hoDirector'} %%%'fdgDirector' 'ocDirector' 'ooDirector'}
+        trDirectors = {'fdgDirector' 'hoDirector'} %%% 'ocDirector' 'ooDirector'}
     end
     
     properties (Dependent)
@@ -50,6 +50,13 @@ classdef HyperglycemiaDirector
             end
             cd(pwd0);
         end
+        function this = loadTest
+            import mlraichle.*;
+            studyd = StudyData;
+            sessd  = SessionData('studyData', studyd, 'sessionPath', fullfile(studyd.subjectsDir, 'HYGLY28', ''));
+            this   = HyperglycemiaDirector('sessionData', sessd);
+            this   = this.constructNAC;
+        end
     end
     
     methods 
@@ -62,76 +69,7 @@ classdef HyperglycemiaDirector
         
         %%
         
-        function this = analyzeCohort(this)
-        end     
-        function this = analyzeSubject(this)
-        end   
-        function this = analyzeVisit(this, sessp, v)
-            import mlraichle.*;
-            study = StudyDataSingleton;
-            sessd = SessionData('studyData', study, 'sessionPath', sessp);
-            sessd.vnumber = v;
-            this = this.analyzeTracers('sessionData', sessd);
-        end
-        function this = analyzeTracers(this)
-            this.umapDirector = this.umapDirector.analyze;
-            this.fdgDirector  = this.fdgDirector.analyze;
-            this.hoDirector   = this.hoDirector.analyze;
-            this.ooDirector   = this.ooDirector.analyze;
-            this.ocDirector   = this.ocDirector.analyze;
-        end
-        
-        % construct methods are interleaved with JSRecon12 processes
-        
-        function this = constructNac(this)
-            this.sessionData_.attenuationCorrected = false;
-            
-            this.fdgDirector.constructNac;
-            this.hoDirector.constructNac;
-            this.ooDirector.constructNac;
-            this.ocDirector.constructNac;        
-            this.fdgDirector.prepareJSRecon;
-            this.hoDirector.prepareJSRecon;
-            this.ooDirector.prepareJSRecon;
-            this.ocDirector.prepareJSRecon;
-        end
-        function this = constructUmap(this)
-            this.umapDirector = this.umapDirector.constructUmap;
-        end
-        function this = constructAc(this)
-            tracerNames = {'fdg' 'ho' 'oc' 'oo'};
-            for tn = 1:length(tracerNames)
-                this.(tracerNames{tn}) = this.(tracerNames{tn}).resolveNac;
-                this.(tracerNames{tn}) = this.(tracerNames{tn}).resolveUmaps;
-                this.(tracerNames{tn}) = this.(tracerNames{tn}).prepareJSReconAc;
-            end
-        end
-        function this = constructKinetics(this, varargin)
-            %% CONSTRUCTKINETICS iterates through this.trDirectors.
-            %  @params named 'roisBuild' is an 'mlrois.IRoisBuilder'
-            
-            ip = inputParser;
-            addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
-            parse(ip, varargin{:});
-            
-            for td = 1:length(this.trDirectors)
-                this.(this.trDirectors{td}).roisBuilder = ip.Results.roisBuild;
-                this.(this.trDirectors{td}) = this.(this.trDirectors{td}).constructKinetics(varargin{:});
-            end
-        end
-        function tf   = constructKineticsPassed(this, varargin)
-            %% CONSTRUCTKINETICSPASSED
-            %  @params named 'roisBuild' is an 'mlrois.IRoisBuilder'
-            
-            ip = inputParser;
-            addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
-            parse(ip, varargin{:});
-            
-            tf = true;
-            for td = 1:length(this.trDirectors)
-                tf = tf && this.(this.trDirectors{td}).constructKineticsPassed(varargin{:});
-            end           
-        end
+        % sort downloads
         
         function this = sortDownloads(this, downloadPath)
             import mlfourdfp.*;
@@ -178,6 +116,82 @@ classdef HyperglycemiaDirector
             end
         end
         
+        function this = analyzeCohort(this)
+        end     
+        function this = analyzeSubject(this)
+        end   
+        function this = analyzeVisit(this, sessp, v)
+            import mlraichle.*;
+            study = StudyDataSingleton;
+            sessd = SessionData('studyData', study, 'sessionPath', sessp);
+            sessd.vnumber = v;
+            this = this.analyzeTracers('sessionData', sessd);
+        end
+        function this = analyzeTracers(this)
+            this.umapDirector = this.umapDirector.analyze;
+            this.fdgDirector  = this.fdgDirector.analyze;
+            this.hoDirector   = this.hoDirector.analyze;
+            this.ooDirector   = this.ooDirector.analyze;
+            this.ocDirector   = this.ocDirector.analyze;
+        end
+        
+        % construct methods are interleaved with JSRecon12 processes
+        
+        function this = constructUmap(this)
+            this.umapDirector = mlraichle.UmapDirector(mlfourdfp.CarneyUmapBuilder('sessionData', this.sessionData));
+            this.umapDirector = this.umapDirector.constructUmap;
+        end
+        function this = constructNAC(this)
+ 			import mlraichle.*;
+            this.sessionData_.attenuationCorrected = false;    
+            this.fdgDirector = FdgDirector(FdgBuilder( 'sessionData', this.sessionData));        
+            this.fdgDirector = this.fdgDirector.constructNAC;
+            return
+            
+            this.hoDirector  = HoDirector( HoBuilder(  'sessionData', this.sessionData));
+            this.hoDirector  = this.hoDirector.constructNAC;
+            
+            this.ocDirector  = OcDirector( OcBuilder(  'sessionData', this.sessionData));
+            this.ocDirector  = this.ocDirector.constructNAC;
+            
+            this.ooDirector  = OoDirector( OoBuilder(  'sessionData', this.sessionData));
+            this.ooDirector  = this.ooDirector.constructNAC;
+        end
+        function this = constructAC(this)
+            tracerNames = {'fdg' 'ho' 'oc' 'oo'};
+            for tn = 1:length(tracerNames)
+                this.(tracerNames{tn}) = this.(tracerNames{tn}).resolveNac;
+                this.(tracerNames{tn}) = this.(tracerNames{tn}).resolveUmaps;
+                this.(tracerNames{tn}) = this.(tracerNames{tn}).prepareJSReconAc;
+            end
+        end
+        function this = constructKinetics(this, varargin)
+            %% CONSTRUCTKINETICS iterates through this.trDirectors.
+            %  @params named 'roisBuild' is an 'mlrois.IRoisBuilder'
+            
+            ip = inputParser;
+            addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
+            parse(ip, varargin{:});
+            
+            for td = 1:length(this.trDirectors)
+                this.(this.trDirectors{td}).roisBuilder = ip.Results.roisBuild;
+                this.(this.trDirectors{td}) = this.(this.trDirectors{td}).constructKinetics(varargin{:});
+            end
+        end
+        function tf   = constructKineticsPassed(this, varargin)
+            %% CONSTRUCTKINETICSPASSED
+            %  @params named 'roisBuild' is an 'mlrois.IRoisBuilder'
+            
+            ip = inputParser;
+            addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
+            parse(ip, varargin{:});
+            
+            tf = true;
+            for td = 1:length(this.trDirectors)
+                tf = tf && this.(this.trDirectors{td}).constructKineticsPassed(varargin{:});
+            end           
+        end
+        
  		function this = HyperglycemiaDirector(varargin)
  			%% HYPERGLYCEMIADIRECTOR
  			%  @param parameter 'sessionData' is a 'mlpipeline.ISessionData'
@@ -187,7 +201,7 @@ classdef HyperglycemiaDirector
             parse(ip, varargin{:});
             
             this.sessionData_ = ip.Results.sessionData;  
-            %this = this.assignTracerDirectors;          
+            this = this.assignTracerDirectors;          
  		end
     end 
     
@@ -199,13 +213,7 @@ classdef HyperglycemiaDirector
     
     methods (Access = private)
         function this = assignTracerDirectors(this)
- 			import mlraichle.*;
-            
-            %this.umapDirector = UmapDirector(UmapBuilder('sessionData', this.sessionData));
-            %this.fdgDirector  = FdgDirector( FdgBuilder( 'sessionData', this.sessionData));
-            this.hoDirector   = HoDirector(  HoBuilder(  'sessionData', this.sessionData));
-            %this.ooDirector   = OoDirector(  OoBuilder(  'sessionData', this.sessionData));
-            %this.ocDirector   = OcDirector(  OcBuilder(  'sessionData', this.sessionData));
+ 			import mlraichle.*;            
         end
     end
 

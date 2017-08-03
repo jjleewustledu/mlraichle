@@ -9,9 +9,8 @@ classdef FdgBuilder < mlraichle.TracerKineticsBuilder
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John J. Lee.
  	
     
-    properties
-        activeFrames % frame1:frameEnd
-        indexOfReference
+    properties (Dependent)
+        epoch
     end    
     
     methods (Static)
@@ -357,6 +356,14 @@ classdef FdgBuilder < mlraichle.TracerKineticsBuilder
     end
     
 	methods 
+        
+        %% GET
+        
+        function g = get.epoch(this)
+            g = this.sessionData_.epoch;
+        end
+        
+        %%
 		  
  		function this = FdgBuilder(varargin)
  			%% FDGBUILDER
@@ -378,15 +385,13 @@ classdef FdgBuilder < mlraichle.TracerKineticsBuilder
             this.vendorSupport_.ensureTracerLocation;
             this.vendorSupport_.ensureTracerSymlinks;
             
-            this.aComposite_ = mlpatterns.CellArrayList;
             this = this.inspectMonolith;
-            if (~isempty(this.aComposite_)) % do recursion for composites
-                for c = 1:length(this.aComposite_)
-                    if (~isempty(this.aComposite_{c}))
-                        this.aComposite_{c} = this.aComposite_{c}.motionCorrectNACFrames;
-                    end
+            if (~isempty(this.aComposite_))             
+                for e = 1:length(this.aComposite_)
+                    fdgb = this.aComposite_{e};
+                    this.aComposite_{e} = fdgb.motionCorrectNACFrames;
                 end
-                this = this.reconstituteComposite;
+                this = this.reconstituteProjectedComposite;
                 this = this.motionCorrectProduct;
                 return
             end
@@ -396,29 +401,59 @@ classdef FdgBuilder < mlraichle.TracerKineticsBuilder
             this = this.motionCorrectProduct;
         end
         function this = motionCorrectProduct(this)
-            if (~isempty(this.activeFrames)) % paranoia
-                this.indexOfReference = length(this.activeFrames); end
-            t4rb = mlfourdfp.T4ResolveBuilder( ...
-                'sessionData', this.sessionData, ...
-                'theImages', this.product_.fqfileprefix, ...
-                'indexOfReference', this.indexOfReference);
-            t4rb = t4rb.resolve( ...
-                'source', this.product_.fqfileprefix, ...
-                'resolveTag', sprintf('op_%s_frame%i', this.sessionData.tracerRevision('typ','fp'), this.indexOfReference));
-            this.product_ = t4rb.product;
-            this = this.sumProduct;
-        end
-        function this = reconstituteComposite(this)
-            this.activeFrames = 1:length(this.aComposite_);
-            this.sessionData.epoch = this.activeFrames;      
-            ffp = this.aComposite_{1}.fourdfp;
-            ffp.fqfileprefix = this.sessionData.tracerRevision('typ','fqfp');
-            assert(3 == ffp.rank);
-            for c = 2:length(this.aComposite_)
-                ffp_ = this.aComposite_{c}.fourdfp;
-                assert(3 == ffp_.rank);
-                ffp.img(:,:,:,c) = ffp_.img;
+            if (~isempty(this.activeFrames)) % needed for higher levels of the inverted tree of coregistrations
+                this.indexOfReference = length(this.activeFrames); 
+            else 
+                this.indexOfReference = this.MAX_MONOLITH_LENGTH; % needed for boot-strapped values when this.activeFrames == []
+            end   
+            m = this.sessionData.tracerRevision('typ', 'mlfourd.ImagingContext');         
+            if (4 == m.rank)
+                t4rb = mlfourdfp.T4ResolveBuilder( ...
+                    'sessionData', this.sessionData, ...
+                    'theImages', this.product_.fqfileprefix, ...
+                    'indexOfReference', this.indexOfReference);
+                this.resolveTag = this.sessionData.resolveTagFrame(this.indexOfReference);
+                t4rb = t4rb.resolve( ...
+                    'source', this.product_.fqfileprefix, ...
+                    'resolveTag', this.resolveTag);
+                if (~isempty(t4rb.product))
+                    this.product_ = t4rb.product;
+                else
+                    this.product_ = mlpet.PETImagingContext(this.sessionData.tracerResolved);
+                end
+                this = this.sumProduct;
             end
+        end
+        function this = reconstituteProjectedComposite(this)
+            
+            import mlfourd.*;
+            fdgb = this.aComposite_{1};
+            %fdgb.sessionData.builder = fdgb;
+            ffp  = ImagingContext(fdgb.sessionData.tracerResolvedSumt('typ','4dfp.ifh'));
+            ffp  = ffp.fourdfp;
+            assert(3 == ffp.rank);            
+            for e = 2:length(this.aComposite_)
+                fdgb = this.aComposite_{e};
+                %fdgb.sessionData.builder = fdgb;
+                if (this.buildVisitor.lexist_4dfp( ...
+                        fdgb.sessionData.tracerResolvedSumt('typ','4dfp.ifh')))
+                    ffp_ = ImagingContext(fdgb.sessionData.tracerResolvedSumt('typ','4dfp.ifh'));
+                elseif (this.buildVisitor.lexist_4dfp( ...
+                        fdgb.sessionData.tracerRevision('typ','4dfp.ifh')))
+                    ffp_ = ImagingContext(fdgb.sessionData.tracerRevision('typ','4dfp.ifh'));
+                else
+                    error('mlraichle:filesystemErr', ...
+                          'FdgBuilder.reconstituteProjectedComposite could not find %s', ffp_.fqfn);
+                end
+                ffp_ = ffp_.fourdfp;
+                assert(3 == ffp_.rank);
+                ffp.img(:,:,:,e) = ffp_.img;
+            end
+            
+            this.activeFrames = 1:length(this.aComposite_);
+            this.sessionData.epoch = this.activeFrames;
+            fdgb.sessionData.epoch = this.sessionData.epoch;
+            ffp.fqfilename = fdgb.sessionData.tracerRevision;
             ffp.save;
             this.product_ = mlpet.PETImagingContext(ffp);
         end
@@ -442,10 +477,12 @@ classdef FdgBuilder < mlraichle.TracerKineticsBuilder
             popd(pwd0);
         end
         function this = sumProduct(this)
-            assert(isa(this.product_, 'mlfourd.ImagingContext'));
+            assert(isa(this.product_, 'mlfourd.ImagingContext'))
             this.product_ = this.product_.timeSummed;
             this.product_.fourdfp;
-            this.product_.save; % _sumt
+            if (~this.buildVisitor.lexist_4dfp(this.product_.fqfileprefix))
+                this.product_.save; % _sumt
+            end
         end
         function this = buildFdgAC(this)
             
@@ -554,30 +591,28 @@ classdef FdgBuilder < mlraichle.TracerKineticsBuilder
     
     methods (Access = protected)
         function this = inspectMonolith(this)
-            %% INSPECTMONOLITH for reason to split
+            %% INSPECTMONOLITH for need to split
             
             m = this.sessionData.tracerRevision('typ', 'mlfourd.ImagingContext');
             if (4 == m.rank)
                 sz = m.fourdfp.size;
                 if (sz(4) > this.MAX_MONOLITH_LENGTH)
-                    this.aComposite_ = cell(1, ceil(sz(4)/this.MAX_MONOLITH_LENGTH));
-                    this = this.splitMonolith(m);
-                end
-            end
-        end
-        function this = splitMonolith(this, m)
-            for c = 1:length(this.aComposite_)
-                sessd = this.sessionData;
-                sessd.epoch = c;
-                if (~this.buildVisitor.lexist_4dfp(sessd.tracerRevision('typ','fqfp')))
-                    this = this.saveEpoch(m.fourdfp, sessd);
-                    this.aComposite_{c} = mlraichle.FdgBuilder( ...
-                        'sessionData', sessd, ...
-                        'buildVisitor', this.buildVisitor, ...
-                        'roisBuild', this.roisBuilder, ...
-                        'framesResolveBuild', this.framesResolveBuilder, ...
-                        'compositeResolveBuild', this.compositeResolveBuilder, ...
-                        'vendorSupport', this.vendorSupport_);
+                    Nepochs = ceil(sz(4)/this.MAX_MONOLITH_LENGTH);
+                    this.aComposite_ = cell(1, Nepochs);
+                    for e = 1:Nepochs
+                        sessd = this.sessionData;
+                        sessd.epoch = e;
+                        if (~this.buildVisitor.lexist_4dfp(sessd.tracerRevision('typ','fqfp')))
+                            this = this.saveEpoch(m.fourdfp, sessd);
+                        end
+                        this.aComposite_{e} = mlraichle.FdgBuilder( ...
+                            'sessionData', sessd, ...
+                            'buildVisitor', this.buildVisitor, ...
+                            'roisBuild', this.roisBuilder, ...
+                            'framesResolveBuild', this.framesResolveBuilder, ...
+                            'compositeResolveBuild', this.compositeResolveBuilder, ...
+                            'vendorSupport', this.vendorSupport_);
+                    end
                 end
             end
         end

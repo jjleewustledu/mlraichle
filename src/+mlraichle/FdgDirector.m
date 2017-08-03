@@ -18,30 +18,28 @@ classdef FdgDirector < mlpet.TracerKineticsDirector
             %  @param required 'builder' is an 'mlraichle.FdgBuilder'
 
             ip = inputParser;
+            ip.KeepUnmatched = true;
             addRequired(ip, 'builder', @(x) isa(x, 'mlraichle.FdgBuilder'));
             parse(ip, varargin{:});
             this = this@mlpet.TracerKineticsDirector(varargin{:});
+            this.sessionData.tracer = 'FDG';
         end
         
-        function ensureJSRecon(this)
+        function this = ensureJSRecon(this)
         end
         function this = constructNAC(this)
-            %this.builder.transferFromRawData;
-            %this.builder.transferToE7tools('FDG');
-            %this.builder.transferFromE7tools('FDG-Converted-NAC');
-            this.builder.buildNACImageFrames;
-            this.builder.motionCorrectNACImageFrames;
-            this.builder.buildCarneyUmap;
-            this.builder.motionCorrectUmaps;
-            this.builder.product.view;
-            this.builder.transferToE7tools('FDG-Converted-AC');
+            this.sessionData.attenuationCorrected = false;
+            this.builder_ = this.builder_.locallyStageTracer;
+            this.builder_ = this.builder_.motionCorrectNACFrames;
+            this.builder_ = this.builder_.motionCorrectUmaps;
+            this.builder_.product.view;
         end        
         function this = constructAC(this)
-            %this.builder.transferFromE7tools('FDG-Converted-Frame*');
-            %this.builder.buildACImageFrames;
-            %this.builder.motionCorrectACImageFrames;
-            this.builder.buildFdgAC;
-            this.builder.product.view;
+            this.sessionData.attenuationCorrected = true;
+            this.builder_ = this.builder_.locallyStageTracer;
+            this.builder_ = this.builder_.motionCorrectACFrames;
+            this.builder_ = this.builder_.recombineAC;
+            this.builder_ = this.builder_.product.view;
         end
     end 
     
