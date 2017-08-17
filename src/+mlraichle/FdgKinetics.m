@@ -43,17 +43,17 @@ classdef FdgKinetics
         
         function tf   = checkConstructKineticsPassed(this, varargin)
             %% CHECKCONSTRUCTKINETICSPASSED
-            %  @params named 'roisBuild' is an 'mlrois.IRoisBuilder'
+            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'
             
             ip = inputParser;
             addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder, @(x) isa(x, 'mlrois.IRoisBuilder'));
             parse(ip, varargin{:});
             
-            error('mlraichle:notImplemented');
+            error('mlraichle:notImplemented', 'FdgKinetics.checkConstructKineticsPassed');
         end
         function this = constructKinetics(this, varargin)
             %% CONSTRUCTKINETICS
-            %  @params named 'roisBuild' is an 'mlrois.IRoisBuilder'
+            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'
             
             ip = inputParser;
             addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder, @(x) isa(x, 'mlrois.IRoisBuilder'));

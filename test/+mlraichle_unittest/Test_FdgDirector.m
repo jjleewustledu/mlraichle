@@ -20,12 +20,18 @@ classdef Test_FdgDirector < matlab.unittest.TestCase
  	end
 
 	methods (Test)
-        function test_constructFdgNAC(this)
-            this.testObj = this.testObj.constructFdgNAC;
+        function test_constructNAC(this)
+            % Subdomains of inputs:  
+            % motion-corrected, back-projected; 
+            % frames, epochs;
+            % MR, CT, umap.
+            % Testing the blackbox products.  
+            
+            this.testObj = this.testObj.constructNAC;
             this.verifyTestObjProduct;
         end
-        function test_constructFdgAC(this)
-            this.testObj = this.testObj.constructFdgAC;
+        function test_constructAC(this)
+            this.testObj = this.testObj.constructAC;
             this.verifyTestObjProduct;
         end
 	end
@@ -33,10 +39,10 @@ classdef Test_FdgDirector < matlab.unittest.TestCase
  	methods (TestClassSetup)
 		function setupFdgDirector(this)
  			import mlraichle.*;
-            studyd = SynthStudyData;
+            studyd = StudyData;
             sessd  = SessionData( ...
                 'studyData', studyd, ...
-                'sessionPath', fullfile(studyd.subjectsDir, 'HYGLY09', ''));
+                'sessionPath', fullfile(studyd.subjectsDir, 'HYGLY28', ''));
  			this.testObj_ = FdgDirector(FdgBuilder('sessionData', sessd));
  			this.addTeardown(@this.cleanFiles);
  		end
@@ -57,7 +63,7 @@ classdef Test_FdgDirector < matlab.unittest.TestCase
 
 	methods (Access = private)
         function verifyTestObjProduct(this)
-            this.verifyClass(this.testObj.product, 'mlpet.PETImagingContext');
+            this.verifyClass(this.testObj.product, 'mlfourd.ImagingContext');
             if (this.view)
                 this.testObj.product.view;
             end

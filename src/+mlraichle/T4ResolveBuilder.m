@@ -568,7 +568,8 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
         end
     end
     
-    %% HIDDEN & DEPRECATED
+    %% HIDDEN
+    %  @deprecated
     
     methods (Hidden)
         function this = runRaichle(sessPth, v, s)

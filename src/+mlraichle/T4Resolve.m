@@ -43,7 +43,7 @@ classdef T4Resolve
 	methods 		
  		function this = T4Resolve(varargin)
  			%% T4RESOLVE
- 			%  @params 'sessionData' obj is an instance of mlraichle.SessionData
+ 			%  @param 'sessionData' obj is an instance of mlraichle.SessionData
 
             ip = inputParser;
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
@@ -91,7 +91,7 @@ classdef T4Resolve
             fr    = str2double(names.fr);
         end
         function [e,idx]  = parseEtas(this, idx)
-            % @params idx is the starting line from this.imgregLog from which to parse curvature numbers.
+            % @param idx is the starting line from this.imgregLog from which to parse curvature numbers.
             % @returns c contains the eta cost for image intensity gradients; 
             % only the last cost for the image frame is returned.
             % @returns idx is the end of reading of the current image frame.
@@ -106,7 +106,7 @@ classdef T4Resolve
             idx = ilast;
         end
         function [c,idx]  = parseCurves(this, idx)
-            % @params idx is the starting line from this.imgregLog from which to parse curvature numbers.
+            % @param idx is the starting line from this.imgregLog from which to parse curvature numbers.
             % @returns c contains the curvature numbers in R^6; 
             % only the last curvature numbers for the image frame are returned.
             % @returns idx is the end of reading of the current image frame.

@@ -28,11 +28,17 @@ classdef FdgDirector < mlpet.TracerKineticsDirector
         function this = ensureJSRecon(this)
         end
         function this = constructNAC(this)
+            %% CONSTRUCTNAC
+            %  @return this with this.builder updated with motion-corrections and back-projections of umap 
+            %  onto individual fames of native NAC PET data.  Attenuation correction := false always.
+            
             this.sessionData.attenuationCorrected = false;
             this.builder_ = this.builder_.locallyStageTracer;
-            this.builder_ = this.builder_.motionCorrectNACFrames;
-            this.builder_ = this.builder_.motionCorrectUmaps;
-            this.builder_.product.view;
+            this.builder_ = this.builder_.motionCorrectFrames;
+            this.builder_ = this.builder_.motionCorrectModalities;
+            this.builder_ = this.builder_.backProjectUmapToFrames;
+            %this.builder_ = this.builder_.backProjectToFrames;
+            %this.builder_ = this.builder_.backProjectToEpochs;
         end        
         function this = constructAC(this)
             this.sessionData.attenuationCorrected = true;

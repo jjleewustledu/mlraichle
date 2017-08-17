@@ -50,13 +50,6 @@ classdef HyperglycemiaDirector
             end
             cd(pwd0);
         end
-        function this = loadTest
-            import mlraichle.*;
-            studyd = StudyData;
-            sessd  = SessionData('studyData', studyd, 'sessionPath', fullfile(studyd.subjectsDir, 'HYGLY28', ''));
-            this   = HyperglycemiaDirector('sessionData', sessd);
-            this   = this.constructNAC;
-        end
     end
     
     methods 
@@ -167,7 +160,7 @@ classdef HyperglycemiaDirector
         end
         function this = constructKinetics(this, varargin)
             %% CONSTRUCTKINETICS iterates through this.trDirectors.
-            %  @params named 'roisBuild' is an 'mlrois.IRoisBuilder'
+            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'
             
             ip = inputParser;
             addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
@@ -180,7 +173,7 @@ classdef HyperglycemiaDirector
         end
         function tf   = constructKineticsPassed(this, varargin)
             %% CONSTRUCTKINETICSPASSED
-            %  @params named 'roisBuild' is an 'mlrois.IRoisBuilder'
+            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'
             
             ip = inputParser;
             addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));

@@ -21,9 +21,9 @@ classdef HoDirector < mlpet.TracerKineticsDirector
             %this.builder.transferToE7tools('HO');
             %this.builder.transferFromE7tools('HO-Converted-NAC');
             this.builder.motionCorrectACFrames;
-            this.builder.motionCorrectNACFrames;
+            this.builder.motionCorrectFrames;
             this.builder.buildCarneyUmap;
-            this.builder.motionCorrectUmaps;
+            this.builder.motionCorrectModalities;
             this.builder.product.view;
             this.builder.transferToE7tools('HO-Converted-NAC');
         end

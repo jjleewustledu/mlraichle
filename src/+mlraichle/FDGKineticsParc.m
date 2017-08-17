@@ -339,7 +339,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                 aa = sessd.mri_convert(aa, 'aparcAseg.nii.gz');
                 aa = mybasename(aa);
                 sessd.nifti_4dfp_4(aa);
-                aa = ct4rb.t4img_4dfp(sessd.brainmask('typ','fp'), aa, 'opts', '-n');
+                aa = ct4rb.t4img_4dfp_0(sessd.brainmask('typ','fp'), aa, 'options', '-n');
                 aa = mlfourd.ImagingContext([aa '.4dfp.ifh']);
                 nn = aa.numericalNiftid;
                 aa.saveas(['aparcAseg_' ct4rb.resolveTag '.4dfp.ifh']);

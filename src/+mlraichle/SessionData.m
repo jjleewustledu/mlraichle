@@ -220,8 +220,8 @@ classdef SessionData < mlpipeline.SessionData
             suff = sprintf('_b%i', floor(10*mean(this.petPointSpread(varargin{:}))));
         end
         function obj  = timingData(this, varargin)
-            %% TIMINGDATA is DEPRECATED; 
-            %  prefer using mlpet.IScannerData.readTimingData
+            %% TIMINGDATA 
+            %  @deprecated prefer mlpet.IScannerData.readTimingData
             
             ipr = this.iprLocation(varargin{:});
             fqfn = fullfile( ...
@@ -243,6 +243,18 @@ classdef SessionData < mlpipeline.SessionData
             loc = locationType(ipr.typ, ...
                 fullfile(this.vLocation, ...
                          sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.convertedTag), ''));
+        end
+        function obj  = tracerEpoch(this, varargin)
+            [ipr,schar] = this.iprLocation(varargin{:});
+            if (isempty(this.epoch))
+                fn = sprintf('%s%sv%i.4dfp.ifh', lower(ipr.tracer), schar, this.vnumber);
+            else
+                fn = sprintf('%s%sv%i%s.4dfp.ifh', lower(ipr.tracer), schar, this.vnumber, this.epochLabel);
+            end
+            
+            fqfn = fullfile( ...
+                this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), fn);
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function loc  = tracerLocation(this, varargin)
             [ipr,schar] = this.iprLocation(varargin{:});
@@ -377,14 +389,9 @@ classdef SessionData < mlpipeline.SessionData
         end
         function obj  = tracerVisit(this, varargin)
             [ipr,schar] = this.iprLocation(varargin{:});
-            if (isempty(this.epoch))
-                fn = sprintf('%s%sv%i.4dfp.ifh', lower(ipr.tracer), schar, this.vnumber);
-            else
-                fn = sprintf('%s%sv%i%s.4dfp.ifh', lower(ipr.tracer), schar, this.vnumber, this.epochLabel);
-            end
-            
             fqfn = fullfile( ...
-                this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), fn);
+                this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
+                sprintf('%s%sv%i.4dfp.ifh', lower(ipr.tracer), schar, this.vnumber));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function loc  = tracerT4Location(this, varargin)
@@ -695,7 +702,8 @@ classdef SessionData < mlpipeline.SessionData
         end 
     end
     
-    %% HIDDEN, DEPRECATED
+    %% HIDDEN
+    %  @deprecated as used in early development.  Use less-specialized corresponding methods from above.
     
     properties (Hidden)
         bloodGlucoseAndHct

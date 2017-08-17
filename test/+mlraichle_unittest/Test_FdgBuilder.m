@@ -14,8 +14,7 @@ classdef Test_FdgBuilder < matlab.unittest.TestCase
  	
 
 	properties
-        indicesLogical = [ 0 0 0 1 1 1 ]
-        hyglyNN = 'HYGLY09'
+        hyglyNN = 'HYGLY28'
         pwd0
  		registry
  		testObj
@@ -24,9 +23,22 @@ classdef Test_FdgBuilder < matlab.unittest.TestCase
 
 	methods (Test)
         function test_ctor(this)
-            this.verifyEqual(sum(this.testObj.imageComposite.indicesLogical), 3);
-            this.verifyEqual(sum(this.testObj.blurArg), 5.5, 'RelTol', 1e-2);
-        end        
+        end
+        function test_motionCorrectFrames(this)
+        end
+        function test_motionCorrectEpochs(this)
+        end
+        function test_motionCorrectModalities(this)
+        end
+        function test_backProjectUmapToEpochs(this)
+        end
+        function test_backProjectUmapToFrames(this)
+        end
+        function test_reconstituteComposites(this)
+        end
+        
+        
+        
         function test_motionCorrectNACimageComposite(this)
             this.testObj.motionCorrectNACimageComposite;
         end
@@ -93,11 +105,11 @@ classdef Test_FdgBuilder < matlab.unittest.TestCase
  	methods (TestMethodSetup)
 		function setupFdgBuilderTest(this)
  			import mlraichle.*;
-            studyd = SynthStudyData;
-            sessp = fullfile(studyd.subjectsDir, this.hyglyNN, '');
-            sessd = SynthSessionData('studyData', studyd, 'sessionPath', sessp);
- 			this.testObj_ = FdgBuilder('sessionData', sessd, 'indicesLogical', this.indicesLogical, 'NRevisions', 2);
-            this.pwd0 = pushd(sessd.vLocation);
+            studyd = StudyData;
+            sessp  = fullfile(studyd.subjectsDir, this.hyglyNN, '');
+            sessd  = SessionData('studyData', studyd, 'sessionPath', sessp);
+ 			this.testObj_ = FdgBuilder('sessionData', sessd, 'NRevisions', 2);
+            %this.pwd0 = pushd(sessd.vLocation);
  			this.testObj = this.testObj_;
  			this.addTeardown(@this.cleanMethodFiles);
             this.tic0 = tic;
