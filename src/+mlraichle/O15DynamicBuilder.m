@@ -62,55 +62,6 @@ classdef O15DynamicBuilder < mlfourdfp.AbstractTracerResolveBuilder
                 end                
             end            
         end
-        function        sumTimesAll(varargin)
-            ip = inputParser;
-            addParameter(ip, 'tag', '', @ischar);
-            addParameter(ip, 'indicesLogical', ones(1,20), @isnumeric);
-            parse(ip, varargin{:});
-
-            import mlraichle.* mlsystem.*;
-            setenv('PRINTV', '1');
-            studyd = StudyData;            
-            if (isempty(ip.Results.tag))
-                tagString = 'HYGLY*';
-            else                
-                tagString = [ip.Results.tag '*'];
-            end
-            
-            eSess = DirTool(fullfile(studyd.subjectsDir, tagString));
-            for iSess = 1:length(eSess.fqdns)
-
-                eVisit = DirTool(fullfile(eSess.fqdns{iSess}, 'V*'));
-                for iVisit = 1:length(eVisit.fqdns)
-
-                    eTracer = DirTools( ...
-                        fullfile(eVisit.fqdns{iVisit}, ['HO*_' eVisit.dns{iVisit} '-AC'], ''), ...
-                        fullfile(eVisit.fqdns{iVisit}, ['OO*_' eVisit.dns{iVisit} '-AC'], ''));
-                    for iTracer = 1:length(eTracer.fqdns)
-                        
-                        try
-                            pth = eTracer.fqdns{iTracer};
-                            pwd0 = pushd(pth);
-                            O15DynamicBuilder.printv('sumTimesAll:  try pwd->%s\n', pwd);
-                            sessd = SessionData( ...
-                                'studyData',   studyd, ...
-                                'sessionPath', eSess.fqdns{iSess}, ...
-                                'ac',          true, ...
-                                'tracer',      T4ResolveUtilities.tracerPrefix(eTracer.dns{iTracer}), ...
-                                'rnumber',     1, ...
-                                'snumber',     T4ResolveUtilities.scanNumber(eTracer.dns{iTracer}), ...
-                                'vnumber',     T4ResolveUtilities.visitNumber(eVisit.dns{iVisit}));
-                            disp(sessd);
-                            this = O15DynamicBuilder('sessionData', sessd);
-                            this.sumTimes(sessd.tracerRevision('typ', 'fp'));
-                            popd(pwd0);
-                        catch ME
-                            handwarning(ME);
-                        end
-                    end
-                end
-            end
-        end
         function this = triggering(varargin)
             
             ip = inputParser;

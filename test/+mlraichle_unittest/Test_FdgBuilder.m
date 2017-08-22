@@ -19,26 +19,10 @@ classdef Test_FdgBuilder < matlab.unittest.TestCase
  		registry
  		testObj
         tic0
+        view = true
  	end
 
 	methods (Test)
-        function test_ctor(this)
-        end
-        function test_motionCorrectFrames(this)
-        end
-        function test_motionCorrectEpochs(this)
-        end
-        function test_motionCorrectModalities(this)
-        end
-        function test_backProjectUmapToEpochs(this)
-        end
-        function test_backProjectUmapToFrames(this)
-        end
-        function test_reconstituteComposites(this)
-        end
-        
-        
-        
         function test_motionCorrectNACimageComposite(this)
             this.testObj.motionCorrectNACimageComposite;
         end
@@ -98,18 +82,18 @@ classdef Test_FdgBuilder < matlab.unittest.TestCase
 
  	methods (TestClassSetup)
 		function setupFdgBuilder(this)
+ 			import mlraichle.*;
+            studyd = StudyData;
+            sessp  = fullfile(studyd.subjectsDir, this.hyglyNN, '');
+            sessd  = SessionData('studyData', studyd, 'sessionPath', sessp);
+ 			this.testObj_ = FdgBuilder('sessionData', sessd, 'NRevisions', 2);
+            this.pwd0 = pushd(sessp);
  			this.addTeardown(@this.cleanClassFiles);
  		end
 	end
 
  	methods (TestMethodSetup)
 		function setupFdgBuilderTest(this)
- 			import mlraichle.*;
-            studyd = StudyData;
-            sessp  = fullfile(studyd.subjectsDir, this.hyglyNN, '');
-            sessd  = SessionData('studyData', studyd, 'sessionPath', sessp);
- 			this.testObj_ = FdgBuilder('sessionData', sessd, 'NRevisions', 2);
-            %this.pwd0 = pushd(sessd.vLocation);
  			this.testObj = this.testObj_;
  			this.addTeardown(@this.cleanMethodFiles);
             this.tic0 = tic;
@@ -127,6 +111,12 @@ classdef Test_FdgBuilder < matlab.unittest.TestCase
 		function cleanMethodFiles(this)
             toc(this.tic0);
  		end
+        function verifyTestObjProduct(this)
+            this.verifyClass(this.testObj.product, 'mlfourd.ImagingContext');
+            if (this.view)
+                this.testObj.product.view;
+            end
+        end
 	end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

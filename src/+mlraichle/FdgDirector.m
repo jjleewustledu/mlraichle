@@ -36,9 +36,9 @@ classdef FdgDirector < mlpet.TracerKineticsDirector
             this.builder_ = this.builder_.locallyStageTracer;
             this.builder_ = this.builder_.motionCorrectFrames;
             this.builder_ = this.builder_.motionCorrectModalities;
-            this.builder_ = this.builder_.backProjectUmapToFrames;
-            %this.builder_ = this.builder_.backProjectToFrames;
-            %this.builder_ = this.builder_.backProjectToEpochs;
+            this.builder_ = this.builder_.motionUncorrectUmapToFrames;
+            %this.builder_ = this.builder_.motionUncorrectToFrames;
+            %this.builder_ = this.builder_.motionUncorrectToEpochs;
         end        
         function this = constructAC(this)
             this.sessionData.attenuationCorrected = true;
