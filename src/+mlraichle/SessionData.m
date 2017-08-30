@@ -45,7 +45,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             g = this.bloodGlucoseAndHct.Hct(this.sessionFolder, this.vnumber);
         end
         function g = get.petBlur(~)
-            g = mlpet.MMRRegistry.instance.petPointSpread;
+            g = mlsiemens.MMRRegistry.instance.petPointSpread;
         end
         function g = get.plasmaGlucose(this)
             g = this.bloodGlucoseAndHct.plasmaGlucose(this.sessionFolder, this.vnumber);
@@ -174,7 +174,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             end
         end
         function p    = petPointSpread(~, varargin)
-            inst = mlpet.MMRRegistry.instance;
+            inst = mlsiemens.MMRRegistry.instance;
             p    = inst.petPointSpread(varargin{:});
         end
         function suff = petPointSpreadSuffix(this, varargin)
@@ -386,7 +386,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             end
             fqfn = fullfile( ...
                 this.tracerLocation('typ', 'path'), ...
-                sprintf('umapSynthv%i_op_%s%s', this.vnumber, this.tracerRevision('typ', 'fp'), this.filetypeExt));
+                sprintf('umapSynthv%i_op_%s%s', ...
+                    this.vnumber, this.tracerRevision('typ', 'fp'), this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end     
 
@@ -399,11 +400,18 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired( ip, 'fqfn', @ischar);
+            addParameter(ip, 'frame', [], @isnumeric);
             addParameter(ip, 'suffix', '', @ischar);
             addParameter(ip, 'typ', 'fqfn', @ischar);
             parse(ip, varargin{:});
+            frame = '';
+            if (~isempty(ip.Results.frame))
+                frame = sprintf('_frame%i', ip.Results.frame);
+            end
             
-            obj = imagingType(ip.Results.typ, ip.Results.fqfn);
+            [pth,fp,ext] = myfileparts(ip.Results.fqfn);
+            fqfn = fullfile(pth, [fp frame ext]);
+            obj = imagingType(ip.Results.typ, fqfn);
         end
         function obj  = mrObject(this, varargin)
             %  @override

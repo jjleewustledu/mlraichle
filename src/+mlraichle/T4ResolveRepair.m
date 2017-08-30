@@ -72,7 +72,7 @@ classdef T4ResolveRepair < mlfourdfp.T4ResolveBuilder
  			%  Usage:  this = T4ResolveRepair()
 
  			this = this@mlfourdfp.T4ResolveBuilder(varargin{:});
-            this.mmrBuilder_ = mlfourdfp.MMRBuilder('sessionData', this.sessionData);
+            this.mmrBuilder_ = mlsiemens.MMRBuilder('sessionData', this.sessionData);
         end
         
         function ipr  = imageRegSingle(this, ipr)
