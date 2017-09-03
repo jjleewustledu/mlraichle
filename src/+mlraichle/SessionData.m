@@ -471,7 +471,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct( ...
                     fullfile(this.subjectsDir, this.bloodGlucoseAndHctXlsx));
             catch ME
-                handwarning(ME, 'mlraichle:dataNotAvailable', 'SessionData.cotr.%s', this.bloodGlucoseAndHctXlsx);
+                handwarning(ME, 'mlraichle:dataNotAvailable', 'SessionData.ctor.%s', this.bloodGlucoseAndHctXlsx);
             end
         end
     end

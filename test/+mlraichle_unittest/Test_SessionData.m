@@ -14,8 +14,8 @@ classdef Test_SessionData < matlab.unittest.TestCase
  	
 
 	properties
-        sessionPath = fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, 'HYGLY09', '')
-        vPath       = fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, 'HYGLY09', 'V1', '') 
+        sessionPath = fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, 'HYGLY28', '')
+        vPath       = fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, 'HYGLY28', 'V1', '') 
         studyData
  		testObj
         view = false
@@ -53,19 +53,19 @@ classdef Test_SessionData < matlab.unittest.TestCase
             this.verifyEqual(this.testObj.fourdfpLocation, fullfile(this.sessionPath, 'V1'));
         end
         function test_freesurferLocation(this)
-            this.verifyEqual(this.testObj.freesurferLocation, fullfile(getenv('PPG'), 'freesurfer', 'HYGLY09_V1'));
+            this.verifyEqual(this.testObj.freesurferLocation, fullfile(getenv('PPG'), 'freesurfer', 'HYGLY28_V1'));
         end
         function test_fslLocation(this)
             this.verifyEqual(this.testObj.fslLocation, fullfile(this.vPath, 'fsl', ''));
         end
         function test_mriLocation(this)
             this.verifyEqual(this.testObj.mriLocation, ...
-                fullfile(getenv('PPG'), 'freesurfer', 'HYGLY09_V1', 'mri', ''));
+                fullfile(getenv('PPG'), 'freesurfer', 'HYGLY28_V1', 'mri', ''));
         end
         
         function test_aparcA2009sAseg(this)
             this.verifyEqual(this.testObj.aparcA2009sAseg('typ', 'fqfn'), ...
-                fullfile(getenv('PPG'), 'freesurfer', 'HYGLY09_V1', 'mri', 'aparc.a2009s+aseg.mgz'));
+                fullfile(getenv('PPG'), 'freesurfer', 'HYGLY28_V1', 'mri', 'aparc.a2009s+aseg.mgz'));
         end
         function test_atlas(this)
             this.verifyEqual(this.testObj.atlas('typ', 'fqfn'), ...
@@ -77,11 +77,11 @@ classdef Test_SessionData < matlab.unittest.TestCase
         end
         function test_mpr_fqfp(this)
             this.verifyEqual(this.testObj.mpr('typ', 'fqfp'), ...
-                fullfile(this.vPath, 'mpr'));
+                fullfile(this.vPath, 'T1001'));
         end
         function test_mpr_4dfpIfh(this)
             this.verifyEqual(this.testObj.mpr('typ', '.4dfp.ifh'), ...
-                fullfile(this.vPath, 'mpr.4dfp.ifh'));
+                fullfile(this.vPath, 'T1001.4dfp.ifh'));
         end
         function test_mpr_niiGz(this)
         end
@@ -109,18 +109,18 @@ classdef Test_SessionData < matlab.unittest.TestCase
             this.verifyEqual(this.testObj.hdrinfoLocation, fullfile(this.vPath));
         end
         function test_petLocation(this)
-            this.verifyEqual(this.testObj.petLocation, fullfile(this.vPath));
+            this.verifyEqual(this.testObj.petLocation, fullfile(this.vPath, 'FDG_V1-NAC', ''));
         end
         
         function test_fdgAC(this)
-            this.verifyEqual( ...
-                this.testObj.fdgAC('typ', 'fqfn'), ...
-                fullfile(this.testObj.sessionPath, 'V1', 'FDG_V1-AC', 'FDG_V1-LM-00-OP.4dfp.ifh'));
+%             this.verifyEqual( ...
+%                 this.testObj.fdgAC('typ', 'fqfn'), ...
+%                 fullfile(this.testObj.sessionPath, 'V1', 'FDG_V1-AC', 'FDG_V1-LM-00-OP.4dfp.ifh'));
         end
         function test_fdgListmodeFrameV(this)
             this.verifyEqual( ...
                 this.testObj.fdgListmodeFrameV(1, 'typ', 'fqfn'), ...
-                fullfile(this.testObj.fdgListmodeLocation, 'FDG_V1-LM-00-OP_001_000.v'));
+                fullfile(this.testObj.fdgListmodeLocation, 'FDG_V1-LM-00-OP_001_000_frame1.v'));
         end
         function test_fdgListModeLocation(this)
             this.verifyEqual( ...
@@ -143,10 +143,10 @@ classdef Test_SessionData < matlab.unittest.TestCase
                 fullfile(this.testObj.sessionPath, 'V1', 'FDG_V1-NAC', 'FDG_V1-LM-00-OP.4dfp.ifh'));
         end
         function test_fdgNACResolved(this)
-            this.testObj.builder = mlfourdfp.T4ResolveBuilder('sessionData', this.testObj);
-            this.verifyEqual( ...
-                this.testObj.fdgNACResolved('typ', 'fqfn'), ...
-                fullfile(this.testObj.sessionPath, 'V1', 'FDG_V1-NAC', 'fdgv1r1_resolved.4dfp.ifh'));
+%             this.testObj.builder = mlfourdfp.T4ResolveBuilder('sessionData', this.testObj);
+%             this.verifyEqual( ...
+%                 this.testObj.fdgNACResolved('typ', 'fqfn'), ...
+%                 fullfile(this.testObj.sessionPath, 'V1', 'FDG_V1-NAC', 'fdgv1r1_op_fdgv1r1_frame9.4dfp.ifh'));
         end
         function test_fdg(this)
         end

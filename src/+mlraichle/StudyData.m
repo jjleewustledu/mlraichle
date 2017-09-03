@@ -8,10 +8,6 @@ classdef StudyData < mlpipeline.StudyData
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.0.0.307022 (R2016a) Prerelease for MACI64.  Copyright 2017 John Joowon Lee.
     
-
-    properties
-        subjectsDirManual
-    end
     
     properties (SetAccess = protected)
         dicomExtension = 'dcm'
@@ -26,57 +22,39 @@ classdef StudyData < mlpipeline.StudyData
         
         %% GET
         
-        function g    = get.subjectsDir(this)
-            if (~isempty(this.subjectsDirManual))
-                g = this.subjectsDirManual;
-                return
-            end
+        function g = get.subjectsDir(~)
             g = mlraichle.RaichleRegistry.instance.subjectsDir;
         end
-        function this = set.subjectsFolder(this, s)
-            rr = mlraichle.RaichleRegistry.instance;
-            rr.subjectsFolder = s;
-        end
-        function g    = get.subjectsFolder(this)
+        function g = get.subjectsFolder(this)
             [~,g] = fileparts(this.subjectsDir);
         end
         
-        %%
+        function this = set.subjectsDir(this, s)
+            assert(ischar(s));       
+            rr = mlraichle.RaichleRegistry.instance;
+            rr.subjectsDir = s;
+        end
+        function this = set.subjectsFolder(this, s)
+            assert(ischar(s));
+            rr = mlraichle.RaichleRegistry.instance;
+            rr.subjectsFolder = s;
+        end
         
-        function d    = freesurfersDir(~)
-            d = fullfile(getenv('PPG'), 'freesurfer', '');
+        %% concrete implementations of abstract mlpipeline.StudyDataHandle
+        
+        function d    = freesurfersDir(this)
+            d = fullfile(fileparts(this.subjectsDir), 'freesurfer', '');
         end
-        function d    = RawDataDir(this, sessFold)
-            %% RAWDATADIR            
-            %  @param sessFold is the name of the folder in rawdataDir that contains session data.
-            %  @returns a path to the session data ending in 'RawData' or the empty string on failures.
-            
-            import mlraichle.*;
-            assert(ischar(sessFold));
-            d = fullfile(this.rawdataDir, sessFold, 'RESOURCES', 'RawData', '');
-            if (~isdir(d))
-                d = fullfile(this.rawdataDir, sessFold, 'resources', 'RawData', '');
-            end
-            if (~isdir(d))
-                d = '';
-            end
-        end
-        function d    = rawdataDir(~)
-            d = fullfile(getenv('PPG'), 'rawdata', '');
+        function d    = rawdataDir(this)
+            d = fullfile(fileparts(this.subjectsDir), 'rawdata', '');
         end
         function this = replaceSessionData(this, varargin)
-            %% REPLACESESSIONDATA completely replaces this.sessionDataComposite_.
-            %  @param must satisfy parameter requirements of mlraichle.SessionData;
-            %  'studyData' and this are always internally supplied.
+            %% REPLACESESSIONDATA
+            %  @param must satisfy parameter requirements of mlraichle.SessionData.
             %  @returns this.
 
             this.sessionDataComposite_ = mlpatterns.CellComposite({ ...
                 mlraichle.SessionData('studyData', this, varargin{:})});
-        end
-        function a    = seriesDicomAsterisk(this, fqdn)
-            assert(isdir(fqdn));
-            assert(isdir(fullfile(fqdn, 'DICOM')));
-            a = fullfile(fqdn, 'DICOM', ['*.' this.dicomExtension]);
         end
         function sess = sessionData(this, varargin)
             %% SESSIONDATA
@@ -95,12 +73,39 @@ classdef StudyData < mlpipeline.StudyData
             end
             sess = mlraichle.SessionData('studyData', this, varargin{:});
         end  
+        
+        %%
+        
+        function d    = RawDataDir(this, sessFold)
+            %% RAWDATADIR            
+            %  @param sessFold is the name of the folder in rawdataDir that contains session data.
+            %  @returns a path to the session data ending in 'RawData' or the empty string on failures.
+            
+            import mlraichle.*;
+            assert(ischar(sessFold));
+            d = fullfile(this.rawdataDir, sessFold, 'RESOURCES', 'RawData', '');
+            if (~isdir(d))
+                d = fullfile(this.rawdataDir, sessFold, 'resources', 'RawData', '');
+            end
+            if (~isdir(d))
+                d = '';
+            end
+        end
+        function a    = seriesDicomAsterisk(this, fqdn)
+            assert(isdir(fqdn));
+            assert(isdir(fullfile(fqdn, 'DICOM')));
+            a = fullfile(fqdn, 'DICOM', ['*.' this.dicomExtension]);
+        end
         function f    = subjectsDirFqdns(this)
+            if (isempty(this.subjectsDir))
+                f = {};
+                return
+            end
+            
             dt = mlsystem.DirTools(this.subjectsDir);
             f = {};
             for di = 1:length(dt.dns)
-                if (strcmp(dt.dns{di}(1:2), 'NP') || ...
-                    strcmp(dt.dns{di}(1:2), 'HY'))
+                if (strncmp(dt.dns{di}, 'NP', 2) || strncmp(dt.dns{di}, 'HY', 2))
                     f = [f dt.fqdns(di)]; %#ok<AGROW>
                 end
             end
@@ -116,7 +121,7 @@ classdef StudyData < mlpipeline.StudyData
 	methods (Access = protected)
         function this = assignSessionDataCompositeFromPaths(this, varargin)
             %% ASSIGNSESSIONDATACOMPOSITEFROMPATHS
-            %  @param [1...N] that is dir, add to this.sessionDataComposite_.
+            %  @param varargin cell containing directories.
             
             for v = 1:length(varargin)
                 if (ischar(varargin{v}) && isdir(varargin{v}) && ~isempty(this.sessionDataComposite_))                    

@@ -1,5 +1,5 @@
 classdef RaichleRegistry < mlpatterns.Singleton
-	%% ARBELAEZREGISTRY 
+	%% RAICHLEREGISTRY 
 
 	%  $Revision$
  	%  was created 15-Oct-2015 16:31:41
@@ -8,25 +8,35 @@ classdef RaichleRegistry < mlpatterns.Singleton
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 8.5.0.197613 (R2015a) for MACI64.
  	
-    properties
-        subjectsFolder = 'jjlee2'
-    end
     
     properties (Dependent)
         subjectsDir
+        subjectsFolder
         testSessionPath
         YeoDir
     end
     
     methods %% GET
         function x = get.subjectsDir(this)
-            x = fullfile(getenv('PPG'), this.subjectsFolder, '');
+            x = this.subjectsDir_;
+        end
+        function x = get.subjectsFolder(this)
+            [~,x] = fileparts(this.subjectsDir_);
         end
         function x = get.testSessionPath(~)
             x = fullfile(getenv('MLUNIT_TEST_PATH'), 'HYGLY28', '');
         end
-        function x = get.YeoDir(~)
-            x = fullfile(getenv('PPG', 'jjlee2', ''));
+        function x = get.YeoDir(this)
+            x = this.subjectsDir;
+        end
+        
+        function this = set.subjectsDir(this, x)
+            assert(ischar(x));
+            this.subjectsDir_ = x;
+        end
+        function this = set.subjectsFolder(this, x)
+            assert(ischar(x));
+            this.subjectsDir_ = fullfile(fileparts(this.subjectsDir_), x, '');
         end
     end
     
@@ -51,17 +61,16 @@ classdef RaichleRegistry < mlpatterns.Singleton
         end
     end  
     
-    methods
-    end
-    
     %% PRIVATE
     
-    properties (Constant, Access = 'private')
+    properties (Access = 'private')
+        subjectsDir_
     end
     
 	methods (Access = 'private')		  
  		function this = RaichleRegistry(varargin)
  			this = this@mlpatterns.Singleton(varargin{:});
+            this.subjectsDir_ = fullfile(getenv('PPG'), 'jjlee2', '');
  		end
     end 
 
