@@ -79,6 +79,12 @@ classdef Test_StudyData < matlab.unittest.TestCase
             this.verifyEqual(testObj_CC.sessionData.length, 3);
             this.verifyEqual(testObj_CC.sessionData{3}.sessionPath, this.aSessionPath('HYGLY09'));
         end
+        function test_immutableSubjectsDir(this)
+            studyd1 = mlraichle.StudyData;
+            studyd2 = mlraichle.StudyData;
+            studyd2.subjectsDir = '/tmp/testSubjectsDir';
+            this.verifyNotEqual(studyd1.subjectsDir, studyd2.subjectsDir);
+        end
 	end
 
  	methods (TestClassSetup)

@@ -22,8 +22,8 @@ classdef StudyData < mlpipeline.StudyData
         
         %% GET
         
-        function g = get.subjectsDir(~)
-            g = mlraichle.RaichleRegistry.instance.subjectsDir;
+        function g = get.subjectsDir(this)
+            g = this.subjectsDir_;
         end
         function g = get.subjectsFolder(this)
             [~,g] = fileparts(this.subjectsDir);
@@ -31,13 +31,11 @@ classdef StudyData < mlpipeline.StudyData
         
         function this = set.subjectsDir(this, s)
             assert(ischar(s));       
-            rr = mlraichle.RaichleRegistry.instance;
-            rr.subjectsDir = s;
+            this.subjectsDir_ = s;
         end
         function this = set.subjectsFolder(this, s)
             assert(ischar(s));
-            rr = mlraichle.RaichleRegistry.instance;
-            rr.subjectsFolder = s;
+            this.subjectsDir_ = fullfile(fileparts(this.subjectsDir_), s, '');
         end
         
         %% concrete implementations of abstract mlpipeline.StudyDataHandle
@@ -113,10 +111,15 @@ classdef StudyData < mlpipeline.StudyData
         
  		function this = StudyData(varargin)
  			this = this@mlpipeline.StudyData(varargin{:});
+            this.subjectsDir_ = mlraichle.RaichleRegistry.instance.subjectsDir;
         end        
     end
     
     %% PROTECTED
+    
+    properties (Access = protected)
+        subjectsDir_
+    end
     
 	methods (Access = protected)
         function this = assignSessionDataCompositeFromPaths(this, varargin)
