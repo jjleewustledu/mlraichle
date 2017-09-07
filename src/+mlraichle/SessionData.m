@@ -10,6 +10,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
  	
 
     properties
+        ensureFqfilename = false
         filetypeExt = '.4dfp.ifh'
     end
     
@@ -112,7 +113,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             %  @returns schr, the s-number as a string.
             
             fqfn = fullfile(this.vLocation, ['T1001' this.filetypeExt]);
-            if (~lexist(fqfn, 'file'))
+            if (this.ensureFqfilename && ~lexist(fqfn, 'file'))
                 mic = T1@mlpipeline.SessionData(this, 'typ', 'mlmr.MRImagingContext');
                 mic.niftid;
                 mic.saveas(fqfn);
@@ -216,9 +217,9 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                            sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.attenuationTag), ...
                            capitalize(this.epochLabel), ...
                            ''));
-            if (~isdir(loc))
-                mkdir(loc);
-            end
+             if (~isdir(loc))
+                 mkdir(loc);
+             end
         end
         function loc  = tracerListmodeLocation(this, varargin)
             %  @param named tracer is a string identifier.
@@ -530,6 +531,9 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             popd(pwd0);
         end
         function        ensureMRFqfilename(this, fqfn)
+            if (~this.ensureFqfilename)
+                return
+            end
             if (~lexist(fqfn, 'file'))
                 try
                     import mlfourdfp.*;
@@ -544,9 +548,15 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             end
         end
         function        ensurePETFqfilename(~, fqfn) %#ok<INUSD>
+            if (~this.ensureFqfilename)
+                return
+            end
             %assert(lexist(fqfn, 'file'));
         end
         function        ensureUmapFqfilename(~, fqfn) %#ok<INUSD>
+            if (~this.ensureFqfilename)
+                return
+            end
             %assert(lexist(fqfn, 'file'));
         end   
         function fqfp = orientedFileprefix(~, fqfp, orient)

@@ -13,30 +13,7 @@ classdef StudyData < mlpipeline.StudyData
         dicomExtension = 'dcm'
     end
     
-    properties (Dependent)
-        subjectsDir
-        subjectsFolder
-    end
-    
     methods
-        
-        %% GET
-        
-        function g = get.subjectsDir(this)
-            g = this.subjectsDir_;
-        end
-        function g = get.subjectsFolder(this)
-            [~,g] = fileparts(this.subjectsDir);
-        end
-        
-        function this = set.subjectsDir(this, s)
-            assert(ischar(s));       
-            this.subjectsDir_ = s;
-        end
-        function this = set.subjectsFolder(this, s)
-            assert(ischar(s));
-            this.subjectsDir_ = fullfile(fileparts(this.subjectsDir_), s, '');
-        end
         
         %% concrete implementations of abstract mlpipeline.StudyDataHandle
         
@@ -117,11 +94,13 @@ classdef StudyData < mlpipeline.StudyData
     
     %% PROTECTED
     
-    properties (Access = protected)
-        subjectsDir_
-    end
-    
-	methods (Access = protected)
+	methods (Access = protected)        
+        function that = copyElement(this)
+            that = mlraichle.StudyData;
+            that.comments = this.comments;
+            that.sessionDataComposite_ = this.sessionDataComposite_;
+            that.subjectsDir_ = this.subjectsDir_;
+        end        
         function this = assignSessionDataCompositeFromPaths(this, varargin)
             %% ASSIGNSESSIONDATACOMPOSITEFROMPATHS
             %  @param varargin cell containing directories.
