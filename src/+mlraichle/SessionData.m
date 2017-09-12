@@ -17,6 +17,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
 	properties (Dependent)
         attenuationTag
         convertedTag
+        frameTag
         hct
         petBlur
         plasmaGlucose        
@@ -40,7 +41,19 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             g = 'NAC';
         end
         function g = get.convertedTag(this)
+            if (~isnan(this.frame_))
+                g = sprintf('Converted-Frame%i-%s', this.frame_, this.attenuationTag);
+                return
+            end
             g = ['Converted-' this.attenuationTag];
+        end
+        function g = get.frameTag(this)
+            assert(isnumeric(this.frame));
+            if (isnan(this.frame))
+                g = '';
+                return
+            end
+            g = sprintf('_frame%i', this.frame);
         end
         function g = get.hct(this)
             g = this.bloodGlucoseAndHct.Hct(this.sessionFolder, this.vnumber);
@@ -103,14 +116,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj = this.mrObject('ep2d_perf', varargin{:});
         end
         function obj  = T1(this, varargin)
-            %  @param named tracer is a string identifier.
-            %  @param named snumber is the scan number; is numeric.
-            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  imagingType.
-            %  @param named frame is numeric.
-            %  @param named rnumber is the revision number; is numeric.
-            %  @returns ipr, the struct ip.Results obtained by parse.            
-            %  @returns schr, the s-number as a string.
             
             fqfn = fullfile(this.vLocation, ['T1001' this.filetypeExt]);
             if (this.ensureFqfilename && ~lexist(fqfn, 'file'))
@@ -192,14 +197,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function loc  = tracerConvertedLocation(this, varargin)
-            %  @param named tracer is a string identifier.
-            %  @param named snumber is the scan number; is numeric.
-            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  imagingType.
-            %  @param named frame is numeric.
-            %  @param named rnumber is the revision number; is numeric.
-            %  @returns ipr, the struct ip.Results obtained by parse.            
-            %  @returns schr, the s-number as a string.
             
             [ipr,schar] = this.iprLocation(varargin{:});
             loc = locationType(ipr.typ, ...
@@ -217,19 +214,11 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                            sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.attenuationTag), ...
                            capitalize(this.epochLabel), ...
                            ''));
-             if (~isdir(loc))
-                 mkdir(loc);
-             end
+            %if (~isdir(loc)) % DEBUGGING
+            %    warning('mlraichle:unexpectedFilesystemState', 'SessionData.tracerLocation could not find loc->%s\n', loc);
+            %end
         end
         function loc  = tracerListmodeLocation(this, varargin)
-            %  @param named tracer is a string identifier.
-            %  @param named snumber is the scan number; is numeric.
-            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  imagingType.
-            %  @param named frame is numeric.
-            %  @param named rnumber is the revision number; is numeric.
-            %  @returns ipr, the struct ip.Results obtained by parse.            
-            %  @returns schr, the s-number as a string.
             
             [ipr,schar] = this.iprLocation(varargin{:});
             loc = locationType(ipr.typ, ...
@@ -238,14 +227,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                          sprintf('%s%s_V%i-LM-00', ipr.tracer, schar, this.vnumber), ''));
         end
         function obj  = tracerListmodeMhdr(this, varargin)
-            %  @param named tracer is a string identifier.
-            %  @param named snumber is the scan number; is numeric.
-            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  imagingType.
-            %  @param named frame is numeric.
-            %  @param named rnumber is the revision number; is numeric.
-            %  @returns ipr, the struct ip.Results obtained by parse.            
-            %  @returns schr, the s-number as a string.
             
             [ipr,schar] = this.iprLocation(varargin{:});
             fqfn = fullfile( ...
@@ -254,30 +235,15 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerListmodeSif(this, varargin)
-            %  @param named tracer is a string identifier.
-            %  @param named snumber is the scan number; is numeric.
-            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  imagingType.
-            %  @param named frame is numeric.
-            %  @param named rnumber is the revision number; is numeric.
-            %  @returns ipr, the struct ip.Results obtained by parse.            
-            %  @returns schr, the s-number as a string.
             
             [ipr,schar] = this.iprLocation(varargin{:});
             fqfn = fullfile( ...
                 this.tracerListmodeLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
-                sprintf('%s%s_V%i-LM-00-OP%s', ipr.tracer, schar, this.vnumber, this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+                sprintf('%s%s_V%i-LM-00-OP%s', ...
+                    ipr.tracer, schar, this.vnumber, this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:}, 'frame', this.frame);
         end
         function obj  = tracerListmodeUmap(this, varargin)
-            %  @param named tracer is a string identifier.
-            %  @param named snumber is the scan number; is numeric.
-            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  imagingType.
-            %  @param named frame is numeric.
-            %  @param named rnumber is the revision number; is numeric.
-            %  @returns ipr, the struct ip.Results obtained by parse.            
-            %  @returns schr, the s-number as a string.
             
             [ipr,schar] = this.iprLocation(varargin{:});
             fqfn = fullfile( ...
@@ -286,20 +252,12 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerListmodeFrameV(this, varargin)
-            %  @param named tracer is a string identifier.
-            %  @param named snumber is the scan number; is numeric.
-            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  imagingType.
-            %  @param named frame is numeric.
-            %  @param named rnumber is the revision number; is numeric.
-            %  @returns ipr, the struct ip.Results obtained by parse.            
-            %  @returns schr, the s-number as a string.
             
             [ipr,schar] = this.iprLocation(varargin{:});
             fqfn = fullfile( ...
                 this.tracerListmodeLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
                 sprintf('%s%s_V%i-LM-00-OP_%03i_000.v', ipr.tracer, schar, this.vnumber, ipr.frame));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+            obj  = this.fqfilenameObject(fqfn, varargin{:}, 'frame', nan);
         end
         function obj  = tracerMhdr(this, varargin)
             [ipr,schar] = this.iprLocation(varargin{:});
@@ -309,12 +267,14 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerSif(this, varargin)
+            
             [ipr,schar] = this.iprLocation(varargin{:});
             ipr.ac = false;
             fqfn = fullfile( ...
                 this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
-                sprintf('%s%s_V%i-LM-00-OP%s', ipr.tracer, schar, this.vnumber, this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+                sprintf('%s%s_V%i-LM-00-OP%s', ...
+                    ipr.tracer, schar, this.vnumber, this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:}, 'frame', this.frame);
         end
         function obj  = tracerResolved(this, varargin)
             fqfn = sprintf('%s_%s%s', this.tracerRevision('typ', 'fqfp'), this.resolveTag, this.filetypeExt);
@@ -343,15 +303,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function loc  = tracerT4Location(this, varargin)
-            %% TRACERT4LOCATION has KLUDGES!
-            %  @param named tracer is a string identifier.
-            %  @param named snumber is the scan number; is numeric.
-            %  @param named typ is string identifier:  folder path, fn, fqfn, ...  
-            %  See also:  imagingType.
-            %  @param named frame is numeric.
-            %  @param named rnumber is the revision number; is numeric.
-            %  @returns ipr, the struct ip.Results obtained by parse.            
-            %  @returns schr, the s-number as a string.
             
             [ipr,schar] = this.iprLocation(varargin{:});
             if (lstrfind(ipr.tracer, 'FDG'))
@@ -394,24 +345,21 @@ classdef SessionData < mlpipeline.ResolvingSessionData
 
         %%  
          
-        function obj  = fqfilenameObject(~, varargin)
+        function obj  = fqfilenameObject(this, varargin)
             %  @override
             %  @param named typ has default 'fqfn'
             
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired( ip, 'fqfn', @ischar);
-            addParameter(ip, 'frame', [], @isnumeric);
+            addParameter(ip, 'frame', nan, @isnumeric);
             addParameter(ip, 'suffix', '', @ischar);
             addParameter(ip, 'typ', 'fqfn', @ischar);
             parse(ip, varargin{:});
-            frame = '';
-            if (~isempty(ip.Results.frame))
-                frame = sprintf('_frame%i', ip.Results.frame);
-            end
+            this.frame = ip.Results.frame;
             
             [pth,fp,ext] = myfileparts(ip.Results.fqfn);
-            fqfn = fullfile(pth, [fp frame ext]);
+            fqfn = fullfile(pth, [fp this.frameTag ext]);
             obj = imagingType(ip.Results.typ, fqfn);
         end
         function obj  = mrObject(this, varargin)

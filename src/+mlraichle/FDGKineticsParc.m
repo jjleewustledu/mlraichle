@@ -75,7 +75,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                     datobj.vnumber = ip.Results.vs(v);
                     try
                         pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', ip.Results.vs(v)), ''));
-                        %CHPC.pushToChpc(datobj);
+                        %CHPC4FdgKinetics.pushData0(datobj);
                         for p = 1:length(parcs)
                             datobj.parcellation = parcs{p};
                             j = c.batch(@mlraichle.FDGKineticsParc.godo3, 1, {datobj});
@@ -121,7 +121,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                     datobj.vnumber = v;
                     try
                         pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
-                        %CHPC.pushToChpc(datobj);
+                        %CHPC4FdgKinetics.pushData0(datobj);
                         for p = 1:length(parcs)
                             datobj.parcellation = parcs{p};
                             j = c.batch(@mlraichle.FDGKineticsParc.godo3, 2, {datobj});
@@ -218,7 +218,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                     datobj.vnumber = v;
                     for p = 1:length(parcs)
                         datobj.parcellation = parcs{p};
-                        sessd = CHPC.staticSessionData(datobj);
+                        sessd = CHPC4FdgKinetics.staticSessionData(datobj);
                         FDGKineticsParc.godoPlots(sessd);
                     end
                 end
@@ -227,7 +227,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
         end
         function goWritetable(varargin)
             ip = inputParser;
-            addOptional(ip, 'pullFromChpc', true, @islogical);
+            addOptional(ip, 'pullData0', true, @islogical);
             parse(ip, varargin{:});
             
             import mlraichle.*;
@@ -243,9 +243,9 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                     for p = 1:length(parcs)
                         datobj.parcellation = parcs{p};
                         pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
-                        sessd = CHPC.staticSessionData(datobj);
-                        if (ip.Results.pullFromChpc)
-                            CHPC.pullFromChpc(sessd);
+                        sessd = CHPC4FdgKinetics.staticSessionData(datobj);
+                        if (ip.Results.pullData0)
+                            CHPC4FdgKinetics.pullData0(sessd);
                         end
                         this = FDGKineticsParc.load(sprintf('mlraichle_FDGKineticsParc_%s.mat', datobj.parcellation));
                         if (isempty(this.sessionData.bloodGlucoseAndHct)) %% KLUDGE:   not sure why this is not in this.
@@ -266,7 +266,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
         end
         function [summary,this] = godo3(datobj)
             import mlraichle.*;
-            sessd = CHPC.staticSessionData(datobj);
+            sessd = CHPC4FdgKinetics.staticSessionData(datobj);
             [summary,this] = FDGKineticsParc.godo2(sessd);
         end
         function [summary,this] = godo2(sessd)

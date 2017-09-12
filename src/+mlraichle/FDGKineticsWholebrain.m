@@ -32,7 +32,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             
             try
                 pwd1 = pushd(ip.Results.sessionData.vLocation);
-                this = mlraichle.CHPC.batchSerial(@mlraichle.FDGKineticsWholebrain.godo__, 1, {ip.Results.sessionData});
+                this = mlraichle.CHPC4FdgKinetics.batchSerial(@mlraichle.FDGKineticsWholebrain.godo__, 1, {ip.Results.sessionData});
                 popd(pwd1);
             catch ME
                 handwarning(ME, struct2str(ME.stack));
@@ -69,7 +69,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                     datobj.vnumber = v;
                     try
                         pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
-                        %CHPC.pushToChpc(datobj);
+                        %CHPC4FdgKinetics.pushData0(datobj);
                         j = c.batch(@mlraichle.FDGKineticsWholebrain.godo3, 1, {datobj});
                         jobs = [jobs j]; %#ok<AGROW>
                         popd(pwd1);
@@ -110,7 +110,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                     datobj.vnumber = v;
                     try
                         pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
-                        %CHPC.pushToChpc(datobj);
+                        %CHPC4FdgKinetics.pushData0(datobj);
                         j = c.batch(@mlraichle.FDGKineticsWholebrain.godo3, 1, {datobj});
                         jobs = [jobs j]; %#ok<AGROW>
                         popd(pwd1);
@@ -160,7 +160,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                 datobj.sessionFolder = dth.dns{d};
                 for v = 1:2
                     datobj.vnumber = v;
-                    sessd = CHPC.staticSessionData(datobj);
+                    sessd = CHPC4FdgKinetics.staticSessionData(datobj);
                     FDGKineticsWholebrain.godoPlots(sessd);
                 end
             end
@@ -177,8 +177,8 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                 for v = 1:2
                     datobj.vnumber = v;
                     pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
-                    sessd = CHPC.staticSessionData(datobj);
-                    CHPC.pullFromChpc(sessd);
+                    sessd = CHPC4FdgKinetics.staticSessionData(datobj);
+                    CHPC4FdgKinetics.pullData0(sessd);
                     this = FDGKineticsWholebrain.load('mlraichle_FDGKineticsWholebrain_.mat');
                     try
                         this.writetable('fqfp', fqfp, 'Range', sprintf('A%i:V%i', 2*d+v, 2*d+v), 'writeHeader', 1==d&&1==v);
@@ -192,7 +192,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
         end
         function godoMasksOnly(datobj)
             import mlraichle.*;
-            sessd = CHPC.staticSessionData(datobj);
+            sessd = CHPC4FdgKinetics.staticSessionData(datobj);
             try
                 import mlraichle.*;
                 FDGKineticsWholebrain.godoMasks(sessd);
@@ -206,14 +206,14 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
         end
         function this = godo__(sessd)
             import mlraichle.*;
-            sessd = CHPC.staticSessionData(sessd);
+            sessd = CHPC4FdgKinetics.staticSessionData(sessd);
             [m,sessd] = FDGKineticsWholebrain.godoMasks(sessd);
             this = FDGKineticsWholebrain(sessd, 'mask', m);
             this = this.doItsBayes;
         end
         function summary = godo3(datobj)
             import mlraichle.*;
-            sessd = CHPC.staticSessionData(datobj);
+            sessd = CHPC4FdgKinetics.staticSessionData(datobj);
             summary = FDGKineticsWholebrain.godo2(sessd);
         end
         function summary = godo2(sessd)

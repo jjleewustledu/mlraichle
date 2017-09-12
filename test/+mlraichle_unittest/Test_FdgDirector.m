@@ -14,7 +14,9 @@ classdef Test_FdgDirector < matlab.unittest.TestCase
  	
 
 	properties
+        hyglyNN = 'HYGLY28'
  		registry
+        sessd
  		testObj
         view = true
  	end
@@ -31,7 +33,7 @@ classdef Test_FdgDirector < matlab.unittest.TestCase
             this.verifyTestObjProduct;
         end
         function test_constructAC(this)
-            this.testObj = this.testObj.constructAC;
+            this.testObj = this.testObj.constructAC('sessionData', this.sessd);
             this.verifyTestObjProduct;
         end
 	end
@@ -40,10 +42,10 @@ classdef Test_FdgDirector < matlab.unittest.TestCase
 		function setupFdgDirector(this)
  			import mlraichle.*;
             studyd = StudyData;
-            sessd  = SessionData( ...
+            this.sessd  = SessionData( ...
                 'studyData', studyd, ...
-                'sessionPath', fullfile(studyd.subjectsDir, 'HYGLY28', ''));
- 			this.testObj_ = FdgDirector(FdgBuilder('sessionData', sessd));
+                'sessionPath', fullfile(studyd.subjectsDir, this.hyglyNN, ''));
+ 			this.testObj_ = FdgDirector(FdgBuilder('sessionData', this.sessd));
  			this.addTeardown(@this.cleanFiles);
  		end
 	end

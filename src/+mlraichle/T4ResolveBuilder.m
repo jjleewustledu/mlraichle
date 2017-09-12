@@ -603,7 +603,7 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             tracer_ = lower(this.sessionData.tracer);
             tracerdir = fullfile(workDir, sprintf('%s_V%i-Resolved', upper(tracer_), this.sessionData.vnumber));
             if (~isdir(tracerdir))
-                mkdir(tracerdir);
+                mlfourdfp.FourdfpVisitor.mkdir(tracerdir);
             end
             cd(tracerdir);
             fdfp0 = this.sessionData.tracerNAC('typ', 'fp');
@@ -639,7 +639,7 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             for visit = 2:2
                 tracerdir = fullfile(workdir, sprintf('%s_v%i', upper(tracer), visit));
                 if (~isdir(tracerdir))
-                    mkdir(tracerdir);
+                    mlfourdfp.FourdfpVisitor.mkdir(tracerdir);
                 end
                 cd(tracerdir);
                 this.buildVisitor.lns(     fullfile(workdir, [mpr '_to_' this.atlasTag '_t4']));

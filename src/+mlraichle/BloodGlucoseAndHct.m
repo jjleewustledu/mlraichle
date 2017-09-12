@@ -17,8 +17,10 @@ classdef BloodGlucoseAndHct
             parse(ip, varargin{:});
  			
             warning('off', 'MATLAB:table:ModifiedVarnames');
+            warning('off', 'MATLAB:table:ModifiedAndSavedVarnames');
             this.table_ = readtable(ip.Results.xlsx);
             warning('on', 'MATLAB:table:ModifiedVarnames');
+            warning('on', 'MATLAB:table:ModifiedAndSavedVarnames');
         end
         
         function bg = plasmaGlucose(this, subj, v)

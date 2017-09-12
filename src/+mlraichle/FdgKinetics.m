@@ -20,7 +20,7 @@ classdef FdgKinetics
             parse(ip, varargin{:});
             
             import mlraichle.*;
-            sessd = CHPC.staticSessionData(ip.Results.sessionData);
+            sessd = CHPC4FdgKinetics.staticSessionData(ip.Results.sessionData);
             [m,sessd] = F18DeoxyGlucoseKinetics.godoMasks(sessd, ip.Results.rois);
             this = F18DeoxyGlucoseKinetics(sessd, 'mask', m);
             this = this.doItsBayes;
@@ -62,9 +62,9 @@ classdef FdgKinetics
             try                
                 pwd0 = pushd(this.sessionData.vLocation);
                 import mlraichle.*;
-                CHPC.pushToChpc(this.sessionData);
-                this = CHPC.batchSerial(@mlraichle.FdgKinetics.goConstructKinetics, 1, {this.sessionData, ip.Results.rois});
-                CHPC.pullFromChpc(this.sessionData);
+                CHPC4FdgKinetics.pushData0(this.sessionData);
+                this = CHPC4FdgKinetics.batchSerial(@mlraichle.FdgKinetics.goConstructKinetics, 1, {this.sessionData, ip.Results.rois});
+                CHPC4FdgKinetics.pullData0(this.sessionData);
                 popd(pwd0);
             catch ME
                 handwarning(ME, struct2str(ME.stack));

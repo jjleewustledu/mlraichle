@@ -35,7 +35,7 @@ classdef HyperglycemiaDirector
             import mlraichle.*;
             sessp = fullfile(RaichleRegistry.instance.subjectsDir, sessionFolder, '');
             if (~isdir(sessp))
-                mkdir(sessp);
+                mlfourdfp.FourdfpVisitor.mkdir(sessp);
             end
             sessd = SessionData('studyData', StudyData, 'sessionPath', sessp, 'vnumber', v);
             this  = HyperglycemiaDirector('sessionData', sessd);
@@ -48,6 +48,24 @@ classdef HyperglycemiaDirector
                     this  = this.sortDownloads(downloadPath);
                     this  = this.sortDownloadFreesurfer(downloadPath);
             end
+            cd(pwd0);
+        end
+        function this = goConstructNAC(sessionFolder, v, varargin)
+            ip = inputParser;
+            addRequired(ip, 'sessionFolder', @ischar);
+            addRequired(ip, 'v', @isnumeric);
+            addOptional(ip, 'kind', '', @ischar);
+            parse(ip, sessionFolder, v, varargin{:});
+
+            pwd0 = pwd;
+            import mlraichle.*;
+            sessp = fullfile(RaichleRegistry.instance.subjectsDir, sessionFolder, '');
+            if (~isdir(sessp))
+                mlfourdfp.FourdfpVisitor.mkdir(sessp);
+            end
+            sessd = SessionData('studyData', StudyData, 'sessionPath', sessp, 'vnumber', v);
+            this  = HyperglycemiaDirector('sessionData', sessd);
+            this  = this.constructNAC;
             cd(pwd0);
         end
     end
@@ -137,18 +155,17 @@ classdef HyperglycemiaDirector
         function this = constructNAC(this)
  			import mlraichle.*;
             this.sessionData_.attenuationCorrected = false;    
-            this.fdgDirector = FdgDirector(FdgBuilder( 'sessionData', this.sessionData));        
+            this.fdgDirector = FdgDirector(FdgBuilder('sessionData', this.sessionData));        
             this.fdgDirector = this.fdgDirector.constructNAC;
-            return
             
-            this.hoDirector  = HoDirector( HoBuilder(  'sessionData', this.sessionData));
-            this.hoDirector  = this.hoDirector.constructNAC;
-            
-            this.ocDirector  = OcDirector( OcBuilder(  'sessionData', this.sessionData));
-            this.ocDirector  = this.ocDirector.constructNAC;
-            
-            this.ooDirector  = OoDirector( OoBuilder(  'sessionData', this.sessionData));
-            this.ooDirector  = this.ooDirector.constructNAC;
+%             this.hoDirector  = HoDirector( HoBuilder(  'sessionData', this.sessionData));
+%             this.hoDirector  = this.hoDirector.constructNAC;
+%             
+%             this.ocDirector  = OcDirector( OcBuilder(  'sessionData', this.sessionData));
+%             this.ocDirector  = this.ocDirector.constructNAC;
+%             
+%             this.ooDirector  = OoDirector( OoBuilder(  'sessionData', this.sessionData));
+%             this.ooDirector  = this.ooDirector.constructNAC;
         end
         function this = constructAC(this)
             tracerNames = {'fdg' 'ho' 'oc' 'oo'};
