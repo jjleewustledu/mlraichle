@@ -129,7 +129,12 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj = this.T1(varargin{:});
         end
         function obj  = tof(this, varargin)
-            obj = this.mrObject('tof', varargin{:});
+            try
+                obj = this.mrObject('tof', varargin{:});
+            catch ME
+                handwarning(ME);
+                obj = [];
+            end
         end
         function obj  = toffov(this, varargin)
             obj = this.mrObject('AIFFOV%s%s', varargin{:});
@@ -232,6 +237,12 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             fqfn = fullfile( ...
                 this.tracerListmodeLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
                 sprintf('%s%s_V%i-LM-00-OP.mhdr', ipr.tracer, schar, this.vnumber));
+            if (~lexist(fqfn, 'file'))                
+                fqfn = fullfile( ...
+                    this.tracerListmodeLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
+                    sprintf('%s%s_V%i-LM-00-OP-%s.mhdr', ipr.tracer, schar, this.vnumber, this.attenuationTag));
+            end
+            assert(lexist(fqfn, 'file'));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerListmodeSif(this, varargin)
@@ -257,6 +268,12 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             fqfn = fullfile( ...
                 this.tracerListmodeLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
                 sprintf('%s%s_V%i-LM-00-OP_%03i_000.v', ipr.tracer, schar, this.vnumber, ipr.frame));
+            if (~lexist(fqfn, 'file'))                
+                fqfn = fullfile( ...
+                    this.tracerListmodeLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
+                    sprintf('%s%s_V%i-LM-00-OP-%s_%03i_000.v', ipr.tracer, schar, this.vnumber, this.attenuationTag, ipr.frame));
+            end
+            assert(lexist(fqfn, 'file'));
             obj  = this.fqfilenameObject(fqfn, varargin{:}, 'frame', nan);
         end
         function obj  = tracerMhdr(this, varargin)
@@ -279,6 +296,32 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function obj  = tracerResolved(this, varargin)
             fqfn = sprintf('%s_%s%s', this.tracerRevision('typ', 'fqfp'), this.resolveTag, this.filetypeExt);
             obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end        
+        function obj  = tracerResolvedFinal(this, varargin)
+            if (strcmp(this.tracer, 'FDG')) % KLUDGE
+                rEpoch = 1:3;
+                rFrame = 3;
+            else 
+                rEpoch = nan;
+                rFrame = nan;
+            end
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'resolvedEpoch', rEpoch, @isnumeric); 
+            addParameter(ip, 'resolvedFrame', rFrame, @isnumeric); 
+            parse(ip, varargin{:});
+            
+            sessd1 = this;
+            sessd1.rnumber = 1;
+            sessd1.epoch = ip.Results.resolvedEpoch;
+            
+            fqfn = sprintf('%s_%s%s', this.tracerRevision('typ', 'fqfp'), sessd1.resolveTagFrame(ip.Results.resolvedFrame), this.filetypeExt);
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = tracerResolvedFinalSumt(this, varargin)
+            fqfn = sprintf('%s_sumt%s', this.tracerResolvedFinal('typ', 'fqfp'), this.filetypeExt);
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerResolvedSumt(this, varargin)
             fqfn = sprintf('%s_%s_sumt%s', this.tracerRevision('typ', 'fqfp'), this.resolveTag, this.filetypeExt);
@@ -293,6 +336,10 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end
         function obj  = tracerRevisionSumt(this, varargin)
             fqfn = sprintf('%s_sumt%s', this.tracerRevision('typ', 'fqfp'), this.filetypeExt);
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = tracerScrubbed(this, varargin)
+            fqfn = sprintf('%s_scrubbed%s', this.tracerResolved('typ', 'fqfp'), this.filetypeExt);
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerVisit(this, varargin)
@@ -359,7 +406,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             this.frame = ip.Results.frame;
             
             [pth,fp,ext] = myfileparts(ip.Results.fqfn);
-            fqfn = fullfile(pth, [fp this.frameTag ext]);
+            fqfn = fullfile(pth, [fp ip.Results.suffix this.frameTag ext]);
             obj = imagingType(ip.Results.typ, fqfn);
         end
         function obj  = mrObject(this, varargin)

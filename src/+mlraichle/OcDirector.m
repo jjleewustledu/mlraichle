@@ -1,4 +1,4 @@
-classdef OcDirector < mlpet.TracerKineticsDirector  
+classdef OcDirector < mlpet.TracerDirector
 	%% OCDIRECTOR  
 
 	%  $Revision$
@@ -20,9 +20,11 @@ classdef OcDirector < mlpet.TracerKineticsDirector
             %  @param required 'builder' is an 'mlraichle.OcBuilder'
 
             ip = inputParser;
+            ip.KeepUnmatched = true;
             addRequired(ip, 'builder', @(x) isa(x, 'mlraichle.OcBuilder'));
             parse(ip, varargin{:}); 			
-            this = this@mlpet.TracerKineticsDirector(varargin{:});
+            this = this@mlpet.TracerDirector(varargin{:});
+            this.sessionData.tracer = 'OC';
  		end
  	end 
 

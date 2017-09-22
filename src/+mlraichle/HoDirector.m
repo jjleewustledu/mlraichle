@@ -1,4 +1,4 @@
-classdef HoDirector < mlpet.TracerKineticsDirector 
+classdef HoDirector < mlpet.TracerDirector 
 	%% HODIRECTOR  
 
 	%  $Revision$
@@ -23,7 +23,7 @@ classdef HoDirector < mlpet.TracerKineticsDirector
             this.builder.motionCorrectACFrames;
             this.builder.motionCorrectFrames;
             this.builder.buildCarneyUmap;
-            this.builder.motionCorrectModalities;
+            this.builder.motionCorrectCTAndUmap;
             this.builder.product.view;
             this.builder.transferToE7tools('HO-Converted-NAC');
         end
@@ -40,9 +40,11 @@ classdef HoDirector < mlpet.TracerKineticsDirector
             %  @param required 'builder' is an 'mlraichle.HoBuilder'
 
             ip = inputParser;
+            ip.KeepUnmatched = true;
             addRequired(ip, 'builder', @(x) isa(x, 'mlraichle.HoBuilder'));
             parse(ip, varargin{:});
-            this = this@mlpet.TracerKineticsDirector(varargin{:});
+            this = this@mlpet.TracerDirector(varargin{:});
+            this.sessionData.tracer = 'HO';
         end
  	end 
 
