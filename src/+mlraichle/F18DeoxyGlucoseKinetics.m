@@ -22,7 +22,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
     end
     
     methods (Static)
-        function that = goConstructKinetics(varargin)
+        function that = constructKinetics(varargin)
             %% GOCONSTRUCTKINETICS
             %  @param optional 'roisBuild' is a 'mlrois.IRoisBuilder'.
             %  @returns 'that' which is 'mlraichle.FDGKineticsWholebrain' or 'mlraichle.FDGKineticsParc'.
@@ -34,10 +34,10 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
             
             import mlraichle.*;
             if (isa(ip.Results.rois, 'mlrois.Wholebrain'))
-                that = FDGKineticsWholebrain.goConstructKinetics('sessionData', ip.Results.sessionData);
+                that = FDGKineticsWholebrain.constructKinetics('sessionData', ip.Results.sessionData);
                 return
             end            
-            that = FDGKineticsParc.goConstructKinetics('sessionData', ip.Results.sessionData);
+            that = FDGKineticsParc.constructKinetics('sessionData', ip.Results.sessionData);
         end
         function this = simulateMcmc(Aa, fu, k1, k2, k3, k4, t, u0, v1, mapParams)
             import mlraichle.*;

@@ -13,7 +13,9 @@ classdef Test_F18DeoxyGlucoseKinetics < matlab.unittest.TestCase
 	properties
  		registry
         sessd
+        sessionFolder = 'HYGLY28'
  		testObj
+        vnumber = 1
  	end
 
 	methods (Test)
@@ -30,10 +32,9 @@ classdef Test_F18DeoxyGlucoseKinetics < matlab.unittest.TestCase
  			import mlraichle.*;
             this.sessd = mlraichle.SessionData( ...
                 'studyData', mlraichle.StudyData, ...
-                'sessionFolder', 'HYGLY25', ...
-                'vnumber', 2, ...
+                'sessionFolder', this.sessionFolder, ...
+                'vnumber', this.vnumber, ...
                 'ac', true);
-            this.sessd.hct = 34.5;
  		end
 	end
 

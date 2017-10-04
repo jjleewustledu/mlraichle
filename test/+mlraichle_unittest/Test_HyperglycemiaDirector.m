@@ -34,9 +34,9 @@ classdef Test_HyperglycemiaDirector < matlab.unittest.TestCase
         function test_analyzeTracers(this)
         end
         
-		function test_constructKinetics(this)
-            this.testObj = this.testObj.constructKinetics('roisBuild', this.brainmaskBldr);
-            this.verifyTrue(this.testObj.constructKineticsPassed);
+		function test_instanceConstructKinetics(this)
+            this.testObj = this.testObj.instanceConstructKinetics('roisBuild', this.brainmaskBldr);
+            this.verifyTrue(this.testObj.instanceConstructKineticsPassed);
         end
         
 		function test_sortDownloads(this)

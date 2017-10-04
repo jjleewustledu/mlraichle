@@ -22,18 +22,20 @@ classdef Test_FdgDirector < matlab.unittest.TestCase
  	end
 
 	methods (Test)
-        function test_constructNAC(this)
+        function test_constructResolved_NAC(this)
             % Subdomains of inputs:  
             % motion-corrected, back-projected; 
             % frames, epochs;
             % MR, CT, umap.
             % Testing the blackbox products.  
             
-            this.testObj = this.testObj.constructNAC;
+            this.sessd.attenuationCorrected = false;
+            this.testObj = this.testObj.constructResolved('sessionData', this.sessd);
             this.verifyTestObjProduct;
         end
-        function test_constructAC(this)
-            this.testObj = this.testObj.constructAC('sessionData', this.sessd);
+        function test_constructResolved_AC(this)
+            this.sessd.attenuationCorrected = true;
+            this.testObj = this.testObj.constructResolved('sessionData', this.sessd);
             this.verifyTestObjProduct;
         end
 	end

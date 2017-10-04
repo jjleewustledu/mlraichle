@@ -16,24 +16,6 @@ classdef HoDirector < mlpet.TracerDirector
 	methods        
         function ensureJSRecon(this)
         end
-        function this = constructNAC(this)
-            %this.builder.transferFromRawData;
-            %this.builder.transferToE7tools('HO');
-            %this.builder.transferFromE7tools('HO-Converted-NAC');
-            this.builder.motionCorrectACFrames;
-            this.builder.motionCorrectFrames;
-            this.builder.buildCarneyUmap;
-            this.builder.motionCorrectCTAndUmap;
-            this.builder.product.view;
-            this.builder.transferToE7tools('HO-Converted-NAC');
-        end
-        function this = constructAC(this)
-            %this.builder.transferFromE7tools('HO-Converted-Frame*');
-            %this.builder.buildACFrames;
-            %this.builder.motionCorrectACFrames;
-            this.builder.buildTracerAC;
-            this.builder.product.view;
-        end
         
  		function this = HoDirector(varargin)
  			%% HODIRECTOR

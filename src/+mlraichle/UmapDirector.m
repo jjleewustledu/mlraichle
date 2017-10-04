@@ -1,4 +1,4 @@
-classdef UmapDirector 
+classdef UmapDirector < mlpipeline.AbstractDataDirector
 	%% UMAPDIRECTOR  
 
 	%  $Revision$
@@ -8,16 +8,24 @@ classdef UmapDirector
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John J. Lee.
  	
-
-	properties
- 		builder
- 	end
+    
+    methods (Static)
+        function this = constructUmaps(varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.UmapDirector( ...
+                mlfourdfp.CarneyUmapBuilder(varargin{:}));              
+            this = this.instanceConstructUmaps;
+        end
+    end
 
 	methods 
-        function this = constructUmap(this)
-            studyd = mlraichle.StudyData;
-            pwd0 = pushd(studyd.subjectsDir);
-            mlfourdfp.CarneyUmapBuilder.buildUmapAll;
+        function [this,umap] = instanceConstructUmaps(this)
+            pwd0 = pushd(this.sessionData.vLocation);
+            [umap,this.builder_] = this.builder_.buildUmap;
             popd(pwd0);
         end
 		  
@@ -25,12 +33,9 @@ classdef UmapDirector
  			%% UMAPDIRECTOR
  			%  Usage:  this = UmapDirector()
 
-            ip = inputParser;
-            addRequired(ip, 'bldr', @(x) isa(x, 'mlfourdfp.AbstractUmapResolveBuilder'));
-            parse(ip, varargin{:});
- 			this.builder = ip.Results.bldr;
+            this = this@mlpipeline.AbstractDataDirector(varargin{:});
  		end
- 	end 
+    end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end

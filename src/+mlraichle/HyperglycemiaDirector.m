@@ -1,4 +1,4 @@
-classdef HyperglycemiaDirector
+classdef HyperglycemiaDirector < mlraichle.StudyDirector
 	%% HYPERGLYCEMIADIRECTOR is a high-level, study-level director for other directors and builders.
 
 	%  $Revision$
@@ -15,7 +15,7 @@ classdef HyperglycemiaDirector
         hoDirector
         ooDirector
         ocDirector
-        trDirectors = {'fdgDirector' 'hoDirector'} %%% 'ocDirector' 'ooDirector'}
+        trDirectors = {'fdgDirector' 'hoDirector' 'ocDirector' 'ooDirector'}
     end
     
     properties (Dependent)
@@ -23,7 +23,88 @@ classdef HyperglycemiaDirector
     end
     
     methods (Static)
-        function this = goSortDownloads(downloadPath, sessionFolder, v, varargin)
+        function         cleanConverted(varargin)
+            %% cleanConverted
+            %  @param named verifyForDeletion must be set to the fully-qualified study directory to clean.
+            %  @param works in the pwd which should point to the study directory.
+            %  @return deletes from the filesystem:  *-sino.s[.hdr]
+            
+            ip = inputParser;
+            addParameter(ip, 'verifyForDeletion', ['notavalidedirectory_' datestr(now,30)], @isdir);
+            parse(ip, varargin{:});            
+            pwd0 = pushd(ip.Results.verifyForDeletion);
+            fprintf('mlraichle.HyperglycemiaDirector.cleanConverted:  is cleaning %s\n', pwd);
+            import mlsystem.*;
+            
+            dtsess = DirTools({'HYGLY*' 'NP995*'});
+            for idtsess = 1:length(dtsess.fqdns)
+                pwds = pushd(dtsess.fqdns{idtsess});
+                fprintf('mlraichle.HyperglycemiaDirector.cleanConverted:  is cleaning %s\n', pwd); 
+                
+                dtv = DirTool('V*');
+                for idtv = 1:length(dtv.fqdns)
+                    pwdv = pushd(dtv.fqdns{idtv});
+                    fprintf('mlraichle.HyperglycemiaDirector.cleanConverted:  is cleaning %s\n', pwd); 
+
+                    dtconv = DirTool('*-Converted*');
+                    for idtconv = 1:length(dtconv.fqdns)
+                        try
+                            mlbash(sprintf('rm -rf %s', dtconv.fqdns{idtconv}));
+                        catch ME
+                            handwarning(ME);
+                        end
+                    end
+                    popd(pwdv);
+                end
+                popd(pwds);
+            end   
+            popd(pwd0);
+        end
+        function         cleanSinograms(varargin)
+            %% cleanSinograms
+            %  @param named verifyForDeletion must be set to the fully-qualified study directory to clean.
+            %  @param works in the pwd which should point to the study directory.
+            %  @return deletes from the filesystem:  *-sino.s[.hdr]
+            
+            ip = inputParser;
+            addParameter(ip, 'verifyForDeletion', ['notavalidedirectory_' datestr(now,30)], @isdir);
+            parse(ip, varargin{:});            
+            pwd0 = pushd(ip.Results.verifyForDeletion);
+            fprintf('mlraichle.HyperglycemiaDirector.cleanFilesystem:  is cleaning %s\n', pwd);
+            import mlsystem.*;
+            
+            dtsess = DirTools({'HYGLY*' 'NP995*'});
+            for idtsess = 1:length(dtsess.fqdns)
+                pwds = pushd(dtsess.fqdns{idtsess});
+                fprintf('mlraichle.HyperglycemiaDirector.cleanFilesystem:  is cleaning %s\n', pwd); 
+                
+                dtv = DirTool('V*');
+                for idtv = 1:length(dtv.fqdns)
+                    pwdv = pushd(dtv.fqdns{idtv});
+                    fprintf('mlraichle.HyperglycemiaDirector.cleanFilesystem:  is cleaning %s\n', pwd); 
+
+                    dtconv = DirTool('*-Converted*');
+                    for idtconv = 1:length(dtconv.fqdns)
+                        pwdc = pushd(dtconv.fqdns{idtconv});
+                        fprintf('mlraichle.HyperglycemiaDirector.cleanFilesystem:  is cleaning %s\n', pwd); 
+
+                        dt00 = DirTool('*-00');
+                        for idt00 = 1:length(dt00.fqdns)
+                            pwd00 = pushd(dt00.fqdns{idt00});
+                            fprintf('mlraichle.HyperglycemiaDirector.cleanFilesystem:  is cleaning %s\n', pwd);   
+                            deleteExisting('*-00-sino*');  
+                            popd(pwd00);
+                        end
+                        popd(pwdc);
+
+                    end
+                    popd(pwdv);
+                end
+                popd(pwds);
+            end
+            popd(pwd0);
+        end
+        function this  = goSortDownloads(downloadPath, sessionFolder, v, varargin)
             ip = inputParser;
             addRequired(ip, 'downloadPath', @isdir);
             addRequired(ip, 'sessionFolder', @ischar);
@@ -50,23 +131,42 @@ classdef HyperglycemiaDirector
             end
             cd(pwd0);
         end
-        function this = goConstructNAC(sessionFolder, v, varargin)
-            ip = inputParser;
-            addRequired(ip, 'sessionFolder', @ischar);
-            addRequired(ip, 'v', @isnumeric);
-            addOptional(ip, 'kind', '', @ischar);
-            parse(ip, sessionFolder, v, varargin{:});
-
-            pwd0 = pwd;
-            import mlraichle.*;
-            sessp = fullfile(RaichleRegistry.instance.subjectsDir, sessionFolder, '');
-            if (~isdir(sessp))
-                mlfourdfp.FourdfpVisitor.mkdir(sessp);
-            end
-            sessd = SessionData('studyData', StudyData, 'sessionPath', sessp, 'vnumber', v);
-            this  = HyperglycemiaDirector('sessionData', sessd);
-            this  = this.constructNAC;
-            cd(pwd0);
+        
+        function those = constructResolved(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.constructResolved', varargin{:});
+        end
+        function those = constructResolvedRemotely(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.constructResolvedRemotely', varargin{:});
+        end
+        function those = constructKinetics(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.constructKinetics', varargin{:});
+        end
+        function those = constructUmaps(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.UmapDirector.constructUmaps', varargin{:});
+        end
+        function those = pullFromRemote(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.pullFromRemote', varargin{:});
+        end     
+        function         cleanRemote(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
+            
+            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.cleanRemote', varargin{:});
         end
     end
     
@@ -148,35 +248,8 @@ classdef HyperglycemiaDirector
         
         % construct methods are interleaved with JSRecon12 processes
         
-        function this = constructUmap(this)
-            this.umapDirector = mlraichle.UmapDirector(mlfourdfp.CarneyUmapBuilder('sessionData', this.sessionData));
-            this.umapDirector = this.umapDirector.constructUmap;
-        end
-        function this = constructNAC(this)
- 			import mlraichle.*;
-            this.sessionData_.attenuationCorrected = false;    
-            this.fdgDirector = FdgDirector(FdgBuilder('sessionData', this.sessionData));        
-            this.fdgDirector = this.fdgDirector.constructNAC;
-            
-%             this.hoDirector  = HoDirector( HoBuilder(  'sessionData', this.sessionData));
-%             this.hoDirector  = this.hoDirector.constructNAC;
-%             
-%             this.ocDirector  = OcDirector( OcBuilder(  'sessionData', this.sessionData));
-%             this.ocDirector  = this.ocDirector.constructNAC;
-%             
-%             this.ooDirector  = OoDirector( OoBuilder(  'sessionData', this.sessionData));
-%             this.ooDirector  = this.ooDirector.constructNAC;
-        end
-        function this = constructAC(this)
-            tracerNames = {'fdg' 'ho' 'oc' 'oo'};
-            for tn = 1:length(tracerNames)
-                this.(tracerNames{tn}) = this.(tracerNames{tn}).resolveNac;
-                this.(tracerNames{tn}) = this.(tracerNames{tn}).resolveUmaps;
-                this.(tracerNames{tn}) = this.(tracerNames{tn}).prepareJSReconAc;
-            end
-        end
-        function this = constructKinetics(this, varargin)
-            %% CONSTRUCTKINETICS iterates through this.trDirectors.
+        function this = instanceConstructKinetics(this, varargin)
+            %% INSTANCECONSTRUCTKINETICS iterates through this.trDirectors.
             %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'
             
             ip = inputParser;
@@ -185,11 +258,11 @@ classdef HyperglycemiaDirector
             
             for td = 1:length(this.trDirectors)
                 this.(this.trDirectors{td}).roisBuilder = ip.Results.roisBuild;
-                this.(this.trDirectors{td}) = this.(this.trDirectors{td}).constructKinetics(varargin{:});
+                this.(this.trDirectors{td}) = this.(this.trDirectors{td}).instanceConstructKinetics(varargin{:});
             end
         end
-        function tf   = constructKineticsPassed(this, varargin)
-            %% CONSTRUCTKINETICSPASSED
+        function tf   = queryKineticsPassed(this, varargin)
+            %% QUERYKINETICSPASSED for all this.trDirectors.
             %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'
             
             ip = inputParser;
@@ -198,7 +271,7 @@ classdef HyperglycemiaDirector
             
             tf = true;
             for td = 1:length(this.trDirectors)
-                tf = tf && this.(this.trDirectors{td}).constructKineticsPassed(varargin{:});
+                tf = tf && this.(this.trDirectors{td}).queryKineticsPassed(varargin{:});
             end           
         end
         
@@ -206,6 +279,7 @@ classdef HyperglycemiaDirector
  			%% HYPERGLYCEMIADIRECTOR
  			%  @param parameter 'sessionData' is a 'mlpipeline.ISessionData'
 
+            this = this@mlraichle.StudyDirector(varargin{:});
  			ip = inputParser;
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
