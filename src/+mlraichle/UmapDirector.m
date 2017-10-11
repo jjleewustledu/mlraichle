@@ -16,6 +16,16 @@ classdef UmapDirector < mlpipeline.AbstractDataDirector
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
             parse(ip, varargin{:});
             
+            sessd = ip.Results.sessionData;
+            pwd0 = pushd(sessd.vLocation);
+            fv = mlfourdfp.FourdfpVisitor;
+            fv.lns_4dfp(sessd.T1('typ','fqfp'));            
+            fv.lns_4dfp(sessd.t2('typ','fqfp'));  
+            if (fv.lexist_4dfp(sessd.tof('typ','fqfp')))
+                fv.lns_4dfp(sessd.tof('typ','fqfp'));
+            end
+            popd(pwd0);
+            
             this = mlraichle.UmapDirector( ...
                 mlfourdfp.CarneyUmapBuilder(varargin{:}));              
             this = this.instanceConstructUmaps;
@@ -25,6 +35,7 @@ classdef UmapDirector < mlpipeline.AbstractDataDirector
 	methods 
         function [this,umap] = instanceConstructUmaps(this)
             pwd0 = pushd(this.sessionData.vLocation);
+            this.builder_ = this.builder_.prepareMprToAtlasT4;
             [umap,this.builder_] = this.builder_.buildUmap;
             popd(pwd0);
         end

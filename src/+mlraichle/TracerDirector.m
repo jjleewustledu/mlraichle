@@ -10,6 +10,106 @@ classdef TracerDirector < mlpet.TracerDirector
         
         %% factory methods        
         
+        function out   = cleanTracerRemotely(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));          
+            this.instanceCleanTracerRemotely('distcompHost', ip.Results.distcompHost);
+            out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
+        end
+        function out   = cleanSinograms
+            %% cleanSinograms
+            %  @param works in mlraichle.RaichleRegistry.instance.subjectsDir
+            %  @return deletes from the filesystem:  *-sino.s[.hdr]
+                      
+            pwd0 = pushd(mlraichle.RaichleRegistry.instance.subjectsDir);
+            assert(isdir(pwd0));
+            
+            fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd);
+            import mlsystem.*;            
+            dtsess = DirTools({'HYGLY*' 'NP995*' 'TW0*' 'DT*'});
+            for idtsess = 1:length(dtsess.fqdns)
+                pwds = pushd(dtsess.fqdns{idtsess});
+                fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd); 
+                
+                dtv = DirTool('V*');
+                for idtv = 1:length(dtv.fqdns)
+                    pwdv = pushd(dtv.fqdns{idtv});
+                    fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd); 
+
+                    dtconv = DirTool('*-Converted*');
+                    for idtconv = 1:length(dtconv.fqdns)
+                        pwdc = pushd(dtconv.fqdns{idtconv});
+                        fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd); 
+
+                        dt00 = DirTool('*-00');
+                        for idt00 = 1:length(dt00.fqdns)
+                            pwd00 = pushd(dt00.fqdns{idt00});
+                            fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd);   
+                            deleteExisting('*-00-sino*');  
+                            popd(pwd00);
+                        end
+                        popd(pwdc);
+
+                    end
+                    popd(pwdv);
+                end
+                popd(pwds);
+            end
+            popd(pwd0);
+            out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
+        end
+        function out   = cleanSinograms2(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});                    
+                    
+            import mlsystem.*;
+            pwd0 = pushd(ip.Results.sessionData.vLocation);
+            dtconv = DirTool('*-Converted*');
+            for idtconv = 1:length(dtconv.fqdns)
+                pwdc = pushd(dtconv.fqdns{idtconv});
+                fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd); 
+
+                dt00 = DirTool('*-00');
+                for idt00 = 1:length(dt00.fqdns)
+                    pwd00 = pushd(dt00.fqdns{idt00});
+                    fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd);   
+                    deleteExisting('*-00-sino*');  
+                    popd(pwd00);
+                end
+                popd(pwdc);
+            end
+            popd(pwd0);                  
+            out = sprintf('mlraichle.TracerDirector.cleanSinogram cleaned->%s\n', ip.Results.sessionData.sessionPath);
+        end
+        function out   = cleanSinogramsRemotely2(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'nArgout', 1,   @isnumeric);
+            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
+            addParameter(ip, 'pushData', false, @islogical);
+            addParameter(ip, 'pullData', false, @islogical);
+            parse(ip, varargin{:});
+            
+            out = mlraichle.TracerDirector.constructRemotely2( ...
+                 @mlraichle.TracerDirector.cleanSinograms, ...
+                 'sessionData',  ip.Results.sessionData, ...
+                 'nArgout',      ip.Results.nArgout, ...
+                 'distcompHost', ip.Results.distcompHost, ...
+                 'pushData',     ip.Results.pushData, ...
+                 'pullData',     ip.Results.pullData);
+        end
         function this  = constructResolved(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             %  @return umap files generated per motionUncorrectedUmap ready for use by TriggeringTracers.js.
@@ -36,6 +136,52 @@ classdef TracerDirector < mlpet.TracerDirector
             this = this.instanceConstructResolvedRemotely( ...
                 @mlraichle.SessionData, @mlraichle.TracerDirector.constructResolved);
         end 
+        function rpts  = constructResolveReports(varargin)
+            %  @param  varargin for mlfourdfp.T4ResolveReporter.
+            %  @return saved *.fig, *.png, *.mat.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerReportsBuilder(varargin{:}));          
+            rpts = this.instanceMakeReports;
+        end
+        function lst   = listUmaps(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));          
+            lst = this.instanceListUmaps;
+        end
+        function lst   = listTracersConverted(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));
+            lst = this.instanceListTracersConverted;
+        end
+        function lst   = listTracersResolved(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));
+            lst = this.instanceListTracersResolved;      
+        end
         function this  = pullFromRemote(varargin)
             
             ip = inputParser;
@@ -47,18 +193,6 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:}));          
             this = this.instancePullFromRemote;
         end 
-        function out   = cleanRemote(varargin)
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            
-            this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));          
-            this.instanceCleanRemote;
-            out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
-        end
     end
     
     methods

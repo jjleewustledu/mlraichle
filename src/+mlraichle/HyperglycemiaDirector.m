@@ -10,6 +10,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
  	
 
 	properties
+        freesurferData = { 'aparc+aseg' 'brainmask' 'T1' }
         umapDirector
         fdgDirector
         hoDirector
@@ -60,51 +61,89 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             end   
             popd(pwd0);
         end
-        function         cleanSinograms(varargin)
-            %% cleanSinograms
-            %  @param named verifyForDeletion must be set to the fully-qualified study directory to clean.
-            %  @param works in the pwd which should point to the study directory.
-            %  @return deletes from the filesystem:  *-sino.s[.hdr]
+        function chpc  = cleanSinograms(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
+            
+            chpc = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.cleanSinograms', varargin{:});
+        end
+        function chpc  = cleanSinogramsRemotely(varargin)
+            %  @param named distcompHost is the hostname or distcomp profile.
+            %  @return chpc, an instance of mlpet.CHPC4TracerDirector.
             
             ip = inputParser;
-            addParameter(ip, 'verifyForDeletion', ['notavalidedirectory_' datestr(now,30)], @isdir);
-            parse(ip, varargin{:});            
-            pwd0 = pushd(ip.Results.verifyForDeletion);
-            fprintf('mlraichle.HyperglycemiaDirector.cleanFilesystem:  is cleaning %s\n', pwd);
-            import mlsystem.*;
+            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
+            parse(ip, varargin{:});
             
-            dtsess = DirTools({'HYGLY*' 'NP995*'});
-            for idtsess = 1:length(dtsess.fqdns)
-                pwds = pushd(dtsess.fqdns{idtsess});
-                fprintf('mlraichle.HyperglycemiaDirector.cleanFilesystem:  is cleaning %s\n', pwd); 
-                
-                dtv = DirTool('V*');
-                for idtv = 1:length(dtv.fqdns)
-                    pwdv = pushd(dtv.fqdns{idtv});
-                    fprintf('mlraichle.HyperglycemiaDirector.cleanFilesystem:  is cleaning %s\n', pwd); 
-
-                    dtconv = DirTool('*-Converted*');
-                    for idtconv = 1:length(dtconv.fqdns)
-                        pwdc = pushd(dtconv.fqdns{idtconv});
-                        fprintf('mlraichle.HyperglycemiaDirector.cleanFilesystem:  is cleaning %s\n', pwd); 
-
-                        dt00 = DirTool('*-00');
-                        for idt00 = 1:length(dt00.fqdns)
-                            pwd00 = pushd(dt00.fqdns{idt00});
-                            fprintf('mlraichle.HyperglycemiaDirector.cleanFilesystem:  is cleaning %s\n', pwd);   
-                            deleteExisting('*-00-sino*');  
-                            popd(pwd00);
+            import mlpet.*;
+            try
+                chpc = CHPC4TracerDirector([], 'distcompHost', ip.Results.distcompHost, 'wallTime', '2:00:00');
+                chpc = chpc.runSerialProgram(@mlraichle.TracerDirector.cleanSinograms, {}, 0);
+            catch ME
+                handwarning(ME);
+            end
+        end
+        function         cleanTracerRemotely(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
+            
+            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.cleanTracerRemotely', varargin{:});
+        end
+        
+        function lst   = listUmaps(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
+            
+            lst = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.listUmaps', varargin{:});
+        end
+        function lst   = listTracersConverted(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
+            
+            lst = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.listTracersConverted', varargin{:});
+        end
+        function lst   = listTracersResolved(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
+            
+            lst = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.listTracersResolved', varargin{:});
+        end
+        
+        function lst   = prepareFreesurferData(varargin)
+            %% PREPAREFREESURFERDATA prepares session & visit-specific copies of data enumerated by this.freesurferData.
+            %  @param named sessionData is an mlraichle.SessionData.
+            %  @return 4dfp copies of this.freesurferData in sessionData.vLocation.
+            %  @return lst, a cell-array of fileprefixes for 4dfp objects created.
+            
+            ip = inputParser;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlraichle.SessionData'));
+            parse(ip, varargin{:});
+            
+            sessd = ip.Results.sessionData;
+            pwd0 = pushd(sessd.vLocation);
+            fv = mlfourdfp.FourdfpVisitor;
+            this = mlraichle.HyperglycemiaDirector(varargin{:});
+            fsd = this.freesurferData;
+            lst = cell(1, length(fsd));
+            for f = 1:length(fsd)
+                if (~fv.lexist_4dfp(fsd{f}))
+                    try
+                        sessd.mri_convert( [fullfile(sessd.mriLocation, fsd{f}) '.mgz'], [fsd{f} '.nii']);
+                        sessd.nifti_4dfp_4(fsd{f});
+                        if (strcmp(fsd{f}, 'T1'))
+                            fv.move_4dfp(fsd{f}, [fsd{f} '001']);
                         end
-                        popd(pwdc);
-
+                        lst = [lst fullfile(pwd, fsd{f})]; %#ok<AGROW>
+                    catch ME
+                        handexcept(ME);
                     end
-                    popd(pwdv);
                 end
-                popd(pwds);
             end
             popd(pwd0);
         end
-        function this  = goSortDownloads(downloadPath, sessionFolder, v, varargin)
+        function this  = sortDownloads(downloadPath, sessionFolder, v, varargin)
+            %% SORTDOWNLOADS installs data from rawdata into SUBJECTS_DIR; start here after downloading rawdata.  
+            
             ip = inputParser;
             addRequired(ip, 'downloadPath', @isdir);
             addRequired(ip, 'sessionFolder', @ischar);
@@ -122,16 +161,23 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             this  = HyperglycemiaDirector('sessionData', sessd);
             switch (lower(ip.Results.kind))
                 case 'ct'
-                    this  = this.sortDownloadCT(downloadPath);
+                    this  = this.instanceSortDownloadCT(downloadPath);
                 case 'freesurfer'
-                    this  = this.sortDownloadFreesurfer(downloadPath);
+                    this  = this.instanceSortDownloadFreesurfer(downloadPath);
                 otherwise
-                    this  = this.sortDownloads(downloadPath);
-                    this  = this.sortDownloadFreesurfer(downloadPath);
+                    this  = this.instanceSortDownloads(downloadPath);
+                    this  = this.instanceSortDownloadFreesurfer(downloadPath);
             end
             cd(pwd0);
-        end
-        
+        end    
+        function those = constructUmaps(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
+            
+            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.HyperglycemiaDirector.prepareFreesurferData', varargin{:});
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.UmapDirector.constructUmaps', varargin{:});
+        end    
         function those = constructResolved(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
             
@@ -144,17 +190,25 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.constructResolvedRemotely', varargin{:});
         end
+        function those = constructO15(varargin)
+            tracers = {'OC' 'OO' 'HO'};
+            import mlraichle.*;
+            those = {};
+            for tr = 1:length(tracers)
+                those{tr} = HyperglycemiaDirector.constructResolvedRemotely('tracer', tracers{tr}); %#ok<AGROW>
+            end
+        end
         function those = constructKinetics(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
             
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.constructKinetics', varargin{:});
         end
-        function those = constructUmaps(varargin)
+        function those = constructResolveReports(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
             
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.UmapDirector.constructUmaps', varargin{:});
+                'mlraichle.TracerDirector.constructResolveReports', varargin{:});
         end
         function those = pullFromRemote(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
@@ -162,12 +216,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.pullFromRemote', varargin{:});
         end     
-        function         cleanRemote(varargin)
-            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
-            
-            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.cleanRemote', varargin{:});
-        end
     end
     
     methods 
@@ -180,9 +228,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
         
         %%
         
-        % sort downloads
-        
-        function this = sortDownloads(this, downloadPath)
+        function this = instanceSortDownloads(this, downloadPath)
             import mlfourdfp.*;
             try
                 DicomSorter.sessionSort(downloadPath, this.sessionData_.vLocation, 'sessionData', this.sessionData);
@@ -194,20 +240,20 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 rds.copyUTE(scans);            
             catch ME
                 handexcept(ME, 'mlraichle:filesystemError', ...
-                    'HyperglycemiaDirector.sortDownloads.downloadPath->%s may be missing folders SCANS, RESOURCES', ...
+                    'HyperglycemiaDirector.instanceSortDownloads.downloadPath->%s may be missing folders SCANS, RESOURCES', ...
                     downloadPath);
             end
         end
-        function this = sortDownloadCT(this, downloadPath)
+        function this = instanceSortDownloadCT(this, downloadPath)
             import mlfourdfp.*;
             try
                 DicomSorter.sessionSort(downloadPath, this.sessionData_.sessionPath, 'sessionData', this.sessionData);
             catch ME
                 handexcept(ME, 'mlraichle:filesystemError', ...
-                    'HyperglycemiaDirector.sortDownloadCT.downloadPath->%s may be missing folder SCANS', downloadPath);
+                    'HyperglycemiaDirector.instanceSortDownloadCT.downloadPath->%s may be missing folder SCANS', downloadPath);
             end
         end
-        function this = sortDownloadFreesurfer(this, downloadPath)
+        function this = instanceSortDownloadFreesurfer(this, downloadPath)
             try
                 [~,downloadFolder] = fileparts(downloadPath);
                 dt = mlsystem.DirTool(fullfile(downloadPath, 'ASSESSORS', '*freesurfer*'));
@@ -222,7 +268,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 end
             catch ME
                 handexcept(ME, 'mlraichle:filesystemError', ...
-                    'HyperglycemiaDirector.sortDownloadFreesurfer.downloadPath->%s may be missing folder ASSESSORS', ...
+                    'HyperglycemiaDirector.instanceSortDownloadFreesurfer.downloadPath->%s may be missing folder ASSESSORS', ...
                     downloadPath);
             end
         end
@@ -281,6 +327,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
 
             this = this@mlraichle.StudyDirector(varargin{:});
  			ip = inputParser;
+            ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             

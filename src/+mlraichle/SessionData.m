@@ -298,12 +298,30 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end        
         function obj  = tracerResolvedFinal(this, varargin)
-            if (strcmp(this.tracer, 'FDG')) % KLUDGE
-                rEpoch = 1:3;
-                rFrame = 3;
-            else 
-                rEpoch = nan;
-                rFrame = nan;
+            if (this.attenuationCorrected)
+                switch (this.tracer) % KLUDGE
+                    case {'FDG' 'OC'}
+                        rEpoch = 1:3;
+                        rFrame = 3;
+                    case {'HO' 'OO'}
+                        rEpoch = 1:2;
+                        rFrame = 2;
+                    otherwise
+                        error('mlraichle:unsupportedSwitchCase', ...
+                              'SessionData.tracerResolvedFinal.this.tracer->%s', this.tracer);
+                end
+            else
+                switch (this.tracer) % KLUDGE
+                    case 'FDG' 
+                        rEpoch = 1:9;
+                        rFrame = 9;
+                    case {'HO' 'OO' 'OC'}
+                        rEpoch = 1:2;
+                        rFrame = 2;
+                    otherwise
+                        error('mlraichle:unsupportedSwitchCase', ...
+                              'SessionData.tracerResolvedFinal.this.tracer->%s', this.tracer);
+                end                
             end
             
             ip = inputParser;
@@ -312,12 +330,23 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             addParameter(ip, 'resolvedFrame', rFrame, @isnumeric); 
             parse(ip, varargin{:});
             
+            this.rnumber = 2;
             sessd1 = this;
             sessd1.rnumber = 1;
-            sessd1.epoch = ip.Results.resolvedEpoch;
-            
-            fqfn = sprintf('%s_%s%s', this.tracerRevision('typ', 'fqfp'), sessd1.resolveTagFrame(ip.Results.resolvedFrame), this.filetypeExt);
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+            if (this.attenuationCorrected)
+                sessd1.epoch = ip.Results.resolvedEpoch;
+                fqfn = sprintf('%s_%s%s', ...
+                    this.tracerRevision('typ', 'fqfp'), ...
+                    sessd1.resolveTagFrame(ip.Results.resolvedFrame), this.filetypeExt);
+                obj  = this.fqfilenameObject(fqfn, varargin{:});
+            else
+                this.epoch = ip.Results.resolvedEpoch;
+                sessd1.epoch = ip.Results.resolvedEpoch;
+                fqfn = sprintf('%s_%s%s', ...
+                    this.tracerRevision('typ', 'fqfp'), ...
+                    sessd1.resolveTagFrame(ip.Results.resolvedFrame), this.filetypeExt);
+                obj  = this.fqfilenameObject(fqfn, varargin{:});
+            end
         end
         function obj  = tracerResolvedFinalSumt(this, varargin)
             fqfn = sprintf('%s_sumt%s', this.tracerResolvedFinal('typ', 'fqfp'), this.filetypeExt);
