@@ -47,7 +47,10 @@ classdef TracerDirector < mlpet.TracerDirector
                     for idtconv = 1:length(dtconv.fqdns)
                         pwdc = pushd(dtconv.fqdns{idtconv});
                         fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd); 
-
+                        mlbash(sprintf('rm -r *_%s-00', dtv{idtv}));
+                        mlbash(sprintf('rm -r *_%s-WB', dtv{idtv}));
+                        mlbash(sprintf('rm -r *_%s-WB-LM', dtv{idtv}));                        
+                        
                         dt00 = DirTool('*-00');
                         for idt00 = 1:length(dt00.fqdns)
                             pwd00 = pushd(dt00.fqdns{idt00});
@@ -57,6 +60,48 @@ classdef TracerDirector < mlpet.TracerDirector
                         end
                         popd(pwdc);
 
+                    end
+                    popd(pwdv);
+                end
+                popd(pwds);
+            end
+            popd(pwd0);
+            out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
+        end
+        function out   = cleanMore
+            %% cleanMore
+            %  @param works in mlraichle.RaichleRegistry.instance.subjectsDir
+            %  @return deletes from the filesystem:  *-sino.s[.hdr]
+                      
+            pwd0 = pushd(mlraichle.RaichleRegistry.instance.subjectsDir);
+            assert(isdir(pwd0));
+            
+            fprintf('mlraichle.TracerDirector.cleanMore:  is cleaning %s\n', pwd);
+            import mlsystem.*;            
+            dtsess = DirTools({'HYGLY*' 'NP995*' 'TW0*' 'DT*'});
+            for idtsess = 1:length(dtsess.fqdns)
+                pwds = pushd(dtsess.fqdns{idtsess});
+                fprintf('mlraichle.TracerDirector.cleanMore:  is cleaning %s\n', pwd); 
+                
+                dtv = DirTool('V*');
+                for idtv = 1:length(dtv.fqdns)
+                    pwdv = pushd(dtv.fqdns{idtv});
+                    fprintf('mlraichle.TracerDirector.cleanMore:  is cleaning %s\n', pwd); 
+
+                    dtconv = DirTools('*-AC', '*-NAC');
+                    for idtconv = 1:length(dtconv.fqdns)
+                        pwdc = pushd(dtconv.fqdns{idtconv});
+                        fprintf('mlraichle.TracerDirector.cleanMore:  is cleaning %s\n', pwd); 
+                        deleteExisting('umap*_frame*.4dfp.*');
+                        deleteExisting('umap*.log');
+                        
+                        dtE = DirTool('E*');
+                        for idtE = 1:length(dtE.fqdns)
+                            fprintf('mlraichle.TracerDirector.cleanMore:  is cleaning %s\n', pwd);
+                            deleteExisting();
+                            
+                        end                        
+                        popd(pwdc);
                     end
                     popd(pwdv);
                 end
@@ -110,6 +155,7 @@ classdef TracerDirector < mlpet.TracerDirector
                  'pushData',     ip.Results.pushData, ...
                  'pullData',     ip.Results.pullData);
         end
+        
         function this  = constructResolved(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             %  @return umap files generated per motionUncorrectedUmap ready for use by TriggeringTracers.js.
@@ -149,6 +195,19 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerReportsBuilder(varargin{:}));          
             rpts = this.instanceMakeReports;
         end
+        function this  = constructKinetics(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlraichle.TracerKineticsBuilder(varargin{:}));              
+            this = this.instanceConstructKinetics;
+            
+        end
+        
         function lst   = listUmaps(varargin)
             
             ip = inputParser;

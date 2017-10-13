@@ -67,6 +67,12 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             chpc = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.cleanSinograms', varargin{:});
         end
+        function chpc  = cleanMore(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
+            
+            chpc = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.cleanMore', varargin{:});
+        end
         function chpc  = cleanSinogramsRemotely(varargin)
             %  @param named distcompHost is the hostname or distcomp profile.
             %  @return chpc, an instance of mlpet.CHPC4TracerDirector.

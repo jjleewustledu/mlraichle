@@ -6,8 +6,8 @@ classdef StudyDirector
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.3.0.713579 (R2017b) for MACI64.  Copyright 2017 John Joowon Lee.
  	
-	properties
- 		
+	properties (Constant)
+ 		NSCANS = 2
     end
 
     %% PROTECTED
@@ -32,31 +32,37 @@ classdef StudyDirector
             addParameter(ip, 'ac', false);
             parse(ip, varargin{:});
             
-            import mlsystem.*;
+            import mlsystem.* mlraichle.*;
             those = {};
             dtsess = DirTool( ...
-                fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, ip.Results.sessionsExpr));
+                fullfile(RaichleRegistry.instance.subjectsDir, ip.Results.sessionsExpr));
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
                 dtv = DirTool(fullfile(sessp, ip.Results.visitsExpr));
                 for idtv = 1:length(dtv.fqdns)
-                    try
-                        sessd = mlraichle.SessionData( ...
-                            'studyData', mlraichle.StudyData, ...
-                            'sessionPath', sessp, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                            'tracer', ip.Results.tracer, ...
-                            'ac', ip.Results.ac); 
-                        evalee = sprintf('%s(''sessionData'', sessd)', ip.Results.constructFunc);
-                        
-                        fprintf('mlraichle.StudyDirector:\n');
-                        fprintf(['\t' evalee '\n']);
-                        fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
-                        
-                        those{idtsess,idtv} = eval(evalee); %#ok<AGROW>
-                    catch ME
-                        handwarning(ME);
+                    for iscan = 1:StudyDirector.NSCANS
+                        if (iscan > 1 && strcmpi(ip.Results.tracer, 'FDG'))
+                            continue
+                        end
+                        try
+                            sessd = SessionData( ...
+                                'studyData', StudyData, ...
+                                'sessionPath', sessp, ...
+                                'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
+                                'snumber', iscan, ...
+                                'tracer', ip.Results.tracer, ...
+                                'ac', ip.Results.ac); 
+                            evalee = sprintf('%s(''sessionData'', sessd)', ip.Results.constructFunc);
+
+                            fprintf('mlraichle.StudyDirector:\n');
+                            fprintf(['\t' evalee '\n']);
+                            fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
+
+                            those{idtsess,idtv} = eval(evalee); %#ok<AGROW>
+                        catch ME
+                            handwarning(ME);
+                        end
                     end
                 end                        
                 popd(pwds);

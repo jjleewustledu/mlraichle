@@ -24,6 +24,12 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         rawdataDir
         vfolder
     end
+    
+    methods (Static)
+        function v = visit2double(vstr)
+            v = str2double(vstr(2:end));
+        end
+    end
 
     methods
         
@@ -375,7 +381,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             [ipr,schar] = this.iprLocation(varargin{:});
             fqfn = fullfile( ...
                 this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
-                sprintf('%s%sv%i%s', lower(ipr.tracer), schar, this.vnumber), this.filetypeExt);
+                [sprintf('%s%sv%i%s', lower(ipr.tracer), schar, this.vnumber) this.filetypeExt]);
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function loc  = tracerT4Location(this, varargin)
