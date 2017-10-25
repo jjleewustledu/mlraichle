@@ -502,6 +502,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct( ...
                     fullfile(this.subjectsDir, this.bloodGlucoseAndHctXlsx));
             catch ME
+                fprintf('mlraichle.SessionData.ctor:  exception thrown while assigning this.bloodGlucoseAndHct\n');
                 %handwarning(ME, 'mlraichle:dataNotAvailable', 'SessionData.ctor.%s', this.bloodGlucoseAndHctXlsx);
             end
         end

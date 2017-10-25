@@ -23,106 +23,32 @@ classdef TracerDirector < mlpet.TracerDirector
             this.instanceCleanTracerRemotely('distcompHost', ip.Results.distcompHost);
             out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
         end
-        function out   = cleanSinograms
+        function out   = cleanSinograms(varargin)
             %% cleanSinograms
             %  @param works in mlraichle.RaichleRegistry.instance.subjectsDir
             %  @return deletes from the filesystem:  *-sino.s[.hdr]
                       
-            pwd0 = pushd(mlraichle.RaichleRegistry.instance.subjectsDir);
-            assert(isdir(pwd0));
-            
-            fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd);
-            import mlsystem.*;            
-            dtsess = DirTools({'HYGLY*' 'NP995*' 'TW0*' 'DT*'});
-            for idtsess = 1:length(dtsess.fqdns)
-                pwds = pushd(dtsess.fqdns{idtsess});
-                fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd); 
-                
-                dtv = DirTool('V*');
-                for idtv = 1:length(dtv.fqdns)
-                    pwdv = pushd(dtv.fqdns{idtv});
-                    fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd); 
-
-                    dtconv = DirTool('*-Converted*');
-                    for idtconv = 1:length(dtconv.fqdns)
-                        pwdc = pushd(dtconv.fqdns{idtconv});
-                        fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd); 
-                        mlbash(sprintf('rm -r *_%s-00', dtv{idtv}));
-                        mlbash(sprintf('rm -r *_%s-WB', dtv{idtv}));
-                        mlbash(sprintf('rm -r *_%s-WB-LM', dtv{idtv}));                        
-                        
-                        dt00 = DirTool('*-00');
-                        for idt00 = 1:length(dt00.fqdns)
-                            pwd00 = pushd(dt00.fqdns{idt00});
-                            fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd);   
-                            deleteExisting('*-00-sino*');  
-                            popd(pwd00);
-                        end
-                        popd(pwdc);
-
-                    end
-                    popd(pwdv);
-                end
-                popd(pwds);
-            end
-            popd(pwd0);
-            out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
-        end
-        function out   = cleanMore
-            %% cleanMore
-            %  @param works in mlraichle.RaichleRegistry.instance.subjectsDir
-            %  @return deletes from the filesystem:  *-sino.s[.hdr]
-                      
-            pwd0 = pushd(mlraichle.RaichleRegistry.instance.subjectsDir);
-            assert(isdir(pwd0));
-            
-            fprintf('mlraichle.TracerDirector.cleanMore:  is cleaning %s\n', pwd);
-            import mlsystem.*;            
-            dtsess = DirTools({'HYGLY*' 'NP995*' 'TW0*' 'DT*'});
-            for idtsess = 1:length(dtsess.fqdns)
-                pwds = pushd(dtsess.fqdns{idtsess});
-                fprintf('mlraichle.TracerDirector.cleanMore:  is cleaning %s\n', pwd); 
-                
-                dtv = DirTool('V*');
-                for idtv = 1:length(dtv.fqdns)
-                    pwdv = pushd(dtv.fqdns{idtv});
-                    fprintf('mlraichle.TracerDirector.cleanMore:  is cleaning %s\n', pwd); 
-
-                    dtconv = DirTools('*-AC', '*-NAC');
-                    for idtconv = 1:length(dtconv.fqdns)
-                        pwdc = pushd(dtconv.fqdns{idtconv});
-                        fprintf('mlraichle.TracerDirector.cleanMore:  is cleaning %s\n', pwd); 
-                        deleteExisting('umap*_frame*.4dfp.*');
-                        deleteExisting('umap*.log');
-                        
-                        dtE = DirTool('E*');
-                        for idtE = 1:length(dtE.fqdns)
-                            fprintf('mlraichle.TracerDirector.cleanMore:  is cleaning %s\n', pwd);
-                            deleteExisting();
-                            
-                        end                        
-                        popd(pwdc);
-                    end
-                    popd(pwdv);
-                end
-                popd(pwds);
-            end
-            popd(pwd0);
-            out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
-        end
-        function out   = cleanSinograms2(varargin)
-            
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});                    
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            parse(ip, varargin{:});
+            sessd = ip.Results.sessionData;
                     
             import mlsystem.*;
-            pwd0 = pushd(ip.Results.sessionData.vLocation);
+            pwdv = pushd(sessd.vLocation);
+            fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd); 
             dtconv = DirTool('*-Converted*');
             for idtconv = 1:length(dtconv.fqdns)
                 pwdc = pushd(dtconv.fqdns{idtconv});
                 fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd); 
+                tracer = strtok(sessd.tracerLocation('typ','folder'), '-');
+                try
+                    mlbash(sprintf('rm -r %s-00',    tracer));
+                    mlbash(sprintf('rm -r %s-WB',    tracer));
+                    mlbash(sprintf('rm -r %s-WB-LM', tracer));
+                    mlbash(        'rm -r UMapSeries');
+                catch  %#ok<CTCH>
+                end
 
                 dt00 = DirTool('*-00');
                 for idt00 = 1:length(dt00.fqdns)
@@ -132,28 +58,89 @@ classdef TracerDirector < mlpet.TracerDirector
                     popd(pwd00);
                 end
                 popd(pwdc);
+
             end
-            popd(pwd0);                  
-            out = sprintf('mlraichle.TracerDirector.cleanSinogram cleaned->%s\n', ip.Results.sessionData.sessionPath);
+            popd(pwdv);
+            out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
         end
-        function out   = cleanSinogramsRemotely2(varargin)
-            
+        function out   = cleanMore(varargin)
+            %% cleanMore
+            %  @param works in mlraichle.RaichleRegistry.instance.subjectsDir
+            %  @return deletes from the filesystem:  *-sino.s[.hdr]
+                      
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            addParameter(ip, 'nArgout', 1,   @isnumeric);
-            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
-            addParameter(ip, 'pushData', false, @islogical);
-            addParameter(ip, 'pullData', false, @islogical);
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
             parse(ip, varargin{:});
+            sessd = ip.Results.sessionData;
+            sessd1 = sessd; sessd1.rnumber = 1;
+            sessd2 = sessd; sessd2.rnumber = 2;
+                    
+            import mlsystem.*;
+            pwdv = pushd(sessd.vLocation);
+            fprintf('mlraichle.TracerDirector.cleanMore:  is cleaning %s\n', pwd); 
             
-            out = mlraichle.TracerDirector.constructRemotely2( ...
-                 @mlraichle.TracerDirector.cleanSinograms, ...
-                 'sessionData',  ip.Results.sessionData, ...
-                 'nArgout',      ip.Results.nArgout, ...
-                 'distcompHost', ip.Results.distcompHost, ...
-                 'pushData',     ip.Results.pushData, ...
-                 'pullData',     ip.Results.pullData);
+            deleteExisting('umapSynth_op_T1001_b40_b40.4dfp.*');
+            deleteExisting('ctRescaledv*');
+            %deleteExisting('T1001_*.4dfp.*');
+            %deleteExisting('T1001r*.4dfp.*');
+            deleteExisting('*_b15.4dfp.*');
+            if (isdir('UmapResolveSequencev1'))
+                mlbash(sprintf('rm -r UmapResolveSequencev1'));
+            end
+
+            pwdt = pushd(sessd.tracerLocation);
+            fprintf('mlraichle.TracerDirector.cleanMore:  is cleaning %s\n', pwd); 
+            try
+
+                deleteExisting('*_g0_1.4dfp.*');
+                deleteExisting('*_g0.1.4dfp.*');
+                deleteExisting('*_b43.4dfp.*');
+                deleteExisting('umapSynth_frame*.4dfp.*');
+                deleteExisting('umapSynth*.log');
+                deleteExisting([sessd.tracerVisit('typ','fp') 'r*_b4*.4dfp.*']);
+                deleteExisting('*-LM-00-umap.4dfp.*');
+                deleteExisting('*-LM-00-umap_f1.4dfp.*');
+                deleteExisting('*-LM-00-umapfz.4dfp.*');
+                deleteExisting([sessd1.tracerRevision('typ','fp') '_frame*.4dfp.*']);
+                
+                dtE = DirTool('E*');
+                for idtE = 1:length(dtE.fqdns)
+                    if (length(epochDir2Numeric(dtE.dns{idtE})) > 1)
+                        pwdE = pushd(dtE.dns{idtE});                            
+                        deleteExisting('*_g0_1.4dfp.*');
+                        deleteExisting('*_g0.1.4dfp.*');
+                        deleteExisting('*_b15.4dfp.*');
+                        deleteExisting('*_b55.4dfp.*');
+                        deleteExisting('ctMasked*.4dfp.*');
+                        %deleteExisting('T1001*.4dfp.*'); % no!
+                        deleteExisting('t2*.4dfp.*');
+                        popd(pwdE);
+                        continue
+                    end
+                    pwdE = pushd(dtE.fqdns{idtE});
+                    sessd1.epoch = epochDir2Numeric(dtE.dns{idtE});
+                    sessd2.epoch = epochDir2Numeric(dtE.dns{idtE});
+                    deleteExisting('maskForImages*');
+                    deleteExisting([sessd1.tracerRevision('typ','fp') '*.4dfp.*']);
+                    deleteExisting([sessd2.tracerRevision('typ','fp') '*.4dfp.*']);
+                    deleteExisting('*_g0_1.4dfp.*');
+                    deleteExisting('*_g0.1.4dfp.*');
+                    deleteExisting('*_b15.4dfp.*');
+                    deleteExisting('*_b55.4dfp.*');
+                    deleteExisting('ctMasked*.4dfp.*');
+                    %deleteExisting('T1001*.4dfp.*'); % no!
+                    deleteExisting('t2*.4dfp.*');
+                    popd(pwdE);
+                end  
+
+            catch ME
+                handwarning(ME);
+            end
+            popd(pwdt);
+                
+            popd(pwdv);
+            out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
         end
         
         function this  = constructResolved(varargin)
@@ -207,6 +194,30 @@ classdef TracerDirector < mlpet.TracerDirector
             this = this.instanceConstructKinetics;
             
         end
+        function this  = constructAnatomy(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));    
+            this = this.instanceConstructAnatomy;
+        end 
+        function this  = constructExports(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));    
+            this = this.instanceConstructExports;
+        end 
         
         function lst   = listUmaps(varargin)
             
@@ -251,6 +262,18 @@ classdef TracerDirector < mlpet.TracerDirector
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));          
             this = this.instancePullFromRemote;
+        end 
+        function this  = pullPattern(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'pattern', '', @ischar);
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));              
+            this = this.instancePullPattern('pattern', ip.Results.pattern);
         end 
     end
     
