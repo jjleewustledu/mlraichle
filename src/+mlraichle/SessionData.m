@@ -258,7 +258,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 this.tracerListmodeLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
                 sprintf('%s%s_V%i-LM-00-OP%s', ...
                     ipr.tracer, schar, this.vnumber, this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:}, 'frame', this.frame);
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerListmodeUmap(this, varargin)
             

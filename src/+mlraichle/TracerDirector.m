@@ -157,6 +157,20 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:}));              
             this = this.instanceConstructResolved;
         end 
+        function this  = constructResolved_HYGLY25(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            %  @return umap files generated per motionUncorrectedUmap ready for use by TriggeringTracers.js.
+            %  @return this.sessionData.attenuationCorrection == false.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder_HYGLY25(varargin{:}));              
+            this = this.instanceConstructResolved;
+        end 
         function this  = constructResolvedRemotely(varargin)
             
             ip = inputParser;
@@ -217,6 +231,26 @@ classdef TracerDirector < mlpet.TracerDirector
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));    
             this = this.instanceConstructExports;
+        end 
+        function this  = viewExports(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));
+            sd = this.sessionData;
+            pwd0 = pushd(fullfile(sd.vLocation, 'export', ''));
+            try
+                mlbash(sprintf('fslview_deprecated %s.4dfp.img %sr2_%s.4dfp.img', ...
+                    sd.tracerResolvedFinal('typ','fp'), sd.T1('typ','fp'), sd.resolveTag));
+            catch ME
+                handwarning(ME);
+            end
+            popd(pwd0);
         end 
         
         function lst   = listUmaps(varargin)

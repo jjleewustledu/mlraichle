@@ -32,6 +32,7 @@ classdef StudyDirector
             addParameter(ip, 'ac', false);
             parse(ip, varargin{:});
             tracers = ensureCell(ip.Results.tracer);
+            factoryMethod = ip.Results.factoryMethod;
             
             import mlsystem.* mlraichle.*;
             those = {};
@@ -42,6 +43,11 @@ classdef StudyDirector
                 pwds = pushd(sessp);
                 dtv = DirTool(fullfile(sessp, ip.Results.visitsExpr));
                 for idtv = 1:length(dtv.fqdns)
+                    
+                    if (lstrfind(dtv.dns{idtv}, 'HYGLY25'))
+                        factoryMethod = [factoryMethod '_HYGLY25']; %#ok<AGROW>
+                    end
+                    
                     for iscan = 1:StudyDirector.NSCANS
                         for itrac = 1:length(tracers)
                             if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
@@ -55,7 +61,7 @@ classdef StudyDirector
                                     'snumber', iscan, ...
                                     'tracer', tracers{itrac}, ...
                                     'ac', ip.Results.ac); 
-                                evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', ip.Results.factoryMethod);
+                                evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', factoryMethod);
 
                                 fprintf('mlraichle.StudyDirecto.constructCellArrayOfObjectsr:\n');
                                 fprintf(['\t' evalee '\n']);
