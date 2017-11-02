@@ -131,6 +131,9 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             end
             obj = this.fqfilenameObject(fqfn, varargin{:});
         end
+        function obj  = T1001(this, varargin)
+            obj = this.T1(varargin{:});
+        end
         function obj  = t1(this, varargin)
             obj = this.T1(varargin{:});
         end
@@ -355,7 +358,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             end
         end
         function obj  = tracerResolvedFinalSumt(this, varargin)
-            fqfn = sprintf('%s_sumt%s', this.tracerResolvedFinal('typ', 'fqfp', varargin{:}), this.filetypeExt);
+            fqfn = sprintf('%s_sumt%s', this.tracerResolvedFinal('typ', 'fqfp'), this.filetypeExt);
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerResolvedSumt(this, varargin)

@@ -237,6 +237,10 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.viewExports', 'ac', true, varargin{:});   
         end
+        function those = reconstituteImgRec(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.reconstituteImgRec', varargin{:});  
+        end
         
         function those = constructKinetics(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            

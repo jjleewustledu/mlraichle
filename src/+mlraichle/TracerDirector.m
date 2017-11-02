@@ -200,7 +200,7 @@ classdef TracerDirector < mlpet.TracerDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
-            addParameter(ip, 'anatomy', 'T1', @ischar);
+            addParameter(ip, 'anatomy', 'T1001', @ischar);
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
@@ -240,6 +240,18 @@ classdef TracerDirector < mlpet.TracerDirector
             end
             popd(pwd0);
         end 
+        function bldr  = reconstituteImgRec(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            bldr =  mlpet.TracerBuilder(varargin{:});    
+            bldr.product_ = mlfourd.ImagingContext(bldr.tracerResolvedFinal);
+            bldr.reconstituteImgRec();
+        end
         
         function lst   = listUmaps(varargin)
             
