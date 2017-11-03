@@ -122,17 +122,16 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj = this.mrObject('ep2d_perf', varargin{:});
         end
         function obj  = T1(this, varargin)
-            
+            obj = this.T1001(varargin{:});
+        end
+        function obj  = T1001(this, varargin)
             fqfn = fullfile(this.vLocation, ['T1001' this.filetypeExt]);
             if (this.ensureFqfilename && ~lexist(fqfn, 'file'))
-                mic = T1@mlpipeline.SessionData(this, 'typ', 'mlmr.MRImagingContext');
+                mic = T1001@mlpipeline.SessionData(this, 'typ', 'mlmr.MRImagingContext');
                 mic.niftid;
                 mic.saveas(fqfn);
             end
             obj = this.fqfilenameObject(fqfn, varargin{:});
-        end
-        function obj  = T1001(this, varargin)
-            obj = this.T1(varargin{:});
         end
         function obj  = t1(this, varargin)
             obj = this.T1(varargin{:});

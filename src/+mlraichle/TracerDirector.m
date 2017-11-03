@@ -200,13 +200,13 @@ classdef TracerDirector < mlpet.TracerDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
-            addParameter(ip, 'anatomy', 'T1001', @ischar);
+            addParameter(ip, 'anatomy', 'brainmask', @ischar);
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));    
             this.anatomy_ = ip.Results.anatomy;
-            this = this.instanceConstructAnatomy;
+            this = this.instanceConstructAnatomy('tag2', ['constructAnatomy_' ip.Results.anatomy], 'mask', ip.Results.anatomy);
         end 
         function this  = constructExports(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
