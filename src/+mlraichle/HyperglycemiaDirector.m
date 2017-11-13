@@ -64,21 +64,21 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
         function         cleanMore(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
             
-            %tracers = {'OC' 'OO' 'HO' 'FDG'};
-            tracers = {'FDG'};
+            tracers = {'OC' 'OO' 'HO' 'FDG'};
+            %tracers = {'FDG'};
             import mlraichle.*;
             for t = 1:length(tracers)
                 HyperglycemiaDirector.constructCellArrayOfObjects( ...
                     'mlraichle.TracerDirector.cleanMore', varargin{:}, 'tracer', tracers{t}, 'ac', false);
-                HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                    'mlraichle.TracerDirector.cleanMore', varargin{:}, 'tracer', tracers{t}, 'ac', true);
+                %HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                %    'mlraichle.TracerDirector.cleanMore', varargin{:}, 'tracer', tracers{t}, 'ac', true);
             end
         end
         function         cleanMoreRemotely(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
             
-            tracers = {'OC' 'OO' 'HO' 'FDG'};
-            %tracers = {'FDG'};
+            %tracers = {'OC' 'OO' 'HO' 'FDG'};
+            tracers = {'FDG'};
             import mlraichle.*;
             for t = 1:length(tracers)
                 HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
@@ -116,11 +116,22 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 'mlraichle.TracerDirector.cleanTracerRemotely', varargin{:});
         end
         
-        function lst   = listUmaps(varargin)
+        function gr    = graphUmapDefects(varargin)
+            %  See also:  mlraichle.StudyDirector.constructCellArrayObjects            
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.listUmapDefects', varargin{:});
+            gr = mlraichle.HyperglycemiaDirector.constructGraphOfObjects(those);
+        end
+        function lst   = listUmapDefects(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
             
             lst = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.listUmaps', varargin{:});
+                'mlraichle.TracerDirector.listUmapDefects', varargin{:});
+        end
+        function those = reviewUmaps(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.reviewUmaps', 'ac', true, varargin{:});   
         end
         function lst   = listTracersConverted(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
@@ -227,7 +238,11 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
         end
         function those = constructAnatomy(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.constructAnatomy', varargin{:});            
+                'mlraichle.TracerDirector.constructAnatomy', 'ac', true, varargin{:});            
+        end
+        function those = constructAnatomyRemotely(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
+                'mlraichle.TracerDirector.constructAnatomy', 'ac', true, varargin{:});            
         end
         function those = constructExports(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
@@ -240,6 +255,18 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
         function those = reconstituteImgRec(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.reconstituteImgRec', varargin{:});  
+        end 
+        function those = reconAll(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.reconAll', 'wallTime', '23:59:59', varargin{:});            
+        end
+        function those = reconAllRemotely(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
+                'mlraichle.TracerDirector.reconAll', 'wallTime', '23:59:59', varargin{:});            
         end
         
         function those = constructKinetics(varargin)
@@ -271,18 +298,31 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             %  @param named 'pattern' is given to rsync to match objects to pull
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
             
+            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', '*_op_*_frame*.4dfp.*', varargin{:});
+            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', 'T1001_op_*', varargin{:});
+            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', 'wmparc_op_*.*', varargin{:});
+            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', 'aparc+aseg_op_*.*', varargin{:});
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', '*_op_*_frame3.*', varargin{:});
+                'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', '*_t4', varargin{:});
         end
         function those = pullResolvedNAC(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
             
+            %% pattern matches fullfile(this.sessionData.tracerLocation, pattern);
             mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.pullPattern', varargin{:}, 'pattern', '*.v');
             mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.pullPattern', varargin{:}, 'pattern', 'umapSynth.*');
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.pullPattern', varargin{:}, 'pattern', '*r1.4dfp.*');
+        end
+        function lst   = repairUmapDefects(varargin)
+            lst = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.repairUmapDefects', varargin{:});
         end
         
     end

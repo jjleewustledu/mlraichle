@@ -7,49 +7,56 @@ classdef StudyDirector
  	%% It was developed on Matlab 9.3.0.713579 (R2017b) for MACI64.  Copyright 2017 John Joowon Lee.
  	
 	properties (Constant)
- 		NSCANS = 2
+ 		SCANS = 1:2
+        SUP_EPOCH = 3
+        TRACERS = {'OC' 'OO' 'HO'}
+        AC = false
     end
-
-    %% PROTECTED
     
-    methods (Static, Access = protected)
+    methods (Static)
         
-        function those = constructCellArrayOfObjects(varargin)
-            %% CONSTRUCTCELLARRAYOFOBJECTS iterates over session and visit directories, evaluating factoryMethod for each.
+        function [those,dtsess] = constructCellArrayOfObjects(varargin)
+            %% CONSTRUCTCELLARRAYOFOBJECTS iterates over session and visit directories, 
+            %  tracers and scan-instances, evaluating factoryMethod for each.
             %  @param  factoryMethod     is char, specifying static methods for:  those := factoryMethod('sessionData', sessionData).
             %  @param  named sessionsExp is char, specifying session directories to match by DirTool.
             %  @param  named visitsExp   is char, specifying visit   directories to match by DirTool.
+            %  @param  named scanList    is numeric := trace scan indices.
             %  @param  named tracer      is char    and passed to SessionData.
             %  @param  named ac          is logical and passed to SessionData.
+            %  @param  named supEpoch    is numeric; KLUDGE to pass parameter to mlraichle.SessionData.tracerResolvedFinal.
             %  @return those             is a cell-array of objects specified by factoryMethod.
+            %  @return dtsess            is an mlsystem.DirTool for sessions.
             
+            import mlsystem.* mlraichle.*;
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired( ip, 'factoryMethod', @ischar);
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
             addParameter(ip, 'visitsExpr', 'V*');
-            addParameter(ip, 'tracer', {'OC' 'OO' 'HO'}, @(x) ischar(x) || iscell(x));
-            addParameter(ip, 'ac', false);
+            addParameter(ip, 'scanList', StudyDirector.SCANS);
+            addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
+            addParameter(ip, 'ac', StudyDirector.AC);
+            addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
             parse(ip, varargin{:});
             tracers = ensureCell(ip.Results.tracer);
             factoryMethod = ip.Results.factoryMethod;
             
-            import mlsystem.* mlraichle.*;
             those = {};
             dtsess = DirTool( ...
                 fullfile(RaichleRegistry.instance.subjectsDir, ip.Results.sessionsExpr));
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTool(fullfile(sessp, ip.Results.visitsExpr));
+                dtv = DirTool(fullfile(sessp, ip.Results.visitsExpr));     
                 for idtv = 1:length(dtv.fqdns)
                     
                     if (lstrfind(dtv.dns{idtv}, 'HYGLY25'))
                         factoryMethod = [factoryMethod '_HYGLY25']; %#ok<AGROW>
                     end
                     
-                    for iscan = 1:StudyDirector.NSCANS
-                        for itrac = 1:length(tracers)
+                    for itrac = 1:length(tracers)
+                        for iscan = ip.Results.scanList
                             if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
                                 continue
                             end
@@ -60,13 +67,18 @@ classdef StudyDirector
                                     'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
                                     'snumber', iscan, ...
                                     'tracer', tracers{itrac}, ...
-                                    'ac', ip.Results.ac); 
-                                evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', factoryMethod);
-
-                                fprintf('mlraichle.StudyDirecto.constructCellArrayOfObjectsr:\n');
-                                fprintf(['\t' evalee '\n']);
-                                fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
-                                those{idtsess,idtv} = eval(evalee); %#ok<AGROW>
+                                    'ac', ip.Results.ac, ...
+                                    'supEpoch', ip.Results.supEpoch);
+                                
+                                if (isdir(sessd.tracerRawdataLocation))
+                                    % there exist spurious tracerLocations; select those with corresponding raw data
+                                    
+                                    evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', factoryMethod);
+                                    fprintf('mlraichle.StudyDirecto.constructCellArrayOfObjectsr:\n');
+                                    fprintf(['\t' evalee '\n']);
+                                    fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
+                                    those{idtsess,idtv,itrac,iscan} = eval(evalee); %#ok<AGROW>
+                                end
                             catch ME
                                 handwarning(ME);
                             end
@@ -76,27 +88,33 @@ classdef StudyDirector
                 popd(pwds);
             end
         end
-        function those = constructCellArrayOfObjectsRemotely(varargin)
+        function [those,dtsess] = constructCellArrayOfObjectsRemotely(varargin)
             %% CONSTRUCTCELLARRAYOFOBJECTSREMOTELY iterates over session and visit directories, 
             %  tracers and scan-instances, evaluating factoryMethod for each.
             %  @param  factoryMethod     is char, specifying static methods for:  those := factoryMethod('sessionData', sessionData).
             %  @param  named sessionsExp is char, specifying session directories to match by DirTool.
             %  @param  named visitsExp   is char, specifying visit   directories to match by DirTool.
+            %  @param  named scanList    is numeric := trace scan indices.
             %  @param  named tracer      is char    and passed to SessionData.
             %  @param  named ac          is logical and passed to SessionData.
-            %  @param  named nArgout is numeric.
+            %  @param  named nArgout     is numeric.
             %  @param  named distcompHost is the hostname or distcomp profile.
             %  @param  named pushData calls mlpet.CHPC4TracerDirector.pushData if its logical value is true.
+            %  @param  named supEpoch    is numeric; KLUDGE to pass parameter to mlraichle.SessionData.tracerResolvedFinal.
             %  @return those             is a cell-array of objects specified by factoryMethod.
+            %  @return dtsess            is an mlsystem.DirTool for sessions.
             
+            import mlsystem.* mlraichle.*;
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired( ip, 'factoryMethod', @ischar);
             addParameter(ip, 'factoryArgs', {}, @iscell);
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
             addParameter(ip, 'visitsExpr', 'V*');
-            addParameter(ip, 'tracer', {'OC' 'OO' 'HO'}, @(x) ischar(x) || iscell(x));
-            addParameter(ip, 'ac', false);
+            addParameter(ip, 'scanList', StudyDirector.SCANS);
+            addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
+            addParameter(ip, 'ac', StudyDirector.AC);
+            addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
             addParameter(ip, 'nArgout', 1, @isnumeric);
             addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
             addParameter(ip, 'memUsage', '32000', @ischar);
@@ -109,7 +127,6 @@ classdef StudyDirector
                 wallTime = '23:59:59';
             end
             
-            import mlsystem.*;
             those = {};
             dtsess = DirTool( ...
                 fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, ip.Results.sessionsExpr));
@@ -119,7 +136,7 @@ classdef StudyDirector
                 dtv = DirTool(fullfile(sessp, ip.Results.visitsExpr));
                 for idtv = 1:length(dtv.fqdns)                    
                     for itrac = 1:length(tracers)
-                        for iscan = 1:mlraichle.StudyDirector.NSCANS
+                        for iscan = ip.Results.scanList 
                             if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
                                 continue
                             end
@@ -130,26 +147,31 @@ classdef StudyDirector
                                     'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
                                     'snumber', iscan, ...
                                     'tracer', tracers{itrac}, ...
-                                    'ac', ip.Results.ac); 
-                                csessd = sessd;
-                                csessd.sessionPath = mldistcomp.CHPC.repSubjectsDir(sessd.sessionPath);                                
-                                chpc = mlpet.CHPC4TracerDirector( ...
-                                    [], 'distcompHost', ip.Results.distcompHost, ...
-                                    'sessionData', sessd, ...
-                                    'memUsage', ip.Results.memUsage, ...
-                                    'wallTime', wallTime);
-                                if (ip.Results.pushData)
-                                    chpc = chpc.pushData; %#ok<NASGU>
+                                    'ac', ip.Results.ac, ...
+                                    'supEpoch', ip.Results.supEpoch); 
+                                
+                                if (isdir(sessd.tracerRawdataLocation))
+                                    % there exist spurious tracerLocations; select those with corresponding raw data
+                                    
+                                    csessd = sessd;
+                                    csessd.sessionPath = mldistcomp.CHPC.repSubjectsDir(sessd.sessionPath);                                
+                                    chpc = mlpet.CHPC4TracerDirector( ...
+                                        [], 'distcompHost', ip.Results.distcompHost, ...
+                                        'sessionData', sessd, ...
+                                        'memUsage', ip.Results.memUsage, ...
+                                        'wallTime', wallTime);
+                                    if (ip.Results.pushData)
+                                        chpc = chpc.pushData; %#ok<NASGU>
+                                    end
+                                    evalee = sprintf(['chpc.runSerialProgram(@%s, ' ...
+                                        '{''sessionData'', csessd}, ' ...
+                                        'ip.Results.nArgout)'],  ...
+                                         ip.Results.factoryMethod);
+                                    fprintf('mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely:\n');
+                                    fprintf(['\t' evalee '\n']);
+                                    fprintf(['\tcsessd.TracerLocation->' csessd.tracerLocation '\n']);
+                                    those{idtsess,idtv,itrac,iscan} = eval(evalee); %#ok<AGROW>
                                 end
-                                evalee = sprintf(['chpc.runSerialProgram(@%s, ' ...
-                                    '{''sessionData'', csessd}, ' ...
-                                    'ip.Results.nArgout)'],  ...
-                                     ip.Results.factoryMethod);
-
-                                fprintf('mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely:\n');
-                                fprintf(['\t' evalee '\n']);
-                                fprintf(['\tcsessd.TracerLocation->' csessd.tracerLocation '\n']);
-                                those{idtsess,idtv,itrac,iscan} = eval(evalee); %#ok<AGROW>
                             catch ME
                                 handexcept(ME);
                             end
@@ -158,6 +180,47 @@ classdef StudyDirector
                 end                        
                 popd(pwds);
             end
+        end
+        function gr = constructGraphOfObjects(varargin)
+            %% CONSTRUCTGRAPHOFOBJECTS
+            %  @param those is from constructCellArrayOfObjects{,Remotely}.
+            %  @return gr is a graph of those sessions, visits, tracers, scan objects specified by constructCellArrayOfObjects{,Remotely}.
+            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjects{,Remotely}
+            
+            import mlraichle.*;
+            ip = inputParser;
+            addRequired(ip, 'those', @iscell);
+            addRequired(ip, 'dtsess', @(x) isa(x, 'mlsystem.DirTool'));
+            parse(ip, varargin{:});
+            those = ip.Results.those;
+            
+            s = [];
+            t = [];
+            node = 0;
+            names = {};
+            len = length(dtsess);
+            gr = graph;
+            gr = gr.addnode(1);
+            gr.Nodes.Name = {'study'};
+            for isess = 1:length(those)
+                gr = gr.addnode(1);
+                for ivisit = 1:length(those{isess})
+                    for itracer = 1:length(those{isess,ivisit})
+                        for iscan = 1:length(those{isess,ivisit,itracer})
+                            
+                            th = those{isess, ivisit, itracer};
+                            if (~isempty(th))
+                                s = [s isess];
+                                t = [t ];
+                                node = node + 1;
+                                names{node} = th; %#ok<AGROW>
+                            end
+                        end
+                    end
+                end
+            end
+            
+            %gr = graph(s, t, ones(size(s)), names);
         end
         function those = fetchOutputsCellArrayOfObjectsRemotely(cellArr)
             %% FETCHOUTPUTSCELLARRAYOFOBJECTSREMOTELY iterates over session and visit directories, 
@@ -177,7 +240,9 @@ classdef StudyDirector
             end
             
         end
-    end
+    end    
+
+    %% PROTECTED
     
 	methods (Access = protected)
 		  

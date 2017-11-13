@@ -231,6 +231,16 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             %    warning('mlraichle:unexpectedFilesystemState', 'SessionData.tracerLocation could not find loc->%s\n', loc);
             %end
         end
+        function loc  = tracerRawdataLocation(this, varargin)
+            [ipr,schar] = this.iprLocation(varargin{:});
+            if (isempty(ipr.tracer))
+                loc = locationType(ipr.typ, this.vLocation);
+                return
+            end
+            loc = locationType(ipr.typ, ...
+                  fullfile(this.vLocation, ...
+                           sprintf('%s%s_V%i', ipr.tracer, schar, this.vnumber), ''));
+        end
         function loc  = tracerListmodeLocation(this, varargin)
             
             [ipr,schar] = this.iprLocation(varargin{:});
@@ -308,7 +318,10 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function obj  = tracerResolvedFinal(this, varargin)
             if (this.attenuationCorrected)
                 switch (this.tracer) % KLUDGE
-                    case {'FDG' 'OC'}
+                    case 'FDG'                         
+                        rEpoch = 1:this.supEpoch; % KLUDGE within KLUDGE
+                        rFrame = this.supEpoch;
+                    case 'OC'
                         rEpoch = 1:3;
                         rFrame = 3;
                     case {'HO' 'OO'}
@@ -321,8 +334,13 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             else
                 switch (this.tracer) % KLUDGE
                     case 'FDG' 
-                        rEpoch = 1:9;
-                        rFrame = 9;
+                        if (strcmp(this.sessionFolder, 'HYGLY25'))
+                            rEpoch = 1:8;
+                            rFrame = 8;
+                        else
+                            rEpoch = 1:9;
+                            rFrame = 9;
+                        end
                     case {'HO' 'OO' 'OC'}
                         rEpoch = 1:2;
                         rFrame = 2;
