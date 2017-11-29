@@ -119,7 +119,7 @@ classdef StudyDirector
             addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
             addParameter(ip, 'memUsage', '32000', @ischar);
             addParameter(ip, 'wallTime', '12:00:00', @ischar);
-            addParameter(ip, 'pushData', true, @islogical);
+            addParameter(ip, 'pushData', false, @islogical);
             parse(ip, varargin{:});
             tracers = ensureCell(ip.Results.tracer);
             wallTime = ip.Results.wallTime;

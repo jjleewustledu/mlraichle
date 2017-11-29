@@ -159,7 +159,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             %% PREPAREFREESURFERDATA prepares session & visit-specific copies of data enumerated by this.freesurferData.
             %  @param named sessionData is an mlraichle.SessionData.
             %  @return 4dfp copies of this.freesurferData in sessionData.vLocation.
-            %  @return lst, a cell-array of fileprefixes for 4dfp objects created.
+            %  @return lst, a cell-array of fileprefixes for 4dfp objects created on the local filesystem.
             
             ip = inputParser;
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlraichle.SessionData'));
@@ -216,6 +216,19 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             end
             cd(pwd0);
         end    
+        
+        function those = constructFreesurfer6(varargin)
+            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
+                'mlsurfer.SurferDirector.constructFreesurfer6', 'wallTime', '47:59:59', varargin{:});
+        end
+        function those = constructNiftyPETy(varargin)            
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.constructNiftyPETy', [varargin{:} {'ac' true}]);
+        end
         function those = constructUmaps(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
             
@@ -231,10 +244,17 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 'mlraichle.TracerDirector.constructResolved', varargin{:});
         end
         function those = constructResolvedRemotely(varargin)
-            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
+            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
             
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
                 'mlraichle.TracerDirector.constructResolved', 'wallTime', '23:59:59', varargin{:});
+        end
+        function those = constructUmapSynthFull(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.constructUmapSynthFull', varargin{:});
+            
         end
         function those = constructAnatomy(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...

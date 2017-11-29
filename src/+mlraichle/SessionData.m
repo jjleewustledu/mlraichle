@@ -294,13 +294,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             assert(lexist(fqfn, 'file'));
             obj  = this.fqfilenameObject(fqfn, varargin{:}, 'frame', nan);
         end
-        function obj  = tracerMhdr(this, varargin)
-            [ipr,schar] = this.iprLocation(varargin{:});
-            fqfn = fullfile( ...
-                this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
-                sprintf('%s%s_V%i-LM-00-OP.mhdr', ipr.tracer, schar, this.vnumber));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
-        end
         function obj  = tracerSif(this, varargin)
             
             [ipr,schar] = this.iprLocation(varargin{:});
@@ -335,8 +328,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 switch (this.tracer) % KLUDGE
                     case 'FDG' 
                         if (strcmp(this.sessionFolder, 'HYGLY25'))
-                            rEpoch = 1:8;
-                            rFrame = 8;
+                            rEpoch = 1:this.supEpochNAC; % KLUDGE within KLUDGE
+                            rFrame = this.supEpochNAC;
                         else
                             rEpoch = 1:9;
                             rFrame = 9;

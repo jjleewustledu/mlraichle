@@ -143,8 +143,20 @@ classdef TracerDirector < mlpet.TracerDirector
             out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
         end
         
+        function this  = constructNiftyPETy(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.NiftyPETyBuilder(varargin{:}));              
+            this = this.instanceConstructNiftyPETy;
+        end 
         function this  = constructResolved(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
+            %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
             %  @return umap files generated per motionUncorrectedUmap ready for use by TriggeringTracers.js.
             %  @return this.sessionData.attenuationCorrection == false.
             
@@ -153,10 +165,26 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
             parse(ip, varargin{:});
             
+            tr = ip.Results.sessionData.tracer;
+            if (~ip.Results.sessionData.attenuationCorrected && (strcmpi('OC', tr) || strcmpi('OO', tr)))
+                varargin = [varargin {'f2rep', 1, 'fsrc', 2}]; % first frame has breathing tube which confuses T4ResolveBuilder.
+            end
+            
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));              
             this = this.instanceConstructResolved;
         end 
+        function this  = constructUmapSynthFull(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));             
+            this = this.instanceConstructUmapSynthFull;
+        end
         function this  = constructResolvedRemotely(varargin)
             
             ip = inputParser;
