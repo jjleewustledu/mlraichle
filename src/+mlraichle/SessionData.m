@@ -17,10 +17,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
 	properties (Dependent)
         attenuationTag
         convertedTag
-        frameTag
-        hct
-        petBlur
-        plasmaGlucose        
+        frameTag    
         rawdataDir
         vfolder
     end
@@ -61,15 +58,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             end
             g = sprintf('_frame%i', this.frame);
         end
-        function g = get.hct(this)
-            g = this.bloodGlucoseAndHct.Hct(this.sessionFolder, this.vnumber);
-        end
-        function g = get.petBlur(~)
-            g = mlsiemens.MMRRegistry.instance.petPointSpread;
-        end
-        function g = get.plasmaGlucose(this)
-            g = this.bloodGlucoseAndHct.plasmaGlucose(this.sessionFolder, this.vnumber);
-        end
         function g = get.rawdataDir(this)
             g = this.studyData_.rawdataDir;
         end 
@@ -77,7 +65,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             g = sprintf('V%i', this.vnumber);
         end        
         
-        %% IMRData       
+        %% IMRData
         
         function obj  = adc(this, varargin)
             obj = this.mrObject('ep2d_diff_26D_lgfov_nopat_ADC', varargin{:});
@@ -638,7 +626,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
     end
     
     %% HIDDEN
-    %  @deprecated as used in early development.  Use less-specialized corresponding methods from above.
+    %  @deprecated  Used in early development.  Use less-specialized corresponding methods from above.
     
     properties (Hidden)
         bloodGlucoseAndHct
@@ -693,6 +681,9 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function obj  = fdgListmodeUmap(this, varargin)
             obj = this.tracerListmodeUmap('tracer', 'FDG', varargin{:});
         end
+        function h    = hct(this)
+            h = this.bloodGlucoseAndHct.Hct(this.sessionFolder, this.vnumber);
+        end
         function obj  = mask(this, varargin)
             %  @param named tracer is a string identifier.
             %  @param named snumber is the scan number; is numeric.
@@ -705,6 +696,12 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             
             assert(lexist(this.selectedMask, 'file'));
             obj = this.fqfilenameObject(this.selectedMask, varargin{:});
+        end
+        function b    = petBlur(~)
+            b = mlsiemens.MMRRegistry.instance.petPointSpread;
+        end
+        function glc  = plasmaGlucose(this)
+            glc = this.bloodGlucoseAndHct.plasmaGlucose(this.sessionFolder, this.vnumber);
         end
         function obj  = tracerAC(this, varargin)
             this.attenuationCorrected = true;

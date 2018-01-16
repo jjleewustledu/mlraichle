@@ -9,8 +9,8 @@ classdef StudyDirector
 	properties (Constant)
  		SCANS = 1:2
         SUP_EPOCH = 3
-        TRACERS = {'OC' 'OO' 'HO'}
-        AC = false
+        TRACERS = {'OC' 'OO' 'HO' 'FDG'}
+        AC = true
     end
     
     methods (Static)

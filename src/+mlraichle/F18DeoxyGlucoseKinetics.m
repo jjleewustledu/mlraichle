@@ -16,7 +16,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
         LC = 0.81 % Wu, et al., Molecular Imaging and Biology, 5(1), 32-41, 2003.
         notes = ''
         xLabel = 'times/s'
-        yLabel = 'activity / (Bq / cc)'
+        yLabel = 'activity/(Bq/mL)'
         
         capracEfficiency = 1 % 171.2/248.6
     end
@@ -77,7 +77,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
             this.tsc_ = mmr;
         end
         function this = prepareAifData(this)
-            dta = mlpet.Caprac('scannerData', this.tsc, 'efficiencyFactor', this.capracEfficiency);
+            dta = mlcapintec.Caprac('scannerData', this.tsc, 'efficiencyFactor', this.capracEfficiency);
             this.dta_ = dta;
         end        
         function this = simulateItsMcmc(this)

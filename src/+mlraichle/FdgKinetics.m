@@ -63,7 +63,7 @@ classdef FdgKinetics
                 pwd0 = pushd(this.sessionData.vLocation);
                 import mlraichle.*;
                 CHPC4FdgKinetics.pushData0(this.sessionData);
-                this = CHPC4FdgKinetics.batchSerial(@mlraichle.FdgKinetics.constructKinetics, 1, {this.sessionData, ip.Results.rois});
+                this = CHPC4FdgKinetics.batchSerial(@mlraichle.FdgKinetics.constructKinetics, 1, {this.sessionData, ip.Results.roisBuild});
                 CHPC4FdgKinetics.pullData0(this.sessionData);
                 popd(pwd0);
             catch ME

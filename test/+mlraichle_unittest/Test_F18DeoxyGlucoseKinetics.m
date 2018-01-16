@@ -13,7 +13,7 @@ classdef Test_F18DeoxyGlucoseKinetics < matlab.unittest.TestCase
 	properties
  		registry
         sessd
-        sessionFolder = 'HYGLY28'
+        sessionPath = '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28'
  		testObj
         vnumber = 1
  	end
@@ -32,7 +32,7 @@ classdef Test_F18DeoxyGlucoseKinetics < matlab.unittest.TestCase
  			import mlraichle.*;
             this.sessd = mlraichle.SessionData( ...
                 'studyData', mlraichle.StudyData, ...
-                'sessionFolder', this.sessionFolder, ...
+                'sessionPath', this.sessionPath, ...
                 'vnumber', this.vnumber, ...
                 'ac', true);
  		end
