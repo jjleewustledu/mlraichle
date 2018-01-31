@@ -373,7 +373,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
         end
         function [mat,ct4rb,bmr2Nii] = resolveMNI152(sessd)
             fv = mlfourdfp.FourdfpVisitor;
-            bm    = fv.ensureSafeOp('brainmaskr2_op_fdg');
+            bm    = fv.ensureSafeFileprefix('brainmaskr2_op_fdg');
             bmNii = [bm '.nii.gz'];
             if (~lexist(bmNii, 'file'))
                 sessd.nifti_4dfp_n(bm);

@@ -25,7 +25,7 @@ classdef HoBuilder < mlpet.TracerKineticsBuilder
             
             % actions
             
-            pwd0 = sessd.petLocation;
+            pwd0 = sessd.tracerLocation;
             ensuredir(pwd0);
             pushd(pwd0);
             assert(lexist_4dfp(sessd.tracerListmodeMhdr), '%s could not find %s', meth, sessd.tracerListmodeMhdr);            

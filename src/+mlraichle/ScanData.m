@@ -45,11 +45,11 @@ classdef ScanData < mlsiemens.ScanData
  			this = this@mlsiemens.ScanData(varargin{:});
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'xlsxObj', [], @(x) ~isempty(x));
+            addParameter(ip, 'manualData', [], @(x) ~isempty(x));
             parse(ip, varargin{:});
             
-            if (isempty(this.xlsxObj_))
-                this.xlsxObj_ = mlsiemens.XlsxObjScanData( ...
+            if (isempty(this.manualData_))
+                this.manualData_ = mlsiemens.XlsxObjScanData( ...
                     'filename', this.sessionData.CCIRRadMeasurements, ...
                     'tracer', this.sessionData.tracer, ...
                     'snumber', this.sesssionData.snumber);

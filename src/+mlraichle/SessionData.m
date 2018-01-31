@@ -138,6 +138,16 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 
         %% IPETData
         
+        function obj  = adhocTimings(this, varargin)
+            %% ADHOCTIMINGS 
+            %  @deprecated
+            
+            ipr = this.iprLocation(varargin{:});
+            fqfn = fullfile( ...
+                this.subjectsDir, ...
+                sprintf('%s-%s-timings.txt', ipr.tracer, this.attenuationTag));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
         function obj  = arterialSamplerCalCrv(this, varargin)
             [pth,fp] = this.arterialSamplerCrv(varargin{:});
             fqfn = fullfile(pth, [fp '_cal.crv']);
@@ -150,8 +160,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = CCIRRadMeasurements(this)
-            obj = fullfile( ...
-                this.vLocation, 'CCIRRadMeasurements.xlsx');
+            obj = mldata.CCIRRadMeasurements.date2filename(this.datetime);
         end
         function obj  = ct(this, varargin)
             obj = this.ctObject('ct', varargin{:});
@@ -186,16 +195,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end
         function suff = petPointSpreadSuffix(this, varargin)
             suff = sprintf('_b%i', floor(10*mean(this.petPointSpread(varargin{:}))));
-        end
-        function obj  = timingData(this, varargin)
-            %% TIMINGDATA 
-            %  @deprecated prefer mlpet.IScannerData.readTimingData
-            
-            ipr = this.iprLocation(varargin{:});
-            fqfn = fullfile( ...
-                this.subjectsDir, ...
-                sprintf('%s-%s-timings.txt', ipr.tracer, this.attenuationTag));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function loc  = tracerConvertedLocation(this, varargin)
             
@@ -236,6 +235,12 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 fullfile(this.vLocation, ...
                          sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.convertedTag), ...
                          sprintf('%s%s_V%i-LM-00', ipr.tracer, schar, this.vnumber), ''));
+            if (~isdir(loc))
+                loc = locationType(ipr.typ, ...
+                    fullfile(this.vLocation, ...
+                             sprintf('%s%s_V%i-Converted', ipr.tracer, schar, this.vnumber), ...
+                             sprintf('%s%s_V%i-LM-00', ipr.tracer, schar, this.vnumber), ''));                
+            end
         end
         function obj  = tracerListmodeMhdr(this, varargin)
             
@@ -579,13 +584,13 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 end
             end
         end
-        function        ensurePETFqfilename(~, fqfn) %#ok<INUSD>
+        function        ensurePETFqfilename(this, fqfn) %#ok<INUSD>
             if (~this.ensureFqfilename)
                 return
             end
             %assert(lexist(fqfn, 'file'));
         end
-        function        ensureUmapFqfilename(~, fqfn) %#ok<INUSD>
+        function        ensureUmapFqfilename(this, fqfn) %#ok<INUSD>
             if (~this.ensureFqfilename)
                 return
             end

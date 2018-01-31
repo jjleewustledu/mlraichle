@@ -15,7 +15,7 @@ classdef StudyDirector
     
     methods (Static)
         
-        function [those,dtsess] = constructCellArrayOfObjects(varargin)
+        function [those,dtSess] = constructCellArrayOfObjects(varargin)
             %% CONSTRUCTCELLARRAYOFOBJECTS iterates over session and visit directories, 
             %  tracers and scan-instances, evaluating factoryMethod for each.
             %  @param  factoryMethod     is char, specifying static methods for:  those := factoryMethod('sessionData', sessionData).
@@ -32,39 +32,36 @@ classdef StudyDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired( ip, 'factoryMethod', @ischar);
+            addParameter(ip, 'factoryArgs', {}, @iscell);
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
             addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
+            addParameter(ip, 'nArgout', 1, @isnumeric);
+            addParameter(ip, 'distcompHost', 'local', @ischar);
+            addParameter(ip, 'memUsage', '32000', @ischar);
+            addParameter(ip, 'wallTime', '23:59:59', @ischar);
+            addParameter(ip, 'pushData', false, @islogical);
             parse(ip, varargin{:});
             tracers = ensureCell(ip.Results.tracer);
-            factoryMethod = ip.Results.factoryMethod;
             
             those = {};
-            dtsess = DirTool( ...
+            dtSess = DirTool( ...
                 fullfile(RaichleRegistry.instance.subjectsDir, ip.Results.sessionsExpr));
-            for idtsess = 1:length(dtsess.fqdns)
-                sessp = dtsess.fqdns{idtsess};
+            for isess = 1:length(dtSess.fqdns)
+                sessp = dtSess.fqdns{isess};
                 pwds = pushd(sessp);
-                dtv = DirTool(fullfile(sessp, ip.Results.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
-                    
-                    if (lstrfind(dtv.dns{idtv}, 'HYGLY25'))
-                        factoryMethod = [factoryMethod '_HYGLY25']; %#ok<AGROW>
-                    end
-                    
+                dtV = DirTool(fullfile(sessp, ip.Results.visitsExpr));     
+                for iv = 1:length(dtV.fqdns)                    
                     for itrac = 1:length(tracers)
-                        for iscan = ip.Results.scanList
-                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
-                                continue
-                            end
+                        for iscan = StudyDirector.checkedScanList(ip.Results, tracers{itrac})
                             try
                                 sessd = SessionData( ...
                                     'studyData', StudyData, ...
                                     'sessionPath', sessp, ...
-                                    'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
+                                    'vnumber', str2double(dtV.dns{iv}(2:end)), ...
                                     'snumber', iscan, ...
                                     'tracer', tracers{itrac}, ...
                                     'ac', ip.Results.ac, ...
@@ -73,11 +70,12 @@ classdef StudyDirector
                                 if (isdir(sessd.tracerRawdataLocation))
                                     % there exist spurious tracerLocations; select those with corresponding raw data
                                     
-                                    evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', factoryMethod);
+                                    evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', ...
+                                        StudyDirector.checkedFactoryMethod(ip.Results, dtV.dns{iv}));
                                     fprintf('mlraichle.StudyDirecto.constructCellArrayOfObjectsr:\n');
                                     fprintf(['\t' evalee '\n']);
                                     fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
-                                    those{idtsess,idtv,itrac,iscan} = eval(evalee); %#ok<AGROW>
+                                    those{isess,iv,itrac,iscan} = eval(evalee); %#ok<AGROW>
                                 end
                             catch ME
                                 handwarning(ME);
@@ -88,7 +86,7 @@ classdef StudyDirector
                 popd(pwds);
             end
         end
-        function [those,dtsess] = constructCellArrayOfObjectsRemotely(varargin)
+        function [those,dtSess] = constructCellArrayOfObjectsRemotely(varargin)
             %% CONSTRUCTCELLARRAYOFOBJECTSREMOTELY iterates over session and visit directories, 
             %  tracers and scan-instances, evaluating factoryMethod for each.
             %  @param  factoryMethod     is char, specifying static methods for:  those := factoryMethod('sessionData', sessionData).
@@ -118,33 +116,26 @@ classdef StudyDirector
             addParameter(ip, 'nArgout', 1, @isnumeric);
             addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
             addParameter(ip, 'memUsage', '32000', @ischar);
-            addParameter(ip, 'wallTime', '12:00:00', @ischar);
+            addParameter(ip, 'wallTime', '23:59:59', @ischar);
             addParameter(ip, 'pushData', false, @islogical);
             parse(ip, varargin{:});
             tracers = ensureCell(ip.Results.tracer);
-            wallTime = ip.Results.wallTime;
-            if (ip.Results.ac)
-                wallTime = '23:59:59';
-            end
             
             those = {};
-            dtsess = DirTool( ...
+            dtSess = DirTool( ...
                 fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, ip.Results.sessionsExpr));
-            for idtsess = 1:length(dtsess.fqdns)
-                sessp = dtsess.fqdns{idtsess};
+            for isess = 1:length(dtSess.fqdns)
+                sessp = dtSess.fqdns{isess};
                 pwds = pushd(sessp);
-                dtv = DirTool(fullfile(sessp, ip.Results.visitsExpr));
-                for idtv = 1:length(dtv.fqdns)                    
+                dtV = DirTool(fullfile(sessp, ip.Results.visitsExpr));
+                for iv = 1:length(dtV.fqdns)                    
                     for itrac = 1:length(tracers)
-                        for iscan = ip.Results.scanList 
-                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
-                                continue
-                            end
+                        for iscan = StudyDirector.checkedScanList(ip.Results, tracers{itrac})
                             try
                                 sessd = mlraichle.SessionData( ...
                                     'studyData', mlraichle.StudyData, ...
                                     'sessionPath', sessp, ...
-                                    'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
+                                    'vnumber', str2double(dtV.dns{iv}(2:end)), ...
                                     'snumber', iscan, ...
                                     'tracer', tracers{itrac}, ...
                                     'ac', ip.Results.ac, ...
@@ -159,18 +150,18 @@ classdef StudyDirector
                                         [], 'distcompHost', ip.Results.distcompHost, ...
                                         'sessionData', sessd, ...
                                         'memUsage', ip.Results.memUsage, ...
-                                        'wallTime', wallTime);
+                                        'wallTime', ip.Results.wallTime);
                                     if (ip.Results.pushData)
                                         chpc = chpc.pushData; %#ok<NASGU>
                                     end
                                     evalee = sprintf(['chpc.runSerialProgram(@%s, ' ...
                                         '{''sessionData'', csessd}, ' ...
                                         'ip.Results.nArgout)'],  ...
-                                         ip.Results.factoryMethod);
+                                         StudyDirector.checkedFactoryMethod(ip.Results, dtV.dns{iv}));
                                     fprintf('mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely:\n');
                                     fprintf(['\t' evalee '\n']);
                                     fprintf(['\tcsessd.TracerLocation->' csessd.tracerLocation '\n']);
-                                    those{idtsess,idtv,itrac,iscan} = eval(evalee); %#ok<AGROW>
+                                    those{isess,iv,itrac,iscan} = eval(evalee); %#ok<AGROW>
                                 end
                             catch ME
                                 handexcept(ME);
@@ -244,8 +235,45 @@ classdef StudyDirector
 
     %% PROTECTED
     
-	methods (Access = protected)
-		  
+	methods (Static, Access = protected)	
+        function evalee = checkedEvalee(ipr, vFold, sessd)
+            import mlraichle.*;
+            if (strcmp(ipr.distcompHost, 'local'))
+                evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', ...
+                    StudyDirector.checkedFactoryMethod(ipr, vFold));
+                fprintf('mlraichle.StudyDirecto.constructCellArrayOfObjectsr:\n');
+                fprintf(['\t' evalee '\n']);
+                fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
+            else                
+                evalee = sprintf( ...
+                    'chpc.runSerialProgram(@%s, {''sessionData'', csessd}, ip.Results.nArgout)',  ...
+                     StudyDirector.checkedFactoryMethod(ipr, vFold));
+                fprintf('mlraichle.StudyDirector.checkedEvalee:\n');
+                fprintf(['\t' evalee '\n']);
+                fprintf(['\tcsessd.tracerLocation->' sessd.tracerLocation '\n']);
+            end
+        end
+        function fm = checkedFactoryMethod(ipr, sessFold)
+            if (lstrfind(sessFold, 'HYGLY25'))
+                fm = [ip.factoryMethod '_HYGLY25'];
+                return
+            end
+            fm = ipr.factoryMethod;
+        end
+        function lst = checkedScanList(ipr, tracer)
+            lst = ipr.scanList;            
+            if (strcmpi(tracer, 'FDG'))
+                lst = 1;
+                return
+            end
+            if (strcmpi(tracer, 'Twilite'))
+                lst = 1;
+                return
+            end
+        end
+    end
+    
+    methods (Access = protected)
  		function this = StudyDirector(varargin)
  			%% STUDYDIRECTOR
  			
