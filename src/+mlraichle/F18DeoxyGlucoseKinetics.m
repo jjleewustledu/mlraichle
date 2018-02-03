@@ -77,7 +77,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
             this.tsc_ = mmr;
         end
         function this = prepareAifData(this)
-            dta = mlcapintec.Caprac('scannerData', this.tsc, 'efficiencyFactor', this.capracEfficiency);
+            dta = mlcapintec.Caprac('scannerData', this.tsc, 'invEfficiency', this.capracEfficiency);
             this.dta_ = dta;
         end        
         function this = simulateItsMcmc(this)

@@ -96,16 +96,23 @@ classdef UmapDirector < mlpipeline.AbstractDataDirector
             import mlfourd.*;
             mskNN = NumericalNIfTId.load(this.sessionData.tracerRevision);
             mskNN = mskNN.blurred(16);
-            mskNN = mskNN.thresh(mskNN.dipmax/2);
+            mskNN = mskNN.thresh(0.75*mskNN.dipmax);
             mskNN = mskNN.binarized;
             mskNN.filesuffix = '.4dfp.ifh';
             mskNN.save;
             
             tracerNN = NumericalNIfTId.load(this.sessionData.tracerRevision);
-            tracerNN = tracerNN.masked(mskNN);
-            tracerNN = tracerNN.volumeSummed;
-            mskNN    =    mskNN.volumeSummed;
-            this.result_ = tracerNN.img / mskNN.img;
+            this     = this.setResultRoi(tracerNN, mskNN);
+        end
+        function this = setResultRoi(this, tracerNN, mskNN)            
+            tracerNN.view(this.sessionData.umap('frame0','typ','.4dfp.img'), [mskNN.fqfileprefix '.4dfp.img']);
+            maskedImg = tracerNN.img(logical(mskNN.img));
+            this.result_.roiMean   = mean( maskedImg);
+            this.result_.roiStd    = std(  maskedImg);
+            this.result_.roiVoxels = numel(maskedImg);
+            this.result_.roiVol    = this.result_.roiVoxels * prod(mskNN.mmppix/10); % mL
+            this.result_.roiMin    = min(  maskedImg);
+            this.result_.roiMax    = max(  maskedImg);
         end
         function fqfn = tracerListmodeMhdr(this)
             fqfn = this.sessionData.tracerListmodeMhdr;

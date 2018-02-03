@@ -29,7 +29,6 @@ classdef ScanData < mlsiemens.ScanData
         wellCountDecayApertureCorrGe68
         wellCountDecayCorrSpecificActivity
         aifCountCatheterType
-        aifCountBaselineCounts
         aifCountLoadedCounts
         aifCountDecayCorrSpecificActivity
         scannerStartTime              
@@ -74,7 +73,7 @@ classdef ScanData < mlsiemens.ScanData
                 this.aifData_ = Twilite( ...
                     'scannerData', scanner, ...
                     'twiliteCrv', fullfile(this.sessionData.vLocation, this.crv), ...
-                    'efficiencyFactor', 0.5*147.95, ...
+                    'invEfficiency', 0.5*147.95, ...
                     'aifTimeShift', -20);
             end
  		end
