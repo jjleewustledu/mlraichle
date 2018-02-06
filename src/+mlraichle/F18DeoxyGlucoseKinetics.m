@@ -13,7 +13,8 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
     %%
 
 	properties                
-        LC = 0.81 % Wu, et al., Molecular Imaging and Biology, 5(1), 32-41, 2003.
+        LC = 0.64 % Powers, et al., JCBFM 31(5) 1223-1228, 2011.
+        %LC = 0.81 % Wu, et al., Molecular Imaging and Biology, 5(1), 32-41, 2003.
         notes = ''
         xLabel = 'times/s'
         yLabel = 'activity/(Bq/mL)'
