@@ -7,9 +7,13 @@ classdef SessionData < mlpipeline.ResolvingSessionData
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.0.0.307022 (R2016a) Prerelease for MACI64.
- 	
-
+    
+    properties (Constant)
+        HOUR_KLUDGE = -1
+    end
+    
     properties
+        consoleClockOffset = seconds(0)
         ensureFqfilename = false
         filetypeExt = '.4dfp.ifh'
     end
@@ -18,11 +22,35 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         attenuationTag
         convertedTag
         frameTag    
+        maxLengthEpoch
         rawdataDir
+        supEpoch
+        taus
+        times
         vfolder
     end
     
     methods (Static)
+        function sessd = struct2sessionData(sessObj)
+            if (isa(sessObj, 'mlraichle.SessionData'))
+                sessd = sessObj;
+                return
+            end
+            
+            import mlraichle.*;
+            assert(isfield(sessObj, 'sessionFolder'));
+            assert(isfield(sessObj, 'vnumber'));
+            assert(isfield(sessObj, 'sessionDate'));
+            assert(isfield(sessObj, 'parcellation'));
+            studyd = StudyData;
+            sessp = fullfile(studyd.subjectsDir, sessObj.sessionFolder, '');
+            sessd = SessionData('studyData', studyd, 'sessionPath', sessp, ...
+                                'tracer', 'FDG', 'ac', true, 'vnumber', sessObj.vnumber, 'sessionDate', sessObj.sessionDate);  
+            if ( isfield(sessObj, 'parcellation') && ...
+                ~isempty(sessObj.parcellation))
+                sessd.parcellation = sessObj.parcellation;
+            end
+        end
         function v = visit2double(vstr)
             v = str2double(vstr(2:end));
         end
@@ -58,12 +86,68 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             end
             g = sprintf('_frame%i', this.frame);
         end
+        function g = get.maxLengthEpoch(this)
+            if (~this.attenuationCorrected)
+                g = 8;
+                return
+            end 
+            g = 24;
+        end
+        function     set.maxLengthEpoch(~, ~)
+            error('mlraichle:notImplemented', 'SessionData.set.maxLengthEpoch');
+        end
         function g = get.rawdataDir(this)
             g = this.studyData_.rawdataDir;
         end 
+        function g = get.supEpoch(this)
+            g = ceil(length(this.taus) / this.maxLengthEpoch);
+        end
         function g = get.vfolder(this)
             g = sprintf('V%i', this.vnumber);
         end        
+        function g = get.taus(this)
+            if (~this.attenuationCorrected)
+                switch (upper(this.tracer))
+                    case 'FDG'
+                        g = [30,30,30,30,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
+                        % length -> 65
+                    case {'OC' 'CO'}
+                        g = [30,30,30,30,30,30,30,30,30,30,30,30,30,30];
+                        % length -> 14
+                    case 'OO'
+                        g = [30,30,30,30,30,30,30,30,30,30];
+                        % length -> 10
+                    case 'HO'
+                        g = [30,30,30,30,30,30,30,30,30,30];
+                        % length -> 10
+                    otherwise
+                        error('mlraichle:unsupportedSwitchcase', 'NAC:SessionData.taus.this.tracer->%s', this.tracer);
+                end
+                return
+            end            
+            switch (upper(this.tracer))
+                case 'FDG'
+                    g = [10,10,10,10,10,10,10,10,10,10,10,10,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
+                    % length -> 73
+                case {'OC' 'CO'}
+                    g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
+                    % length -> 70
+                case 'OO'
+                    g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
+                    % length -> 58
+                case 'HO'
+                    g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
+                    % length -> 58
+                otherwise
+                    error('mlraichle:unsupportedSwitchcase', 'AC:SessionData.taus.this.tracer->%s', this.tracer);
+            end
+        end
+        function g = get.times(this)
+            g = zeros(size(this.taus));
+            for ig = 1:length(this.taus)-1
+                g(ig+1) = sum(this.taus(1:ig));
+            end
+        end
         
         %% IMRData
         
@@ -196,6 +280,35 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function suff = petPointSpreadSuffix(this, varargin)
             suff = sprintf('_b%i', floor(10*mean(this.petPointSpread(varargin{:}))));
         end
+        function [dt0_,date_] = readDatetime0(this)
+            try
+                frame0 = this.frame;
+                if (this.attenuationCorrected)
+                    this.frame = 0;
+                else
+                    this.frame = nan;
+                end
+                mhdr = this.tracerListmodeMhdr;
+                this.frame = frame0;
+                lp = mlio.LogParser.load(mhdr);
+                [dateStr,idx] = lp.findNextCell('%study date (yyyy:mm:dd):=', 1);
+                 timeStr      = lp.findNextCell('%study time (hh:mm:ss GMT+00:00):=', idx);
+                dateNames     = regexp(dateStr, '%study date \(yyyy\:mm\:dd\)\:=(?<Y>\d\d\d\d)\:(?<M>\d+)\:(?<D>\d+)', 'names');
+                timeNames     = regexp(timeStr, '%study time \(hh\:mm\:ss GMT\+00\:00\)\:=(?<H>\d+)\:(?<MI>\d+)\:(?<S>\d+)', 'names');
+                Y  = str2double(dateNames.Y);
+                M  = str2double(dateNames.M);
+                D  = str2double(dateNames.D);
+                H  = str2double(timeNames.H) + this.HOUR_KLUDGE;
+                MI = str2double(timeNames.MI);
+                S  = str2double(timeNames.S);
+
+                dt0_ = datetime(Y,M,D,H,MI,S,'TimeZone','UTC') - this.consoleClockOffset;
+                dt0_.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
+                date_ = datetime(Y,M,D);
+            catch ME %#ok<NASGU>
+                [dt0_,date_] = readDatetime0@mlpipeline.SessionData(this);
+            end
+        end
         function loc  = tracerConvertedLocation(this, varargin)
             
             [ipr,schar] = this.iprLocation(varargin{:});
@@ -248,6 +361,11 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             fqfn = fullfile( ...
                 this.tracerListmodeLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
                 sprintf('%s%s_V%i-LM-00-OP.mhdr', ipr.tracer, schar, this.vnumber));
+            if (~lexist(fqfn, 'file'))
+                fqfn = fullfile( ...
+                    this.tracerListmodeLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
+                    sprintf('%s%s_V%i-LM-00-FBP.mhdr', ipr.tracer, schar, this.vnumber));
+            end
             if (~lexist(fqfn, 'file'))                
                 fqfn = fullfile( ...
                     this.tracerListmodeLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
@@ -321,8 +439,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 switch (this.tracer) % KLUDGE
                     case 'FDG' 
                         if (strcmp(this.sessionFolder, 'HYGLY25'))
-                            rEpoch = 1:this.supEpochNAC; % KLUDGE within KLUDGE
-                            rFrame = this.supEpochNAC;
+                            rEpoch = 1:this.supEpoch; % KLUDGE within KLUDGE
+                            rFrame = this.supEpoch;
                         else
                             rEpoch = 1:9;
                             rFrame = 9;
@@ -504,12 +622,16 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         
  		function this = SessionData(varargin)
  			this = this@mlpipeline.ResolvingSessionData(varargin{:});
+            
+            if (isnat(this.sessionDate_))
+                this.sessionDate_ = this.readDatetime0;
+            end
             try
                 this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct( ...
                     fullfile(this.subjectsDir, this.bloodGlucoseAndHctXlsx));
             catch ME
                 fprintf('mlraichle.SessionData.ctor:  exception thrown while assigning this.bloodGlucoseAndHct\n');
-                %handwarning(ME, 'mlraichle:dataNotAvailable', 'SessionData.ctor.%s', this.bloodGlucoseAndHctXlsx);
+                handwarning(ME, 'mlraichle:dataNotAvailable', 'SessionData.ctor.%s', this.bloodGlucoseAndHctXlsx);
             end
         end
     end
