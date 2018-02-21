@@ -15,7 +15,7 @@ classdef TracerDirector < mlpet.TracerDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
-            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
+            addParameter(ip, 'distcompHost', 'chpc_remote_r2016b', @ischar);
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
@@ -175,6 +175,7 @@ classdef TracerDirector < mlpet.TracerDirector
             this = this.instanceConstructResolved;
         end 
         function this  = constructUmapSynthFull(varargin)
+            %  @deprecated
             
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -410,6 +411,28 @@ classdef TracerDirector < mlpet.TracerDirector
                 end
             end
         end
+        function list  = listRawdataAndConverted(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            sessd = ip.Results.sessionData;
+            sessd.attenuationCorrected = false;
+            sessd.frame = nan;
+            dirt  = mlsystem.DirTool([sessd.tracerListmodeMhdr '*']);
+            datet = sessd.readDatetime0;
+            if (~isempty(dirt.fqfns))
+                fnMhdr = cell2str(dirt.fqfns, 'AsRow', true);
+            else
+                fnMhdr = 'MISSING';
+            end
+            
+            list  = struct( ...
+                'datetime', datet, ...
+                'rawdataLocation', sessd.tracerRawdataLocation, ...
+                'filenameMhdr', fnMhdr);
+        end
         function lst   = listTracersConverted(varargin)
             
             ip = inputParser;
@@ -455,6 +478,17 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:}));              
             this = this.instancePullPattern('pattern', ip.Results.pattern);
         end 
+        function this  = pushToRemote(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));          
+            this = this.instancePushToRemote;
+        end 
     end
     
     methods
@@ -466,7 +500,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
+            addParameter(ip, 'distcompHost', 'chpc_remote_r2016b', @ischar);
             parse(ip, varargin{:});
             
             try

@@ -13,7 +13,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
     end
     
     properties
-        consoleClockOffset = seconds(0)
         ensureFqfilename = false
         filetypeExt = '.4dfp.ifh'
     end
@@ -302,7 +301,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 MI = str2double(timeNames.MI);
                 S  = str2double(timeNames.S);
 
-                dt0_ = datetime(Y,M,D,H,MI,S,'TimeZone','UTC') - this.consoleClockOffset;
+                dt0_ = datetime(Y,M,D,H,MI,S,'TimeZone','UTC');
                 dt0_.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
                 date_ = datetime(Y,M,D);
             catch ME %#ok<NASGU>

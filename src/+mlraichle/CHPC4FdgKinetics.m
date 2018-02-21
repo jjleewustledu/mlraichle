@@ -27,26 +27,17 @@ classdef CHPC4FdgKinetics < mldistcomp.CHPC
             addRequired(ip, 'varargin_', @iscell);
             parse(ip, varargin{:});            
             
-            if (hostnameMatch('ophthalmic'))
-                c = parcluster('chpc_remote_r2016b');
-            elseif (hostnameMatch('william'))
-                c = parcluster('chpc_remote_r2016a');
-            else
-                error('mldistcomp:unsupportedHost', 'CHPC.batchSerial.hostname->%s', hostname);
-            end
-            ClusterInfo.setEmailAddress('jjlee.wustl.edu@gmail.com');
-            ClusterInfo.setMemUsage('32000');
-            ClusterInfo.setWallTime('02:00:00');
             try
+                c = myparcluster;
                 j = c.batch(ip.Results.h, ip.Results.nargout_, ip.Results.varargin_);
                 obj = j.fetchOutputs{:};
             catch ME
-                handwarning(ME, struct2str(ME.stack));
+                dispwarning(ME);
             end
         end  
         function pushData0(datobj)
             import mlraichle.*;
-            sessd           = CHPC.staticSessionData(datobj);
+            sessd           = SessionData.struct2sessionData(datobj);
             chpc            = CHPC('sessionData', sessd); 
             chpcVPth        = fullfile(chpc.chpcSubjectsDir, sessd.sessionFolder, sessd.vfolder, '');
             chpcFdgPth      = fullfile(chpc.chpcSubjectsDir, sessd.sessionFolder, sessd.vfolder, ...
@@ -75,7 +66,7 @@ classdef CHPC4FdgKinetics < mldistcomp.CHPC
         end
         function pullData0(datobj)
             import mlraichle.*;
-            sessd = CHPC.staticSessionData(datobj);
+            sessd = SessionData.struct2sessionData(datobj);
             chpc  = CHPC('sessionData', sessd); 
             logs  = fullfile(chpc.chpcSubjectsDir, sessd.sessionFolder, sessd.vfolder, '*.log');
             mats  = fullfile(chpc.chpcSubjectsDir, sessd.sessionFolder, sessd.vfolder, '*.mat');
@@ -84,20 +75,6 @@ classdef CHPC4FdgKinetics < mldistcomp.CHPC
             chpc.scpFromChpc(logs);
             chpc.scpFromChpc(mats);
             chpc.scpFromChpc(figs);
-        end   
-        function sessd = staticSessionData(datobj)
-            import mlraichle.*;
-            if (isa(datobj, 'mlpipeline.SessionData'))
-                sessd = datobj;
-                return
-            end
-            studyd = StudyData;
-            sessp = fullfile(studyd.subjectsDir, datobj.sessionFolder, '');
-            sessd = SessionData('studyData', studyd, 'sessionPath', sessp, ...
-                                'tracer', 'FDG', 'ac', true, 'vnumber', datobj.vnumber);  
-            if (isfield(datobj, 'parcellation') && ~isempty(datobj.parcellation))
-                sessd.parcellation = datobj.parcellation;
-            end
         end
     end
     

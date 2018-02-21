@@ -42,7 +42,7 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
         end
         function this = simulateMcmc(Aa, fu, k1, k2, k3, k4, t, u0, v1, mapParams)
             import mlraichle.*;
-            qpet = F18DeoxyGlucoseKinetics.qpet(Aa, fu, k1, k2, k3, k4, t, v1);
+            qpet = qFDG(Aa, fu, k1, k2, k3, k4, t, v1);
             qpet = F18DeoxyGlucoseKinetics.pchip(t, qpet, t, u0);
             dta_ = struct('times', t, 'specificActivity', Aa);
             tsc_ = struct('times', t, 'specificActivity', qpet);
@@ -62,11 +62,14 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
         end
         
         function this = prepareScannerData(this)
+            mand = mlsiemens.XlsxObjScanData('sessionData', this.sessionData);
             this.sessionData.tracer = 'FDG';
-            pic = mlpet.PETImagingContext( ...
-                [this.sessionData.fdgACRevision('typ','fqfp') '_on_resolved.4dfp.ifh']);
-            mmr = mlsiemens.BiographMMR0(pic.niftid, ...
-                'sessionData', this.sessionData);
+            pic = mlpet.PETImagingContext(this.sessionData.tracerResolvedFinal);
+            mmr = mlsiemens.BiographMMR0( ...
+                pic.niftid, ...
+                'sessionData', this.sessionData, ...
+                'doseAdminDatetime', mand.tracerAdmin.TrueAdmin_Time_Hh_mm_ss('[18F]DG'), ...
+                'manualData', mand);
             num = mlfourd.NumericalNIfTId(mmr.component);
             msk = mlfourd.MaskingNIfTId(this.mask.niftid);
             num = num.masked(msk);
@@ -78,7 +81,16 @@ classdef F18DeoxyGlucoseKinetics < mlkinetics.AbstractF18DeoxyGlucoseKinetics
             this.tsc_ = mmr;
         end
         function this = prepareAifData(this)
-            dta = mlcapintec.Caprac('scannerData', this.tsc, 'invEfficiency', this.capracEfficiency);
+            mand = mlsiemens.XlsxObjScanData('sessionData', this.sessionData);
+            dta = mlcapintec.Caprac( ...
+                'fqfilename', this.sessionData.CCIRRadMeasurements, ...
+                'sessionData', this.sessionData, ...
+                'scannerData', this.tsc, ...
+                'invEfficiency', this.capracEfficiency, ...
+                'isotope', '18F', ...
+                'manualData', mand, ...
+                'doseAdminDatetime', mand.tracerAdmin.TrueAdmin_Time_Hh_mm_ss('[18F]DG'));
+            dta = dta.correctedActivities(0);
             this.dta_ = dta;
         end        
         function this = simulateItsMcmc(this)

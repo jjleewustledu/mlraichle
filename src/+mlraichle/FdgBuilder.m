@@ -169,10 +169,7 @@ classdef FdgBuilder < mlraichle.TracerKineticsBuilder
                     'tracer',      'FDG', ...
                     'rnumber',     2, ...
                     'vnumber',     1);            
-            c = parcluster;
-            ClusterInfo.setEmailAddress('jjlee.wustl.edu@gmail.com');
-            ClusterInfo.setMemoryUsage('16000');
-            ClusterInfo.setWallTime('04:00:00');
+            c = myparcluster;
             for fss = 1:3
                 c.batch(FdgBuilder.resolveFrameSubset, 1, {sessd, fss});
             end

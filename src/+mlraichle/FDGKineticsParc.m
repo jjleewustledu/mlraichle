@@ -44,167 +44,80 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
 
     methods (Static)
         function jobs = godoChpcPart(varargin)
+            tic
             diary on   
             
             import mlraichle.*;
             ip = inputParser;
-            addOptional(ip, 'dirToolArg', 'HYGLY2*', @ischar);
-            addOptional(ip, 'vs', 1:2, @isnumeric);
+            addOptional(ip, 'dirToolArg', 'HYGLY28*', @ischar);
+            addOptional(ip, 'vs', 2:2, @isnumeric);
+            addParameter(ip, 'sessionDate', nat, @isdatetime);
             addParameter(ip, 'parcs', FDGKineticsParc.PARCS, @iscell);
             parse(ip, varargin{:});                     
             
             studyd = StudyData;
             pwd0   = pushd(studyd.subjectsDir);
             dth    = mlsystem.DirTool(ip.Results.dirToolArg);
+            dthDns = dth.dns; % for parfor
             parcs  = ip.Results.parcs;
-            jobs   = {};
-            if (hostnameMatch('ophthalmic'))
-                c = parcluster('chpc_remote_r2016b');
-            elseif (hostnameMatch('william'))
-                c = parcluster('chpc_remote_r2016a');
-            else
-                error('mlraichle:unsupportedHost', 'FDGKineticsParc.godoChpc.hostname->%s', hostname);
-            end
-            ClusterInfo.setEmailAddress('jjlee.wustl.edu@gmail.com');
-            ClusterInfo.setMemUsage('32000');
-            ClusterInfo.setWallTime('01:00:00');
-            %ClusterInfo.setPrivateKeyFile('~/id_rsa.pem');
+            jobs   = cell(length(dth.dns), 2);
+            c      = myparcluster;
             for d = 1:length(dth.dns)
-                datobj.sessionFolder = dth.dns{d};
-                for v = 1:length(ip.Results.vs)
-                    datobj.vnumber = ip.Results.vs(v);
-                    try
-                        pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', ip.Results.vs(v)), ''));
-                        %CHPC4FdgKinetics.pushData0(datobj);
-                        for p = 1:length(parcs)
-                            datobj.parcellation = parcs{p};
-                            j = c.batch(@mlraichle.FDGKineticsParc.godo3, 1, {datobj});
-                            jobs = [jobs j]; %#ok<AGROW>
+                for v = ip.Results.vs
+                    for p = 1:length(parcs)  
+                        datobj = struct('sessionFolder', dthDns{d}, 'vnumber', v, 'sessionDate', ip.Results.sessionDate, 'parcellation', parcs{p});
+                        try
+                            pwd1 = pushd(fullfile(dthDns{d}, sprintf('V%i', v), ''));
+                            %CHPC4FdgKinetics.pushData0(datobj);
+                            jobs{d,v} = c.batch(@mlraichle.FDGKineticsParc.godo3, 1, {datobj});
+                            popd(pwd1);
+                        catch ME
+                            dispwarning(ME);                        
                         end
-                        popd(pwd1);
-                    catch ME
-                        disp(ME);
-                        struct2str(ME.stack);
-                        handwarning(ME);                        
                     end
                 end
             end
             popd(pwd0);
             
             diary off
+            toc
         end
-        function [jobs,those] = godoChpc
-            
-            diary on            
-            
-            import mlraichle.*;
-            studyd = StudyData;
-            pwd0   = pushd(studyd.subjectsDir);
-            dth    = mlsystem.DirTool('HYGLY2*');
-            parcs  = FDGKineticsParc.PARCS;
-            jobs   = {};
-            those  = {};
-            if (hostnameMatch('ophthalmic'))
-                c = parcluster('chpc_remote_r2016b');
-            elseif (hostnameMatch('william'))
-                c = parcluster('chpc_remote_r2016a');
-            else
-                error('mlraichle:unsupportedHost', 'FDGKineticsParc.godoChpc.hostname->%s', hostname);
-            end
-            ClusterInfo.setEmailAddress('jjlee.wustl.edu@gmail.com');
-            ClusterInfo.setMemUsage('32000');
-            ClusterInfo.setWallTime('02:00:00');
-            %ClusterInfo.setPrivateKeyFile('~/id_rsa.pem');
-            for d = 1:2 %%%length(dth.dns)
-                datobj.sessionFolder = dth.dns{d};
-                for v = 1:2
-                    datobj.vnumber = v;
-                    try
-                        pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
-                        %CHPC4FdgKinetics.pushData0(datobj);
-                        for p = 1:length(parcs)
-                            datobj.parcellation = parcs{p};
-                            j = c.batch(@mlraichle.FDGKineticsParc.godo3, 2, {datobj});
-                            jobs = [jobs j]; %#ok<AGROW>
-                            those = [those j.fetchOutputs{2}];
-                        end
-                        popd(pwd1);
-                    catch ME
-                        disp(ME);
-                        struct2str(ME.stack);
-                        handwarning(ME);                        
-                    end
-                end
-            end
-            popd(pwd0);
-            
-            diary off
-        end
-        function sessions = godoWilliamPart(varargin)
+        function jobs = godoWilliam(varargin)
             tic 
+            diary on
             
             import mlraichle.*;
             ip = inputParser;
-            addOptional(ip, 'dirToolArg', 'HYGLY2*', @ischar);
-            addOptional(ip, 'vs', 1:2, @isnumeric);
-            addParameter(ip, 'parcs', FDGKineticsParc.PARCS, @iscell);
-            parse(ip, varargin{:}); 
+            addOptional(ip, 'dirToolArg', 'HYGLY28*', @ischar);
+            addOptional(ip, 'vs', 2:2, @isnumeric);
+            addParameter(ip, 'sessionDate', nat, @isdatetime);
+            parse(ip, varargin{:});                     
             
             studyd = StudyData;
             pwd0   = pushd(studyd.subjectsDir);
-            dtarg  = ip.Results.dirToolArg;
-            if (~lstrfind('*', dtarg)); dtarg = [dtarg '*']; end
-            dth    = mlsystem.DirTool(dtarg);
-            parcs  = ip.Results.parcs;
-            sessions = cell(length(dth.dns), 2);
-            for d = 1:length(dth.dns)
-                datobj.sessionFolder = dth.dns{d};
-                for v = 1:length(ip.Results.vs)
-                    datobj.vnumber = ip.Results.vs(v);
-                    pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', ip.Results.vs(v)), ''));
-                    states = {};
-                    for p = 1:length(parcs)
-                        datobj.parcellation = parcs{p};
-                        s = FDGKineticsParc.godo3(datobj);
-                        states = [states s]; %#ok<AGROW>
-                        saveFigures(sprintf('fig_%s', datestr(now,30)));
-                    end
-                    popd(pwd1);
-                    sessions{d,v} = states;
-                end
-            end
-            popd(pwd0);
-            
-            toc
-        end
-        function sessions = godoWilliam
-            tic 
-            
-            import mlraichle.*;
-            studyd = StudyData;
-            pwd0   = pushd(studyd.subjectsDir);
-            dth    = mlsystem.DirTool('HYGLY22*');
+            dth    = mlsystem.DirTool(ip.Results.dirToolArg);
+            dthDns = dth.dns; % for parfor
             parcs  = FDGKineticsParc.PARCS;
-            sessions = cell(length(dth.dns), 2);
-            for d = 1:1 % length(dth.dns)
-                datobj.sessionFolder = dth.dns{d};
-                for v = 2:2
-                    datobj.vnumber = v;
-                    pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
-                    states = {};
-                    for p = 11:13 % length(parcs)
-                        datobj.parcellation = parcs{p};
-                        s = FDGKineticsParc.godo3(datobj);
-                        states = [states s]; %#ok<AGROW>
-                        saveFigures(sprintf('fig_%s', datestr(now,30)));
+            jobs = cell(length(dth.dns), 2);
+            for d = 1:length(dth.dns)
+                for v = ip.Results.vs
+                    for p = 1:length(parcs)
+                        datobj = struct('sessionFolder', dthDns{d}, 'vnumber', v, 'sessionDate', ip.Results.sessionDate, 'parcellations', parcs{p});
+                        try
+                            pwd1 = pushd(fullfile(dthDns{d}, sprintf('V%i', v), ''));
+                            jobs{d,v} = FDGKineticsParc.godo3(datobj);
+                            saveFigures(sprintf('fig_%s', datestr(now,30)));                       
+                            popd(pwd1);                    
+                        catch ME
+                            dispwarning(ME);                        
+                        end
                     end
-                    popd(pwd1);
-                    sessions{d,v} = states;
                 end
             end
             popd(pwd0);
             
-            toc
+            diary off
+            toc        
         end
         function goPlotOnWilliam
             import mlraichle.*;
@@ -218,7 +131,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                     datobj.vnumber = v;
                     for p = 1:length(parcs)
                         datobj.parcellation = parcs{p};
-                        sessd = CHPC4FdgKinetics.staticSessionData(datobj);
+                        sessd = SessionData.struct2sessionData(datobj);
                         FDGKineticsParc.godoPlots(sessd);
                     end
                 end
@@ -243,7 +156,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                     for p = 1:length(parcs)
                         datobj.parcellation = parcs{p};
                         pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
-                        sessd = CHPC4FdgKinetics.staticSessionData(datobj);
+                        sessd = SessionData.struct2sessionData(datobj);
                         if (ip.Results.pullData0)
                             CHPC4FdgKinetics.pullData0(sessd);
                         end
@@ -264,27 +177,25 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             end
             popd(pwd0);
         end
-        function [summary,this] = godo3(datobj)
+        function [datobj,this] = godo3(sessStruct)
             import mlraichle.*;
-            sessd = CHPC4FdgKinetics.staticSessionData(datobj);
-            [summary,this] = FDGKineticsParc.godo2(sessd);
+            sessd = SessionData.struct2sessionData(sessStruct);
+            [datobj,this] = FDGKineticsParc.godo2(sessd);
         end
-        function [summary,this] = godo2(sessd)
+        function [datobj,this] = godo2(sessobj, varargin)
             try
                 import mlraichle.*;
-                [m,sessd] = FDGKineticsParc.godoMasks(sessd);
-                fprintf('FDGKineticsParc.godo2:  returned from godoMasks\n');
-                pwd0 = pushd(sessd.vLocation);
-                fprintf('FDGKineticsParc.godo2:  working in %s on %s\n', pwd, sessd.parcellation);
-                this = FDGKineticsParc(sessd, 'mask', m);
-                summary.(m.fileprefix) = this.doItsBayes;
-                fprintf('FDGKineticsParc.godo2:  returned from doItsBayes\n');
+                if (isstruct(sessobj))
+                    sessobj = SessionData.struct2sessionData(sessobj);
+                end
+                assert(isdir(sessobj.tracerLocation));
+                pwd0 = pushd(sessobj.tracerLocation);
+                [m,sessobj] = FDGKineticsParc.godoMasks(sessobj);
+                this = FDGKineticsParc.factory(sessobj, 'mask', m);
+                datobj.(m.fileprefix) = this.doItsBayes(varargin{:});
                 popd(pwd0);
             catch ME
-                fprintf('%s\n', ME.identifier);
-                fprintf('%s\n', ME.message);
-                fprintf('%s\n', struct2str(ME.stack));
-                handwarning(ME);
+                dispwarning(ME);
             end
         end
         function state = godo(sessd)
@@ -294,8 +205,8 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                     sessd.parcellation = FDGKineticsParc.PARCS{p};
                     [m,sessd] = FDGKineticsParc.godoMasks(sessd);
                     sessd.selectedMask = ''; %% KLUDGE
-                    assert(isdir(sessd.vLocation));
-                    pwd0 = pushd(sessd.vLocation);
+                    assert(isdir(sessd.tracerLocation));
+                    pwd0 = pushd(sessd.tracerLocation);
                     this = FDGKineticsParc(sessd, 'mask', m);
                     state.(m.fileprefix) = this.doItsBayes;
                     popd(pwd0);
@@ -418,8 +329,14 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             
             y = mlfourd.ImagingContext('Yeo7_op_fdg.4dfp.ifh');
         end
-        
-        function teardown(sessd)
+        function this = factory(varargin)
+            fn = sprintf('mlraichle_FDGKineticsParc_this.mat');
+            if (strcmp(getenv('UNITTESTING'), 'true') && lexist(fn, 'file'))
+                load(fn, 'this');
+                return
+            end
+            this = mlraichle.FDGKineticsParc(varargin{:});
+            this.saveas(fn);
         end
     end
     

@@ -20,7 +20,7 @@ classdef FdgKinetics
             parse(ip, varargin{:});
             
             import mlraichle.*;
-            sessd = CHPC4FdgKinetics.staticSessionData(ip.Results.sessionData);
+            sessd = SessionData.struct2sessionData(ip.Results.sessionData);
             [m,sessd] = F18DeoxyGlucoseKinetics.godoMasks(sessd, ip.Results.rois);
             this = F18DeoxyGlucoseKinetics(sessd, 'mask', m);
             this = this.doItsBayes;
@@ -67,7 +67,7 @@ classdef FdgKinetics
                 CHPC4FdgKinetics.pullData0(this.sessionData);
                 popd(pwd0);
             catch ME
-                handwarning(ME, struct2str(ME.stack));
+                dispwarning(ME);
             end
         end
  	end 
