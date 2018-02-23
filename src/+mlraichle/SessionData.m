@@ -26,6 +26,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         supEpoch
         taus
         times
+        timeMidpoints
         vfolder
     end
     
@@ -146,6 +147,9 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             for ig = 1:length(this.taus)-1
                 g(ig+1) = sum(this.taus(1:ig));
             end
+        end
+        function g = get.timeMidpoints(this)
+            g = this.times + this.taus/2;
         end
         
         %% IMRData
@@ -370,7 +374,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                     this.tracerListmodeLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
                     sprintf('%s%s_V%i-LM-00-OP-%s.mhdr', ipr.tracer, schar, this.vnumber, this.attenuationTag));
             end
-            assert(lexist(fqfn, 'file'));
+            assert(lexist(fqfn, 'file'), 'mlraichle.SessionData.tracerListmodMhdr.fqfn->%s NOT FOUND', fqfn);
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerListmodeSif(this, varargin)

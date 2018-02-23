@@ -133,7 +133,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.reviewUmaps', 'ac', true, varargin{:});   
         end
-        function lst   = listRawdataAndConverted(varargin)
+        function [tbl,lst] = listRawdataAndConverted(varargin)
             %% LISTRAWDATAANDCONVERTED lists:
             %  session identifier, visit number, scan date, tracer raw data listing, tracer converted data intact.
             
@@ -141,28 +141,32 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 'mlraichle.TracerDirector.listRawdataAndConverted', varargin{:});
             
             datetimes = [];
-            rawdataLocs = [];
+            rawdataLocs = {};
             mhdrs = {};
             for se = 1:size(lst,1)
                 for vi = 1:size(lst,2)
                     for tr = 1:size(lst,3)
                         for sc = 1:size(lst,4)
                             lstEle = lst{se,vi,tr,sc};
-                            if (~isempty(lstEle))                    
-                                datetimes = [datetimes; char(lstEle.datetime)]; %#ok<*AGROW>
+                            if (~isempty(lstEle) && isdatetime(lstEle.datetime))                    
+                                datetimes = [datetimes; lstEle.datetime]; %#ok<*AGROW>
                                 rawdataLocs = [rawdataLocs; lstEle.rawdataLocation];
                                 mhdrs = [mhdrs; lstEle.filenameMhdr];
                             else
-                                datetimes = [datetimes; ''];
-                                rawdataLocs = [rawdataLocs; ''];
-                                mhdrs = [mhdrs; ''];
+                                nat = NaT; nat.TimeZone = 'America/Chicago';
+                                datetimes = [datetimes; nat];
+                                rawdataLocs = [rawdataLocs; sprintf('session->%i visit->%i tracer->%i scan->%i', se, vi, tr, sc)];
+                                mhdrs = [mhdrs; ' '];
                             end
                         end
                     end
                 end
             end
             
-            lst = table(datetimes, rawdataLocs, mhdrs, 'VariableNames', {'datetime' 'rawdata_location' 'mhdr'});
+            tbl = table(datetimes, rawdataLocs, mhdrs, 'VariableNames', {'datetime' 'rawdata_location' 'mhdr'});
+            tbl = sortrows(tbl, 1);
+            writetable(tbl, 'listRawdataAndConverted.xlsx');
+            save('listRawdataAndConverted.mat');
         end
         function lst   = listTracersConverted(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            

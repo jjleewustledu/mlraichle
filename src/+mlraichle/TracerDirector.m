@@ -420,18 +420,27 @@ classdef TracerDirector < mlpet.TracerDirector
             sessd = ip.Results.sessionData;
             sessd.attenuationCorrected = false;
             sessd.frame = nan;
-            dirt  = mlsystem.DirTool([sessd.tracerListmodeMhdr '*']);
-            datet = sessd.readDatetime0;
-            if (~isempty(dirt.fqfns))
-                fnMhdr = cell2str(dirt.fqfns, 'AsRow', true);
-            else
-                fnMhdr = 'MISSING';
+
+            datet = NaT;
+            datet.TimeZone = 'America/Chicago';
+            fnMhdr = 'NO MHDR FOUND';
+            try
+                dirt  = mlsystem.DirTool([sessd.tracerListmodeMhdr '*']);
+                if (~isempty(dirt.fqfns))
+                    fnMhdr = cell2str(dirt.fqfns, 'AsRow', true);
+                end      
+                datet = sessd.readDatetime0;      
+                list  = struct( ...
+                    'datetime', datet, ...
+                    'rawdataLocation', sessd.tracerRawdataLocation, ...
+                    'filenameMhdr', fnMhdr);
+            catch ME
+                dispwarning(ME);
+                list = struct( ...
+                    'datetime', datet, ...
+                    'rawdataLocation', sessd.tracerRawdataLocation, ...
+                    'filenameMhdr', ME.message);
             end
-            
-            list  = struct( ...
-                'datetime', datet, ...
-                'rawdataLocation', sessd.tracerRawdataLocation, ...
-                'filenameMhdr', fnMhdr);
         end
         function lst   = listTracersConverted(varargin)
             
