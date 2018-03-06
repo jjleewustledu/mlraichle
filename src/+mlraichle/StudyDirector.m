@@ -88,6 +88,80 @@ classdef StudyDirector
                 popd(pwds);
             end
         end
+        function [those,dtsess] = constructCellArrayOfObjectsPar(varargin)
+            %% CONSTRUCTCELLARRAYOFOBJECTS iterates over session and visit directories, 
+            %  tracers and scan-instances, evaluating factoryMethod for each.
+            %  @param  factoryMethod     is char, specifying static methods for:  those := factoryMethod('sessionData', sessionData).
+            %  @param  named sessionsExp is char, specifying session directories to match by DirTool.
+            %  @param  named visitsExp   is char, specifying visit   directories to match by DirTool.
+            %  @param  named scanList    is numeric := trace scan indices.
+            %  @param  named tracer      is char    and passed to SessionData.
+            %  @param  named ac          is logical and passed to SessionData.
+            %  @param  named supEpoch    is numeric; KLUDGE to pass parameter to mlraichle.SessionData.tracerResolvedFinal.
+            %  @return those             is a cell-array of objects specified by factoryMethod.
+            %  @return dtsess            is an mlsystem.DirTool for sessions.
+            
+            import mlsystem.* mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired( ip, 'factoryMethod', @ischar);
+            addParameter(ip, 'sessionsExpr', 'HYGLY*');
+            addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'scanList', StudyDirector.SCANS);
+            addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
+            addParameter(ip, 'ac', StudyDirector.AC);
+            addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
+            parse(ip, varargin{:});
+            ipr = ip.Results;
+            tracers = ensureCell(ipr.tracer);
+            factoryMethod = ipr.factoryMethod;
+            
+            those = {};
+            dtsess = DirTools( ...
+                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+            parfor idtsess = 1:length(dtsess.fqdns)
+                sessp = dtsess.fqdns{idtsess};
+                pwds = pushd(sessp);
+                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
+                for idtv = 1:length(dtv.fqdns)
+                    
+                    if (lstrfind(dtv.dns{idtv}, 'HYGLY25'))
+                        continue
+                    end
+                    
+                    for itrac = 1:length(tracers)
+                        for iscan = ipr.scanList
+                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
+                                continue
+                            end
+                            try
+                                sessd = SessionData( ...
+                                    'studyData', StudyData, ...
+                                    'sessionPath', sessp, ...
+                                    'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
+                                    'snumber', iscan, ...
+                                    'tracer', tracers{itrac}, ...
+                                    'ac', ipr.ac, ...
+                                    'supEpoch', ipr.supEpoch);
+                                
+                                if (isdir(sessd.tracerRawdataLocation))
+                                    % there exist spurious tracerLocations; select those with corresponding raw data
+                                    
+                                    evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', factoryMethod);
+                                    fprintf('mlraichle.StudyDirecto.constructCellArrayOfObjectsr:\n');
+                                    fprintf(['\t' evalee '\n']);
+                                    fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
+                                    eval(evalee);
+                                end
+                            catch ME
+                                handwarning(ME);
+                            end
+                        end
+                    end
+                end                        
+                popd(pwds);
+            end
+        end
         function [those,dtsess] = constructCellArrayOfObjectsRemotely(varargin)
             %% CONSTRUCTCELLARRAYOFOBJECTSREMOTELY iterates over session and visit directories, 
             %  tracers and scan-instances, evaluating factoryMethod for each.

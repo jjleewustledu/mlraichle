@@ -114,7 +114,213 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.cleanTracerRemotely', varargin{:});
+        end        
+        
+        function those = constructAnatomy(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.constructAnatomy', 'tracer', 'FDG', 'ac', true, varargin{:});            
         end
+        function those = constructAnatomyRemotely(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
+                'mlraichle.TracerDirector.constructAnatomy', 'tracer', 'FDG', 'ac', true, varargin{:});            
+        end        
+        function those = constructCompositeResolved(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.constructCompositeResolved', 'ac', true, 'tracer', 'FDG', varargin{:});            
+        end     
+        function those = constructCompositeResolvedPar(varargin)
+            %% constructCompositeResolvedPar iterates over session and visit directories, 
+            %  tracers and scan-instances, evaluating constructCompositeResolved for each.
+            %  @param  named sessionsExp is char, specifying session directories to match by DirTool.
+            %  @param  named visitsExp   is char, specifying visit   directories to match by DirTool.
+            %  @param  named scanList    is numeric := trace scan indices.
+            %  @param  named tracer      is char    and passed to SessionData.
+            %  @param  named ac          is logical and passed to SessionData.
+            %  @param  named supEpoch    is numeric; KLUDGE to pass parameter to mlraichle.SessionData.tracerResolvedFinal.
+            %  @return those             is a cell-array of objects specified by factoryMethod.
+            %  @return dtsess            is an mlsystem.DirTool for sessions.
+            
+            import mlsystem.* mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionsExpr', 'HYGLY*');
+            addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'scanList', StudyDirector.SCANS);
+            addParameter(ip, 'tracer', 'FDG', @(x) ischar(x) || iscell(x));
+            addParameter(ip, 'ac', true);
+            addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
+            parse(ip, varargin{:});
+            ipr = ip.Results;
+            tracers = ensureCell(ipr.tracer);
+            
+            those = {};
+            dtsess = DirTools( ...
+                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+            parfor idtsess = 1:length(dtsess.fqdns)
+                sessp = dtsess.fqdns{idtsess};
+                pwds = pushd(sessp);
+                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
+                for idtv = 1:length(dtv.fqdns)
+                    
+                    if (lstrfind(dtv.dns{idtv}, 'HYGLY25'))
+                        continue
+                    end
+                    
+                    for itrac = 1:length(tracers)
+                        for iscan = ipr.scanList
+                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
+                                continue
+                            end
+                            try
+                                sessd = SessionData( ...
+                                    'studyData', StudyData, ...
+                                    'sessionPath', sessp, ...
+                                    'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
+                                    'snumber', iscan, ...
+                                    'tracer', tracers{itrac}, ...
+                                    'ac', ipr.ac, ...
+                                    'supEpoch', ipr.supEpoch);
+                                
+                                if (isdir(sessd.tracerRawdataLocation))
+                                    % there exist spurious tracerLocations; select those with corresponding raw data
+                                    
+                                    mlraichle.TracerDirector.constructCompositeResolved( ...
+                                        'sessionData', sessd, varargin{:});
+                                end
+                            catch ME
+                                handwarning(ME);
+                            end
+                        end
+                    end
+                end                        
+                popd(pwds);
+            end
+        end
+        function those = constructCompositeResolvedRemotely(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
+                'mlraichle.TracerDirector.constructCompositeResolved', 'ac', true, 'tracer', 'FDG', varargin{:});            
+        end
+        function those = constructExports(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.constructExports', 'ac', true, varargin{:});   
+        end
+        function those = constructFreesurfer6(varargin)
+            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
+                'mlsurfer.SurferDirector.constructFreesurfer6', 'wallTime', '47:59:59', varargin{:});
+        end
+        function those = constructKinetics(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.constructKinetics', varargin{:});
+        end
+        function those = constructNiftyPETy(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.constructNiftyPETy', [varargin{:} {'ac' true}]);
+        end
+        function those = constructOxygenOnly(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.constructOxygenOnly', 'tracer', 'HO', varargin{:});
+        end
+        function those = constructOxygenOnlyPar(varargin)
+            import mlsystem.* mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionsExpr', 'HYGLY*');
+            addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'scanList', StudyDirector.SCANS);
+            addParameter(ip, 'tracer', 'HO', @(x) ischar(x) || iscell(x));
+            addParameter(ip, 'ac', true);
+            addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
+            parse(ip, varargin{:});
+            ipr = ip.Results;
+            tracers = ensureCell(ipr.tracer);
+            
+            those = {};
+            dtsess = DirTools( ...
+                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+            parfor idtsess = 1:length(dtsess.fqdns)
+                sessp = dtsess.fqdns{idtsess};
+                pwds = pushd(sessp);
+                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
+                for idtv = 1:length(dtv.fqdns)
+                    
+                    for itrac = 1:length(tracers)
+                        for iscan = ipr.scanList
+                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
+                                continue
+                            end
+                            try
+                                sessd = SessionData( ...
+                                    'studyData', StudyData, ...
+                                    'sessionPath', sessp, ...
+                                    'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
+                                    'snumber', iscan, ...
+                                    'tracer', tracers{itrac}, ...
+                                    'ac', ipr.ac, ...
+                                    'supEpoch', ipr.supEpoch);
+                                
+                                if (isdir(sessd.tracerRawdataLocation))
+                                    % there exist spurious tracerLocations; select those with corresponding raw data
+                                    
+                                    mlraichle.TracerDirector.constructOxygenOnly( ...
+                                        'sessionData', sessd, varargin{:});
+                                end
+                            catch ME
+                                handwarning(ME);
+                            end
+                        end
+                    end
+                end                        
+                popd(pwds);
+            end
+        end
+        function those = constructResolved(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.constructResolved', varargin{:});
+        end
+        function those = constructResolvedRemotely(varargin)
+            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
+                'mlraichle.TracerDirector.constructResolved', 'wallTime', '23:59:59', varargin{:});
+        end
+        function those = constructResolveReports(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.constructResolveReports', varargin{:});
+        end
+        function those = constructT1001s(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.HyperglycemiaDirector.prepareFreesurferData', varargin{:});
+        end  
+        function those = constructUmapSynthFull(varargin)
+            %  @deprecated
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.constructUmapSynthFull', varargin{:});
+            
+        end  
+        function those = constructUmaps(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
+            
+            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.HyperglycemiaDirector.prepareFreesurferData', varargin{:});
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.UmapDirector.constructUmaps', varargin{:});
+        end           
         
         function gr    = graphUmapDefects(varargin)
             %  See also:  mlraichle.StudyDirector.constructCellArrayObjects            
@@ -128,10 +334,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             lst = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.listUmapDefects', varargin{:});
-        end
-        function those = reviewUmaps(varargin)
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.reviewUmaps', 'ac', true, varargin{:});   
         end
         function [tbl,lst] = listRawdataAndConverted(varargin)
             %% LISTRAWDATAANDCONVERTED lists:
@@ -188,8 +390,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 'mlraichle.TracerDirector.listTracersResolved', varargin{:});
             lst = HyperglycemiaDirector.fetchOutputsCellArrayOfObjectsRemotely( ...
                 cellArr);
-        end
-        
+        end        
         function lst   = prepareFreesurferData(varargin)
             %% PREPAREFREESURFERDATA prepares session & visit-specific copies of data enumerated by this.freesurferData.
             %  @param named sessionData is an mlraichle.SessionData.
@@ -222,133 +423,18 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 end
             end
             popd(pwd0);
-        end
-        function this  = sortDownloads(downloadPath, sessionFolder, v, varargin)
-            %% SORTDOWNLOADS installs data from rawdata into SUBJECTS_DIR; start here after downloading rawdata.  
-            
-            ip = inputParser;
-            addRequired(ip, 'downloadPath', @isdir);
-            addRequired(ip, 'sessionFolder', @ischar);
-            addRequired(ip, 'v', @isnumeric);
-            addOptional(ip, 'kind', '', @ischar);
-            parse(ip, downloadPath, sessionFolder, v, varargin{:});
-
-            pwd0 = pwd;
-            import mlraichle.*;
-            sessp = fullfile(RaichleRegistry.instance.subjectsDir, sessionFolder, '');
-            if (~isdir(sessp))
-                mlfourdfp.FourdfpVisitor.mkdir(sessp);
-            end
-            sessd = SessionData('studyData', StudyData, 'sessionPath', sessp, 'vnumber', v);
-            this  = HyperglycemiaDirector('sessionData', sessd);
-            switch (lower(ip.Results.kind))
-                case 'ct'
-                    this  = this.instanceSortDownloadCT(downloadPath);
-                case 'freesurfer'
-                    this  = this.instanceSortDownloadFreesurfer(downloadPath);
-                otherwise
-                    this  = this.instanceSortDownloads(downloadPath);
-                    this  = this.instanceSortDownloadFreesurfer(downloadPath);
-            end
-            cd(pwd0);
-        end    
-        
-        function those = constructFreesurfer6(varargin)
-            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
-            
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
-                'mlsurfer.SurferDirector.constructFreesurfer6', 'wallTime', '47:59:59', varargin{:});
-        end
-        function those = constructNiftyPETy(varargin)
-            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
-            
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.constructNiftyPETy', [varargin{:} {'ac' true}]);
-        end
-        function those = constructT1001s(varargin)
-            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
-            
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.HyperglycemiaDirector.prepareFreesurferData', varargin{:});
-        end    
-        function those = constructUmaps(varargin)
-            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
-            
-            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.HyperglycemiaDirector.prepareFreesurferData', varargin{:});
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.UmapDirector.constructUmaps', varargin{:});
-        end    
-        function those = constructResolved(varargin)
-            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
-            
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.constructResolved', varargin{:});
-        end
-        function those = constructResolvedRemotely(varargin)
-            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
-            
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
-                'mlraichle.TracerDirector.constructResolved', 'wallTime', '23:59:59', varargin{:});
-        end
-        function those = constructUmapSynthFull(varargin)
-            %  @deprecated
-            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
-            
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.constructUmapSynthFull', varargin{:});
-            
-        end
-        function those = constructAnatomy(varargin)
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.constructAnatomy', 'ac', true, varargin{:});            
-        end
-        function those = constructAnatomyRemotely(varargin)
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
-                'mlraichle.TracerDirector.constructAnatomy', 'ac', true, varargin{:});            
-        end
-        function those = constructExports(varargin)
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.constructExports', 'ac', true, varargin{:});   
-        end
-        function those = viewExports(varargin)
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.viewExports', 'ac', true, varargin{:});   
-        end
-        function those = reconstituteImgRec(varargin)
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.reconstituteImgRec', varargin{:});  
-        end 
-        function those = reconAll(varargin)
-            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
-            
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.reconAll', 'wallTime', '23:59:59', varargin{:});            
-        end
-        function those = reconAllRemotely(varargin)
-            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
-            
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
-                'mlraichle.TracerDirector.reconAll', 'wallTime', '23:59:59', varargin{:});            
-        end
-        
-        function those = constructKinetics(varargin)
-            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
-            
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.constructKinetics', varargin{:});
-        end
-        function those = constructResolveReports(varargin)
-            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
-            
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.constructResolveReports', varargin{:});
-        end
+        end        
         function those = pullFromRemote(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
             
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.pullFromRemote', varargin{:});
+        end     
+        function those = pullPattern(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.pullPattern', varargin{:});
         end     
         function those = pullResolved(varargin)
             %  @param named 'pattern' is given to rsync to match objects to pull
@@ -387,11 +473,74 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.pushToRemote', varargin{:});
         end
+        function this  = sortDownloads(downloadPath, sessionFolder, v, varargin)
+            %% SORTDOWNLOADS installs data from rawdata into SUBJECTS_DIR; start here after downloading rawdata.  
+            
+            ip = inputParser;
+            addRequired(ip, 'downloadPath', @isdir);
+            addRequired(ip, 'sessionFolder', @ischar);
+            addRequired(ip, 'v', @isnumeric);
+            addOptional(ip, 'kind', '', @ischar);
+            parse(ip, downloadPath, sessionFolder, v, varargin{:});
+
+            pwd0 = pwd;
+            import mlraichle.*;
+            sessp = fullfile(RaichleRegistry.instance.subjectsDir, sessionFolder, '');
+            if (~isdir(sessp))
+                mlfourdfp.FourdfpVisitor.mkdir(sessp);
+            end
+            sessd = SessionData('studyData', StudyData, 'sessionPath', sessp, 'vnumber', v);
+            this  = HyperglycemiaDirector('sessionData', sessd);
+            switch (lower(ip.Results.kind))
+                case 'ct'
+                    this  = this.instanceSortDownloadCT(downloadPath);
+                case 'freesurfer'
+                    this  = this.instanceSortDownloadFreesurfer(downloadPath);
+                otherwise
+                    this  = this.instanceSortDownloads(downloadPath);
+                    this  = this.instanceSortDownloadFreesurfer(downloadPath);
+            end
+            cd(pwd0);
+        end    
+        function those = reconstituteImgRec(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.reconstituteImgRec', varargin{:});  
+        end 
+        function those = reconAll(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.reconAll', 'wallTime', '23:59:59', varargin{:});            
+        end
+        function those = reconAllRemotely(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
+                'mlraichle.TracerDirector.reconAll', 'wallTime', '23:59:59', varargin{:});            
+        end 
         function lst   = repairUmapDefects(varargin)
             lst = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.repairUmapDefects', varargin{:});
         end
-        
+        function those = reviewUmaps(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.reviewUmaps', 'ac', true, varargin{:});   
+        end
+        function those = viewExports(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.viewExports', 'ac', true, varargin{:});   
+        end  
+        function those = testLaunchingRemotely(varargin)
+            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
+                'mlraichle.TracerDirector.testLaunchingRemotely', 'wallTime', '00:00:05', varargin{:});            
+        end
+        function         fetchOutputs(those)
+            for t = 1:length(those)
+                disp(those{t}.job.fetchOutputs{:})
+            end
+        end
     end
     
     methods 
@@ -402,8 +551,42 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             g = this.sessionData_;
         end
         
-        %%
+        %%        
         
+        function this = analyzeCohort(this)
+        end     
+        function this = analyzeSubject(this)
+        end   
+        function this = analyzeTracers(this)
+            this.umapDirector = this.umapDirector.analyze;
+            this.fdgDirector  = this.fdgDirector.analyze;
+            this.hoDirector   = this.hoDirector.analyze;
+            this.ooDirector   = this.ooDirector.analyze;
+            this.ocDirector   = this.ocDirector.analyze;
+        end
+        function this = analyzeVisit(this, sessp, v)
+            import mlraichle.*;
+            study = StudyDataSingleton;
+            sessd = SessionData('studyData', study, 'sessionPath', sessp);
+            sessd.vnumber = v;
+            this = this.analyzeTracers('sessionData', sessd);
+        end
+        
+        % construct methods are interleaved with JSRecon12 processes
+        
+        function this = instanceConstructKinetics(this, varargin)
+            %% INSTANCECONSTRUCTKINETICS iterates through this.trDirectors.
+            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'
+            
+            ip = inputParser;
+            addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
+            parse(ip, varargin{:});
+            
+            for td = 1:length(this.trDirectors)
+                this.(this.trDirectors{td}).roisBuilder = ip.Results.roisBuild;
+                this.(this.trDirectors{td}) = this.(this.trDirectors{td}).instanceConstructKinetics(varargin{:});
+            end
+        end
         function this = instanceSortDownloads(this, downloadPath)
             import mlfourdfp.*;
             try
@@ -446,41 +629,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 handexcept(ME, 'mlraichle:filesystemError', ...
                     'HyperglycemiaDirector.instanceSortDownloadFreesurfer.downloadPath->%s may be missing folder ASSESSORS', ...
                     downloadPath);
-            end
-        end
-        
-        function this = analyzeCohort(this)
-        end     
-        function this = analyzeSubject(this)
-        end   
-        function this = analyzeVisit(this, sessp, v)
-            import mlraichle.*;
-            study = StudyDataSingleton;
-            sessd = SessionData('studyData', study, 'sessionPath', sessp);
-            sessd.vnumber = v;
-            this = this.analyzeTracers('sessionData', sessd);
-        end
-        function this = analyzeTracers(this)
-            this.umapDirector = this.umapDirector.analyze;
-            this.fdgDirector  = this.fdgDirector.analyze;
-            this.hoDirector   = this.hoDirector.analyze;
-            this.ooDirector   = this.ooDirector.analyze;
-            this.ocDirector   = this.ocDirector.analyze;
-        end
-        
-        % construct methods are interleaved with JSRecon12 processes
-        
-        function this = instanceConstructKinetics(this, varargin)
-            %% INSTANCECONSTRUCTKINETICS iterates through this.trDirectors.
-            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'
-            
-            ip = inputParser;
-            addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
-            parse(ip, varargin{:});
-            
-            for td = 1:length(this.trDirectors)
-                this.(this.trDirectors{td}).roisBuilder = ip.Results.roisBuild;
-                this.(this.trDirectors{td}) = this.(this.trDirectors{td}).instanceConstructKinetics(varargin{:});
             end
         end
         function tf   = queryKineticsPassed(this, varargin)

@@ -20,6 +20,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
 	properties (Dependent)
         attenuationTag
         convertedTag
+        doseAdminDatetimeLabel
         frameTag    
         maxLengthEpoch
         rawdataDir
@@ -77,6 +78,32 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 return
             end
             g = ['Converted-' this.attenuationTag];
+        end
+        function g = get.doseAdminDatetimeLabel(this)
+            switch (this.tracer)
+                case 'OC'
+                    if (1 == this.snumber)
+                        g = 'C[15O]';
+                        return
+                    end
+                    g = sprintf('C[15O]_%i', this.snumber-1);
+                case 'OO'
+                    if (1 == this.snumber)
+                        g = 'O[15O]';
+                        return
+                    end
+                    g = sprintf('O[15O]_%i', this.snumber-1);
+                case 'HO'
+                    if (1 == this.snumber)
+                        g = 'H2[15O]';
+                        return
+                    end
+                    g = sprintf('H2[15O]_%i', this.snumber-1);
+                case 'FDG'
+                    g = '[18F]DG';
+                otherwise                    
+                    error('mlraichle:unsupportedSwitchcase', 'SessionData.doseAdminDatetimeLabel');
+            end
         end
         function g = get.frameTag(this)
             assert(isnumeric(this.frame));
@@ -158,7 +185,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj = this.mrObject('ep2d_diff_26D_lgfov_nopat_ADC', varargin{:});
         end
         function obj  = aparcAsegBinarized(this, varargin)
-            fqfn = fullfile(this.vLocation, sprintf('aparcAsegBinarized_%s%s', this.resolveTag, this.filetypeExt));
+            fqfn = fullfile(this.tracerLocation, sprintf('aparcAsegBinarized_%s%s', this.resolveTag, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = atlas(this, varargin)
@@ -173,7 +200,11 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                          sprintf('%s%s%s', ip.Results.desc, ip.Results.suffix, this.filetypeExt)));
         end
         function obj  = brainmaskBinarizeBlended(this, varargin)
-            fqfn = fullfile(this.vLocation, sprintf('brainmaskBinarizeBlended_%s%s', this.resolveTag, this.filetypeExt));
+            fn   = sprintf('brainmaskBinarizeBlended_%s%s', this.resolveTag, this.filetypeExt);
+            fqfn = fullfile(this.vLocation, fn);
+            if (~lexist(fqfn, 'file'))
+                fqfn = fullfile(this.tracerLocation, fn);
+            end
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = dwi(this, varargin)
@@ -201,7 +232,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end
         function obj  = T1001(this, varargin)
             fqfn = fullfile(this.vLocation, ['T1001' this.filetypeExt]);
-            if (this.ensureFqfilename && ~lexist(fqfn, 'file'))
+            if (~lexist(fqfn, 'file'))
                 mic = T1001@mlpipeline.SessionData(this, 'typ', 'mlmr.MRImagingContext');
                 mic.niftid;
                 mic.saveas(fqfn);
@@ -264,6 +295,10 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 sprintf('ctRescaledv%i%s', this.vnumber, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
+        function obj  = dCMRglcCMRO2(this, varargin)
+            fqfn = sprintf('dCMRglcCMRO2_%s%s', this.resolveTag, this.filetypeExt);
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end        
         function obj  = petfov(this, varargin)
             obj = this.mrObject('AIFFOV%s%s', varargin{:});
         end
@@ -432,8 +467,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                         rEpoch = 1:3;
                         rFrame = 3;
                     case {'HO' 'OO'}
-                        rEpoch = 1:2;
-                        rFrame = 2;
+                        rEpoch = 1:3;
+                        rFrame = 3;
                     otherwise
                         error('mlraichle:unsupportedSwitchCase', ...
                               'SessionData.tracerResolvedFinal.this.tracer->%s', this.tracer);
@@ -481,8 +516,18 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 obj  = this.fqfilenameObject(fqfn, varargin{:});
             end
         end
+        function obj  = tracerResolvedFinalOpFdg(this, varargin)
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('%sr2_op_%s%s', this.tracerResolvedFinal('typ', 'fp'), this.fdgACRevision('typ', 'fp'), this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
         function obj  = tracerResolvedFinalSumt(this, varargin)
             fqfn = sprintf('%s_sumt%s', this.tracerResolvedFinal('typ', 'fqfp'), this.filetypeExt);
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = tracerResolvedFinalSumtOpFdg(this, varargin)
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('%sr2_op_%s%s', this.tracerResolvedFinalSumt('typ', 'fp'), this.fdgACRevision('typ', 'fp'), this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerResolvedSumt(this, varargin)
@@ -550,7 +595,45 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 sprintf('umapSynthv%i_op_%s%s', ...
                     this.vnumber, this.tracerRevision('typ', 'fp'), this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
-        end     
+        end        
+        
+        function obj  = cbfOpFdg(this, varargin)
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('cbf%i_op_%s%s', this.snumber, this.fdgACRevision('typ', 'fp'), this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = cbvOpFdg(this, varargin)
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('cbv%i_op_%s%s', this.snumber, this.fdgACRevision('typ', 'fp'), this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = oefOpFdg(this, varargin)
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('oef%i_op_%s%s', this.snumber, this.fdgACRevision('typ', 'fp'), this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = cmro2OpFdg(this, varargin)
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('cmro2%i_op_%s%s', this.snumber, this.fdgACRevision('typ', 'fp'), this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = cmrglcOpFdg(this, varargin)
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('cmrglc_op_%s%s', this.fdgACRevision('typ', 'fp'), this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = ogiOpFdg(this, varargin)
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('ogi_op_%s%s', this.fdgACRevision('typ', 'fp'), this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = dagOpFdg(this, varargin)
+            % dag := 6*cmrglc - cmro2 \approx aerobic glycolysis
+            
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('dag_op_%s%s', this.fdgACRevision('typ', 'fp'), this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
 
         %%  
          
@@ -631,7 +714,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             end
             try
                 this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct( ...
-                    fullfile(this.subjectsDir, this.bloodGlucoseAndHctXlsx));
+                    fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), this.bloodGlucoseAndHctXlsx));
             catch ME
                 fprintf('mlraichle.SessionData.ctor:  exception thrown while assigning this.bloodGlucoseAndHct\n');
                 handwarning(ME, 'mlraichle:dataNotAvailable', 'SessionData.ctor.%s', this.bloodGlucoseAndHctXlsx);

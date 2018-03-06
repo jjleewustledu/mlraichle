@@ -143,6 +143,74 @@ classdef TracerDirector < mlpet.TracerDirector
             out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
         end
         
+        function this  = constructAnatomy(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'anatomy', 'brainmask', @ischar);
+            addParameter(ip, 'noclobber', false, @islogical);
+            addParameter(ip, 'target', '', @ischar);
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));    
+            this.anatomy_ = ip.Results.anatomy;
+            if (~ip.Results.noclobber)
+                this.builder_.ignoreTouchfile = true;
+            end
+            this = this.instanceConstructAnatomy( ...
+                'tag2', ['constructAnat_' this.anatomy_], ...
+                'mask', this.anatomy_, ...
+                'target', ip.Results.target);
+        end 
+        function this  = constructExports(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));    
+            this = this.instanceConstructExports;
+        end 
+        function this  = constructKinetics(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlraichle.TracerKineticsBuilder(varargin{:}));              
+            this = this.instanceConstructKinetics;
+            
+        end
+        function this  = constructCompositeResolved(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            import mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'anatomy', 'T1001', @ischar);
+            addParameter(ip, 'noclobber', true, @islogical);
+            addParameter(ip, 'target', '', @ischar);
+            parse(ip, varargin{:});
+            
+            this = TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:})); 
+            this.anatomy_ = ip.Results.anatomy;
+            if (~ip.Results.noclobber)
+                this.builder_.ignoreTouchfile = true;
+            end
+            this = this.instanceConstructCompositeResolved( ...
+                'tag2', 'constructCR_', ...
+                'target', ip.Results.target);
+        end
         function this  = constructNiftyPETy(varargin)
             
             ip = inputParser;
@@ -153,6 +221,22 @@ classdef TracerDirector < mlpet.TracerDirector
             this = mlraichle.TracerDirector( ...
                 mlpet.NiftyPETyBuilder(varargin{:}));              
             this = this.instanceConstructNiftyPETy;
+        end 
+        function those = constructOxygenOnly(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
+            %  @return umap files generated per motionUncorrectedUmap ready for use by TriggeringTracers.js.
+            %  @return this.sessionData.attenuationCorrection == false.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            [thisHO,thisOC,thisOO] = mlsiemens.Herscovitch1985.constructOxygenOnly(ip.Results.sessionData);
+            those.thisHO = thisHO;
+            those.thisOC = thisOC;
+            those.thisOO = thisOO;
         end 
         function this  = constructResolved(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
@@ -174,18 +258,6 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:}));              
             this = this.instanceConstructResolved;
         end 
-        function this  = constructUmapSynthFull(varargin)
-            %  @deprecated
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            
-            this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));             
-            this = this.instanceConstructUmapSynthFull;
-        end
         function this  = constructResolvedRemotely(varargin)
             
             ip = inputParser;
@@ -211,7 +283,8 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerReportsBuilder(varargin{:}));          
             rpts = this.instanceMakeReports;
         end
-        function this  = constructKinetics(varargin)
+        function this  = constructUmapSynthFull(varargin)
+            %  @deprecated
             
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -219,198 +292,10 @@ classdef TracerDirector < mlpet.TracerDirector
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
-                mlraichle.TracerKineticsBuilder(varargin{:}));              
-            this = this.instanceConstructKinetics;
-            
+                mlpet.TracerResolveBuilder(varargin{:}));             
+            this = this.instanceConstructUmapSynthFull;
         end
-        function this  = constructAnatomy(varargin)
-            %  @param varargin for mlpet.TracerResolveBuilder.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
-            addParameter(ip, 'anatomy', 'brainmask', @ischar);
-            addParameter(ip, 'noclobber', true, @islogical);
-            addParameter(ip, 'target', '', @ischar);
-            parse(ip, varargin{:});
-            
-            this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));    
-            this.anatomy_ = ip.Results.anatomy;
-            if (~ip.Results.noclobber)
-                this.builder_.ignoreTouchfile = true;
-            end
-            this = this.instanceConstructAnatomy( ...
-                'tag2', ['constructAnatomy_' ip.Results.anatomy], ...
-                'mask', ip.Results.anatomy, ...
-                'target', ip.Results.target);
-        end 
-        function this  = constructExports(varargin)
-            %  @param varargin for mlpet.TracerResolveBuilder.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            
-            this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));    
-            this = this.instanceConstructExports;
-        end 
-        function this  = viewExports(varargin)
-            %  @param varargin for mlpet.TracerResolveBuilder.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            
-            this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));
-            sd = this.sessionData;
-            pwd0 = pushd(fullfile(sd.vLocation, 'export', ''));
-            try
-                mlbash(sprintf('fslview_deprecated %s.4dfp.img %s_%s.4dfp.img', ...
-                    sd.tracerResolvedFinal('typ','fp'), sd.T1001('typ','fp'), sd.resolveTag));
-            catch ME
-                handwarning(ME);
-            end
-            popd(pwd0);
-        end 
-        function bldr  = reconstituteImgRec(varargin)
-            %  @param varargin for mlpet.TracerResolveBuilder.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            
-            bldr =  mlpet.TracerBuilder(varargin{:});    
-            bldr.product_ = mlfourd.ImagingContext(bldr.tracerResolvedFinal);
-            bldr.reconstituteImgRec();
-        end
-        function this  = reconAll(varargin)
-            %  @param varargin for mlpet.TracerResolveBuilder.
-            %  @return umap files generated per motionUncorrectedUmap ready for use by TriggeringTracers.js.
-            %  @return this.sessionData.attenuationCorrection == false.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            
-            this = mlraichle.TracerDirector( ...
-                mlpet.TracerSurferBuilder(varargin{:}));
-            
-            this = this.builder.findLegacySurfer001;
-            if (isdir(this.builder.legacySessionPath))
-                this.builder.linkLegacySurfer001;
-                this.builder.reconAllSurferObjects;
-                return
-            end
-            this.builder.linkRawdataMPR;
-            this.builder.reconAllSurferObjects;
-        end 
         
-        function this  = reviewUmaps(varargin)
-            %  @param varargin for mlpet.TracerResolveBuilder.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            
-            this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));
-            sd0 = this.sessionData;
-            sd0.attenuationCorrected = false;
-            sd1 = this.sessionData;
-            sd1.attenuationCorrected = true;
-            pwd0 = pushd(sd0.tracerLocation);
-            try
-                mlbash(sprintf('fslview_deprecated umapSynth.4dfp.img %s', sd0.tracerRevision('typ', '.4dfp.img')));
-            catch ME
-                handwarning(ME);
-            end
-            popd(pwd0);
-        end 
-        function list  = listUmapDefects(varargin)
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            sessd = ip.Results.sessionData;
-            
-            import mlraichle.*;
-            list = '';
-            sessd.attenuationCorrected = false;
-            dtumap = mlsystem.DirTool(sessd.umap('frame*.v', 'typ', 'fqfp')); % abuse of umap args
-            if (isdir(sessd.tracerRawdataLocation)) 
-                % there exist spurious tracerLocations; select those with corresponding raw data
-                
-                msg = sprintf('%s, V%i, %s%i, length->%i', ...
-                    sessd.sessionFolder, sessd.vnumber, sessd.tracer, sessd.snumber, length(dtumap.fqfns));
-                switch(sessd.tracer)
-                    case {'OO' 'HO'}
-                        if (isempty(dtumap.fqfns) || 10 ~= length(dtumap.fqfns))
-                            list = msg;
-                        end
-                    case  'OC'
-                        if (isempty(dtumap.fqfns) || 14 ~= length(dtumap.fqfns))
-                            list = msg;
-                        end
-                    case  'FDG'
-                        if (isempty(dtumap.fqfns) || length(dtumap.fqfns) < 65)
-                            list = msg;
-                        end
-                    otherwise
-                        warning('mlraichle:unsupportedSwitchcase', ...
-                            'TracerDirector.listUmapDefects.sessd.tracer->%s', sessd.tracer);
-                end
-            end
-        end
-        function list  = repairUmapDefects(varargin)
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            sessd = ip.Results.sessionData;            
-            
-            import mlraichle.*;
-            list = '';
-            sessd.attenuationCorrected = false;
-            this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));  
-            dtumap = mlsystem.DirTool(sessd.umap('frame*.v', 'typ', 'fqfp')); % abuse of umap args
-            if (isdir(sessd.tracerRawdataLocation)) 
-                % there exist spurious tracerLocations; select those with corresponding raw data
-                
-                msg = sprintf('%s, V%i, %s%i, length->%i', ...
-                    sessd.sessionFolder, sessd.vnumber, sessd.tracer, sessd.snumber, length(dtumap.fqfns));
-                switch(sessd.tracer)
-                    case {'OO' 'HO'}
-                        if (isempty(dtumap.fqfns) || 10 ~= length(dtumap.fqfns))
-                            list = msg;
-                            this.rerunConstructResolvedRemotely(varargin{:});
-                        end
-                    case  'OC'
-                        if (isempty(dtumap.fqfns) || 14 ~= length(dtumap.fqfns))
-                            list = msg;
-                            this.rerunConstructResolvedRemotely(varargin{:});
-                        end
-                    case  'FDG'
-                        if (isempty(dtumap.fqfns) || length(dtumap.fqfns) < 65)
-                            list = msg;
-                            this.rerunConstructResolvedRemotely(varargin{:});
-                        end
-                    otherwise
-                        warning('mlraichle:unsupportedSwitchcase', ...
-                            'TracerDirector.listUmapDefects.sessd.tracer->%s', sessd.tracer);
-                end
-            end
-        end
         function list  = listRawdataAndConverted(varargin)
             
             ip = inputParser;
@@ -464,6 +349,42 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:}));
             lst = this.instanceListTracersResolved;      
         end
+        function list  = listUmapDefects(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            sessd = ip.Results.sessionData;
+            
+            import mlraichle.*;
+            list = '';
+            sessd.attenuationCorrected = false;
+            dtumap = mlsystem.DirTool(sessd.umap('frame*.v', 'typ', 'fqfp')); % abuse of umap args
+            if (isdir(sessd.tracerRawdataLocation)) 
+                % there exist spurious tracerLocations; select those with corresponding raw data
+                
+                msg = sprintf('%s, V%i, %s%i, length->%i', ...
+                    sessd.sessionFolder, sessd.vnumber, sessd.tracer, sessd.snumber, length(dtumap.fqfns));
+                switch(sessd.tracer)
+                    case {'OO' 'HO'}
+                        if (isempty(dtumap.fqfns) || 10 ~= length(dtumap.fqfns))
+                            list = msg;
+                        end
+                    case  'OC'
+                        if (isempty(dtumap.fqfns) || 14 ~= length(dtumap.fqfns))
+                            list = msg;
+                        end
+                    case  'FDG'
+                        if (isempty(dtumap.fqfns) || length(dtumap.fqfns) < 65)
+                            list = msg;
+                        end
+                    otherwise
+                        warning('mlraichle:unsupportedSwitchcase', ...
+                            'TracerDirector.listUmapDefects.sessd.tracer->%s', sessd.tracer);
+                end
+            end
+        end
         function this  = pullFromRemote(varargin)
             
             ip = inputParser;
@@ -498,13 +419,138 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:}));          
             this = this.instancePushToRemote;
         end 
+        function this  = reconAll(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            %  @return umap files generated per motionUncorrectedUmap ready for use by TriggeringTracers.js.
+            %  @return this.sessionData.attenuationCorrection == false.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerSurferBuilder(varargin{:}));
+            
+            this = this.builder.findLegacySurfer001;
+            if (isdir(this.builder.legacySessionPath))
+                this.builder.linkLegacySurfer001;
+                this.builder.reconAllSurferObjects;
+                return
+            end
+            this.builder.linkRawdataMPR;
+            this.builder.reconAllSurferObjects;
+        end 
+        function bldr  = reconstituteImgRec(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            bldr =  mlpet.TracerBuilder(varargin{:});    
+            bldr.product_ = mlfourd.ImagingContext(bldr.tracerResolvedFinal);
+            bldr.reconstituteImgRec();
+        end
+        function list  = repairUmapDefects(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            sessd = ip.Results.sessionData;            
+            
+            import mlraichle.*;
+            list = '';
+            sessd.attenuationCorrected = false;
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));  
+            dtumap = mlsystem.DirTool(sessd.umap('frame*.v', 'typ', 'fqfp')); % abuse of umap args
+            if (isdir(sessd.tracerRawdataLocation)) 
+                % there exist spurious tracerLocations; select those with corresponding raw data
+                
+                msg = sprintf('%s, V%i, %s%i, length->%i', ...
+                    sessd.sessionFolder, sessd.vnumber, sessd.tracer, sessd.snumber, length(dtumap.fqfns));
+                switch(sessd.tracer)
+                    case {'OO' 'HO'}
+                        if (isempty(dtumap.fqfns) || 10 ~= length(dtumap.fqfns))
+                            list = msg;
+                            this.rerunConstructResolvedRemotely(varargin{:});
+                        end
+                    case  'OC'
+                        if (isempty(dtumap.fqfns) || 14 ~= length(dtumap.fqfns))
+                            list = msg;
+                            this.rerunConstructResolvedRemotely(varargin{:});
+                        end
+                    case  'FDG'
+                        if (isempty(dtumap.fqfns) || length(dtumap.fqfns) < 65)
+                            list = msg;
+                            this.rerunConstructResolvedRemotely(varargin{:});
+                        end
+                    otherwise
+                        warning('mlraichle:unsupportedSwitchcase', ...
+                            'TracerDirector.listUmapDefects.sessd.tracer->%s', sessd.tracer);
+                end
+            end
+        end
+        function this  = reviewUmaps(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));
+            sd0 = this.sessionData;
+            sd0.attenuationCorrected = false;
+            sd1 = this.sessionData;
+            sd1.attenuationCorrected = true;
+            pwd0 = pushd(sd0.tracerLocation);
+            try
+                mlbash(sprintf('fslview_deprecated umapSynth.4dfp.img %s', sd0.tracerRevision('typ', '.4dfp.img')));
+            catch ME
+                handwarning(ME);
+            end
+            popd(pwd0);
+        end 
+        function this  = viewExports(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));
+            sd = this.sessionData;
+            pwd0 = pushd(fullfile(sd.vLocation, 'export', ''));
+            try
+                mlbash(sprintf('fslview_deprecated %s.4dfp.img %s_%s.4dfp.img', ...
+                    sd.tracerResolvedFinal('typ','fp'), sd.T1001('typ','fp'), sd.resolveTag));
+            catch ME
+                handwarning(ME);
+            end
+            popd(pwd0);
+        end 
+        function this  = testLaunchingRemotely(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));          
+            this = this.instanceTestLaunching;
+        end
     end
     
     methods
-        
-        %%
-        
-        function         rerunConstructResolvedRemotely(this, varargin)
+        function rerunConstructResolvedRemotely(this, varargin)
             %  @param named distcompHost is the hostname or distcomp profile.
             
             ip = inputParser;
@@ -532,8 +578,7 @@ classdef TracerDirector < mlpet.TracerDirector
             catch ME
                 handwarning(ME);
             end
-        end
-        
+        end        
  		function this = TracerDirector(varargin)
  			%% TRACERDIRECTOR
  			%  Usage:  this = TracerDirector()
@@ -544,7 +589,14 @@ classdef TracerDirector < mlpet.TracerDirector
     
     %% PRIVATE
     
-    methods (Access = private)        
+    methods (Static, Access = private)   
+        function obj = replaceEmptyWithSessionDataImagingContext(sessd, obj, whichIC)
+            assert(isa(sessd, 'mlpipeline.SessionData'));
+            assert(ischar(whichIC))
+            if (isempty(obj))   
+                obj = sessd.(whichIC)('typ', 'mlfourd.ImagingContext');
+            end
+        end
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
