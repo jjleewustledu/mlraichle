@@ -74,7 +74,7 @@ classdef StudyDirector
                                     % there exist spurious tracerLocations; select those with corresponding raw data
                                     
                                     evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', factoryMethod);
-                                    fprintf('mlraichle.StudyDirecto.constructCellArrayOfObjectsr:\n');
+                                    fprintf('mlraichle.StudyDirector.constructCellArrayOfObjects:\n');
                                     fprintf(['\t' evalee '\n']);
                                     fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
                                     those{idtsess,idtv,itrac,iscan} = eval(evalee); %#ok<AGROW>
@@ -148,7 +148,7 @@ classdef StudyDirector
                                     % there exist spurious tracerLocations; select those with corresponding raw data
                                     
                                     evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', factoryMethod);
-                                    fprintf('mlraichle.StudyDirecto.constructCellArrayOfObjectsr:\n');
+                                    fprintf('mlraichle.StudyDirector.constructCellArrayOfObjects:\n');
                                     fprintf(['\t' evalee '\n']);
                                     fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
                                     eval(evalee);

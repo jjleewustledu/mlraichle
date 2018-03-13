@@ -10,59 +10,6 @@ classdef TracerDirector < mlpet.TracerDirector
         
         %% factory methods        
         
-        function out   = cleanTracerRemotely(varargin)
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
-            addParameter(ip, 'distcompHost', 'chpc_remote_r2016b', @ischar);
-            parse(ip, varargin{:});
-            
-            this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));          
-            this.instanceCleanTracerRemotely('distcompHost', ip.Results.distcompHost);
-            out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
-        end
-        function out   = cleanSinograms(varargin)
-            %% cleanSinograms
-            %  @param works in mlraichle.RaichleRegistry.instance.subjectsDir
-            %  @return deletes from the filesystem:  *-sino.s[.hdr]
-                      
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
-            parse(ip, varargin{:});
-            sessd = ip.Results.sessionData;
-                    
-            import mlsystem.*;
-            pwdv = pushd(sessd.vLocation);
-            fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd); 
-            dtconv = DirTool('*-Converted*');
-            for idtconv = 1:length(dtconv.fqdns)
-                pwdc = pushd(dtconv.fqdns{idtconv});
-                fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd); 
-                tracer = strtok(sessd.tracerLocation('typ','folder'), '-');
-                try
-                    mlbash(sprintf('rm -r %s-00',    tracer));
-                    mlbash(sprintf('rm -r %s-WB',    tracer));
-                    mlbash(sprintf('rm -r %s-WB-LM', tracer));
-                    mlbash(        'rm -r UMapSeries');
-                catch  %#ok<CTCH>
-                end
-
-                dt00 = DirTool('*-00');
-                for idt00 = 1:length(dt00.fqdns)
-                    pwd00 = pushd(dt00.fqdns{idt00});
-                    fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd);   
-                    deleteExisting('*-00-sino*');  
-                    popd(pwd00);
-                end
-                popd(pwdc);
-
-            end
-            popd(pwdv);
-            out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
-        end
         function out   = cleanMore(varargin)
             %% cleanMore
             %  @param works in mlraichle.RaichleRegistry.instance.subjectsDir
@@ -142,7 +89,87 @@ classdef TracerDirector < mlpet.TracerDirector
             popd(pwdv);
             out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
         end
+        function out   = cleanSinograms(varargin)
+            %% cleanSinograms
+            %  @param works in mlraichle.RaichleRegistry.instance.subjectsDir
+            %  @return deletes from the filesystem:  *-sino.s[.hdr]
+                      
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            parse(ip, varargin{:});
+            sessd = ip.Results.sessionData;
+                    
+            import mlsystem.*;
+            pwdv = pushd(sessd.vLocation);
+            fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd); 
+            dtconv = DirTool('*-Converted*');
+            for idtconv = 1:length(dtconv.fqdns)
+                pwdc = pushd(dtconv.fqdns{idtconv});
+                fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd); 
+                tracer = strtok(sessd.tracerLocation('typ','folder'), '-');
+                try
+                    mlbash(sprintf('rm -r %s-00',    tracer));
+                    mlbash(sprintf('rm -r %s-WB',    tracer));
+                    mlbash(sprintf('rm -r %s-WB-LM', tracer));
+                    mlbash(        'rm -r UMapSeries');
+                catch  %#ok<CTCH>
+                end
+
+                dt00 = DirTool('*-00');
+                for idt00 = 1:length(dt00.fqdns)
+                    pwd00 = pushd(dt00.fqdns{idt00});
+                    fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd);   
+                    deleteExisting('*-00-sino*');  
+                    popd(pwd00);
+                end
+                popd(pwdc);
+
+            end
+            popd(pwdv);
+            out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
+        end
+        function out   = cleanSymlinks(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));          
+            this.instanceCleanSymlinks;
+            out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
+        end
+        function out   = cleanTracerRemotely(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'distcompHost', 'chpc_remote_r2016b', @ischar);
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));          
+            this.instanceCleanTracerRemotely('distcompHost', ip.Results.distcompHost);
+            out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
+        end
         
+        function those = constructAifs(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
+            %  @return umap files generated per motionUncorrectedUmap ready for use by TriggeringTracers.js.
+            %  @return this.sessionData.attenuationCorrection == false.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;
+            
+            those = mlsiemens.Herscovitch1985.constructAifs(ip.Results.sessionData);
+        end 
         function this  = constructAnatomy(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             
@@ -153,6 +180,8 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'noclobber', false, @islogical);
             addParameter(ip, 'target', '', @ischar);
             parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;
             
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));    
@@ -201,6 +230,8 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'target', '', @ischar);
             parse(ip, varargin{:});
             
+            mlpet.TracerDirector.assertenv;
+            
             this = TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:})); 
             this.anatomy_ = ip.Results.anatomy;
@@ -222,6 +253,23 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.NiftyPETyBuilder(varargin{:}));              
             this = this.instanceConstructNiftyPETy;
         end 
+        function those = constructGlcOnly(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
+            %  @return umap files generated per motionUncorrectedUmap ready for use by TriggeringTracers.js.
+            %  @return this.sessionData.attenuationCorrection == false.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;
+            
+            labs.glc = 308;
+            labs.hct = 37.55;
+            those = mlsiemens.Herscovitch1985.constructGlcOnly(ip.Results.sessionData, labs);
+        end 
         function those = constructOxygenOnly(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
@@ -233,10 +281,27 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
             parse(ip, varargin{:});
             
+            mlpet.TracerDirector.assertenv;
+            
             [thisHO,thisOC,thisOO] = mlsiemens.Herscovitch1985.constructOxygenOnly(ip.Results.sessionData);
             those.thisHO = thisHO;
             those.thisOC = thisOC;
             those.thisOO = thisOO;
+        end 
+        function those = constructPhysiologicals(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
+            %  @return umap files generated per motionUncorrectedUmap ready for use by TriggeringTracers.js.
+            %  @return this.sessionData.attenuationCorrection == false.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;
+            
+            those = mlsiemens.Herscovitch1985.constructPhysiologicals(ip.Results.sessionData);
         end 
         function this  = constructResolved(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
@@ -249,26 +314,16 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
             parse(ip, varargin{:});
             
+            mlpet.TracerDirector.assertenv;
+            
             tr = ip.Results.sessionData.tracer;
             if (~ip.Results.sessionData.attenuationCorrected && (strcmpi('OC', tr) || strcmpi('OO', tr)))
                 varargin = [varargin {'f2rep', 1, 'fsrc', 2}]; % first frame has breathing tube which confuses T4ResolveBuilder.
             end
             
             this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));              
+                mlpet.TracerResolveBuilder(varargin{:}));   
             this = this.instanceConstructResolved;
-        end 
-        function this  = constructResolvedRemotely(varargin)
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            
-            this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));          
-            this = this.instanceConstructResolvedRemotely( ...
-                @mlraichle.SessionData, @mlraichle.TracerDirector.constructResolved);
         end 
         function rpts  = constructResolveReports(varargin)
             %  @param  varargin for mlfourdfp.T4ResolveReporter.
@@ -283,17 +338,18 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerReportsBuilder(varargin{:}));          
             rpts = this.instanceMakeReports;
         end
-        function this  = constructUmapSynthFull(varargin)
-            %  @deprecated
+        function this  = constructUmapSynthForDynamicFrames(varargin)
             
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
             parse(ip, varargin{:});
             
+            mlpet.TracerDirector.assertenv;
+            
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));             
-            this = this.instanceConstructUmapSynthFull;
+            this = this.instanceConstructUmapSynthForDynamicFrames;
         end
         
         function list  = listRawdataAndConverted(varargin)

@@ -31,10 +31,12 @@ classdef UmapDirector < mlpipeline.AbstractDataDirector
             sessd = ip.Results.sessionData;
             pwd0 = pushd(sessd.vLocation);
             fv = mlfourdfp.FourdfpVisitor;
-            fv.lns_4dfp(sessd.T1('typ','fqfp'));            
-            fv.lns_4dfp(sessd.t2('typ','fqfp'));  
-            if (fv.lexist_4dfp(sessd.tof('typ','fqfp')))
-                fv.lns_4dfp(sessd.tof('typ','fqfp'));
+            try
+                if (~fv.lexist_4dfp(sessd.T1('typ','fp')))
+                    fv.copyfile_4dfp(sessd.T1('typ','fqfp'), pwd);
+                end
+            catch ME
+                dispwarning(ME);
             end
             popd(pwd0);
             

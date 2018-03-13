@@ -184,8 +184,12 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function obj  = adc(this, varargin)
             obj = this.mrObject('ep2d_diff_26D_lgfov_nopat_ADC', varargin{:});
         end
+        function obj  = aparcA2009sAsegBinarized(this, varargin)
+            fqfn = fullfile(this.tracerLocation, sprintf('aparcA2009sAseg_%s_binarized%s', this.resolveTag, this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
         function obj  = aparcAsegBinarized(this, varargin)
-            fqfn = fullfile(this.tracerLocation, sprintf('aparcAsegBinarized_%s%s', this.resolveTag, this.filetypeExt));
+            fqfn = fullfile(this.tracerLocation, sprintf('aparcAseg_%s_binarized%s', this.resolveTag, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = atlas(this, varargin)
@@ -199,8 +203,12 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 fullfile(getenv('REFDIR'), ...
                          sprintf('%s%s%s', ip.Results.desc, ip.Results.suffix, this.filetypeExt)));
         end
+        function obj  = brainmaskBinarized(this, varargin)
+            fqfn = fullfile(this.tracerLocation, sprintf('brainmask_%s_binarized%s', this.resolveTag, this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
         function obj  = brainmaskBinarizeBlended(this, varargin)
-            fn   = sprintf('brainmaskBinarizeBlended_%s%s', this.resolveTag, this.filetypeExt);
+            fn   = sprintf('brainmask_%s_binarizeBlended%s', this.resolveTag, this.filetypeExt);
             fqfn = fullfile(this.vLocation, fn);
             if (~lexist(fqfn, 'file'))
                 fqfn = fullfile(this.tracerLocation, fn);
@@ -238,6 +246,10 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 mic.saveas(fqfn);
             end
             obj = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = T1001BinarizeBlended(this, varargin)
+            fqfn = fullfile(this.tracerLocation, sprintf('T1001_%s_binarizeBlendedd%s', this.resolveTag, this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = t1(this, varargin)
             obj = this.T1(varargin{:});
@@ -295,10 +307,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 sprintf('ctRescaledv%i%s', this.vnumber, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
-        function obj  = dCMRglcCMRO2(this, varargin)
-            fqfn = sprintf('dCMRglcCMRO2_%s%s', this.resolveTag, this.filetypeExt);
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
-        end        
         function obj  = petfov(this, varargin)
             obj = this.mrObject('AIFFOV%s%s', varargin{:});
         end
@@ -517,6 +525,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             end
         end
         function obj  = tracerResolvedFinalOpFdg(this, varargin)
+            this.rnumber = 2;
             fqfn = fullfile(this.vLocation, ...
                 sprintf('%sr2_op_%s%s', this.tracerResolvedFinal('typ', 'fp'), this.fdgACRevision('typ', 'fp'), this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
@@ -582,11 +591,12 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'tracer', this.tracer, @ischar);
+            addParameter(ip, 'blurTag', '_b40', @ischar);
             parse(ip, varargin{:});
             this.tracer = ip.Results.tracer;
             
             if (isempty(this.tracer))
-                fqfn = fullfile(this.vLocation('typ', 'path'), ['umapSynth_op_T1001_b40' this.filetypeExt]);
+                fqfn = fullfile(this.vLocation('typ', 'path'), ['umapSynth_op_T1001' ip.Results.blurTag this.filetypeExt]);
                 obj  = this.fqfilenameObject(fqfn, varargin{:});
                 return
             end
@@ -627,11 +637,11 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 sprintf('ogi_op_%s%s', this.fdgACRevision('typ', 'fp'), this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
-        function obj  = dagOpFdg(this, varargin)
-            % dag := 6*cmrglc - cmro2 \approx aerobic glycolysis
+        function obj  = agiOpFdg(this, varargin)
+            % dag := cmrglc - 6*cmro2 \approx aerobic glycolysis
             
             fqfn = fullfile(this.vLocation, ...
-                sprintf('dag_op_%s%s', this.fdgACRevision('typ', 'fp'), this.filetypeExt));
+                sprintf('agi_op_%s%s', this.fdgACRevision('typ', 'fp'), this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
 
@@ -712,13 +722,13 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             if (isnat(this.sessionDate_))
                 this.sessionDate_ = this.readDatetime0;
             end
-            try
-                this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct( ...
-                    fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), this.bloodGlucoseAndHctXlsx));
-            catch ME
-                fprintf('mlraichle.SessionData.ctor:  exception thrown while assigning this.bloodGlucoseAndHct\n');
-                handwarning(ME, 'mlraichle:dataNotAvailable', 'SessionData.ctor.%s', this.bloodGlucoseAndHctXlsx);
-            end
+%             try
+%                 this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct( ...
+%                     fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), this.bloodGlucoseAndHctXlsx));
+%             catch ME
+%                 fprintf('mlraichle.SessionData.ctor:  exception thrown while assigning this.bloodGlucoseAndHct\n');
+%                 handwarning(ME, 'mlraichle:dataNotAvailable', 'SessionData.ctor.%s', this.bloodGlucoseAndHctXlsx);
+%             end
         end
     end
     
