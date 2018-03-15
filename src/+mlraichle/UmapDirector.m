@@ -28,6 +28,9 @@ classdef UmapDirector < mlpipeline.AbstractDataDirector
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
             parse(ip, varargin{:});
             
+            mlpet.TracerDirector.assertenv;
+            mlpet.TracerDirector.prepareFreesurferData(varargin{:})
+            
             sessd = ip.Results.sessionData;
             pwd0 = pushd(sessd.vLocation);
             fv = mlfourdfp.FourdfpVisitor;

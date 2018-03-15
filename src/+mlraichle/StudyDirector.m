@@ -9,7 +9,7 @@ classdef StudyDirector
 	properties (Constant)
  		SCANS = 1:3
         SUP_EPOCH = 3
-        TRACERS = {'OC' 'OO' 'HO' 'FDG'}
+        TRACERS = {'FDG' 'OC' 'OO' 'HO'}
         AC = true
     end
     
@@ -42,7 +42,6 @@ classdef StudyDirector
             tracers = ensureCell(ip.Results.tracer);
             factoryMethod = ip.Results.factoryMethod;
             
-            those = {};
             dtsess = DirTools( ...
                 fullfile(RaichleRegistry.instance.subjectsDir, ip.Results.sessionsExpr));
             for idtsess = 1:length(dtsess.fqdns)
@@ -77,7 +76,7 @@ classdef StudyDirector
                                     fprintf('mlraichle.StudyDirector.constructCellArrayOfObjects:\n');
                                     fprintf(['\t' evalee '\n']);
                                     fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
-                                    those{idtsess,idtv,itrac,iscan} = eval(evalee); %#ok<AGROW>
+                                    those(idtsess,idtv,itrac,iscan) = eval(evalee); %#ok<AGROW>
                                 end
                             catch ME
                                 handwarning(ME);
@@ -116,7 +115,7 @@ classdef StudyDirector
             tracers = ensureCell(ipr.tracer);
             factoryMethod = ipr.factoryMethod;
             
-            those = {};
+            those = [];
             dtsess = DirTools( ...
                 fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
             parfor idtsess = 1:length(dtsess.fqdns)
@@ -201,7 +200,6 @@ classdef StudyDirector
                 wallTime = '23:59:59';
             end
             
-            those = {};
             dtsess = DirTools( ...
                 fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, ip.Results.sessionsExpr));
             for idtsess = 1:length(dtsess.fqdns)
@@ -244,7 +242,7 @@ classdef StudyDirector
                                     fprintf('mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely:\n');
                                     fprintf(['\t' evalee '\n']);
                                     fprintf(['\tcsessd.TracerLocation->' csessd.tracerLocation '\n']);
-                                    those{idtsess,idtv,itrac,iscan} = eval(evalee); %#ok<AGROW>
+                                    those(idtsess,idtv,itrac,iscan) = eval(evalee); %#ok<AGROW>
                                 end
                             catch ME
                                 handexcept(ME);

@@ -10,7 +10,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
  	
 
 	properties
-        freesurferData = { 'aparc+aseg' 'brainmask' 'T1' }
         umapDirector
         fdgDirector
         hoDirector
@@ -471,16 +470,12 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
         function those = constructUmaps(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
             
-            %mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-            %    'mlraichle.HyperglycemiaDirector.prepareFreesurferData', varargin{:});
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.UmapDirector.constructUmaps', varargin{:});
         end        
         function those = constructUmapsRemotely(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
             
-            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
-                'mlraichle.HyperglycemiaDirector.prepareFreesurferData', varargin{:});
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
                 'mlraichle.UmapDirector.constructUmaps', varargin{:});
         end    
@@ -555,37 +550,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 cellArr);
         end        
         function lst   = prepareFreesurferData(varargin)
-            %% PREPAREFREESURFERDATA prepares session & visit-specific copies of data enumerated by this.freesurferData.
-            %  @param named sessionData is an mlraichle.SessionData.
-            %  @return 4dfp copies of this.freesurferData in sessionData.vLocation.
-            %  @return lst, a cell-array of fileprefixes for 4dfp objects created on the local filesystem.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlraichle.SessionData'));
-            parse(ip, varargin{:});
-            
-            sessd = ip.Results.sessionData;
-            pwd0 = pushd(sessd.vLocation);
-            fv = mlfourdfp.FourdfpVisitor;
-            this = mlraichle.HyperglycemiaDirector(varargin{:});
-            fsd = this.freesurferData;
-            lst = cell(1, length(fsd));
-            for f = 1:length(fsd)
-                if (~fv.lexist_4dfp(fsd{f}))
-                    try
-                        sessd.mri_convert( [fullfile(sessd.mriLocation, fsd{f}) '.mgz'], [fsd{f} '.nii']);
-                        sessd.nifti_4dfp_4(fsd{f});
-                        if (strcmp(fsd{f}, 'T1'))
-                            fv.move_4dfp(fsd{f}, [fsd{f} '001']);
-                        end
-                        lst = [lst fullfile(pwd, fsd{f})]; %#ok<AGROW>
-                    catch ME
-                        handexcept(ME);
-                    end
-                end
-            end
-            popd(pwd0);
+            lst = mlpet.TracerDirector.prepareFreesurferData(varargin{:});
         end        
         function those = pullFromRemote(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
@@ -613,11 +578,11 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', '*_op_*_frame*.4dfp.*', varargin{:});
             mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', 'T1001_op_*', varargin{:});
+                'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', 'T1001*', varargin{:});
             mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', 'wmparc_op_*.*', varargin{:});
+                'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', 'wmparc*.*', varargin{:});
             mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', 'aparc+aseg_op_*.*', varargin{:});
+                'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', 'aparc*.*', varargin{:});
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', '*_t4', varargin{:});
         end
@@ -632,7 +597,10 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 'mlraichle.TracerDirector.pullPattern', 'ac', false, varargin{:}, 'pattern', '*.v')];
             those = [those ...
                 HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.pullPattern', 'ac', false, varargin{:}, 'pattern', 'umapSynth.*')];            
+                'mlraichle.TracerDirector.pullPattern', 'ac', false, varargin{:}, 'pattern', 'umapSynth.*')];
+            those = [those ...
+                HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.pullPattern', 'ac', false, varargin{:}, 'pattern', 'umapSynth*_b40.*')];            
             those = [those ...
                 HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.pullPattern', 'ac', false, varargin{:}, 'pattern', '*r1.4dfp.*')];           
@@ -677,6 +645,14 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.reconstituteImgRec', varargin{:});  
         end 
+        function those = reconstructResolvedRemotely(varargin)
+            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
+            
+            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.pushMinimalToRemote', varargin{:});
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
+                'mlraichle.TracerDirector.reconstructResolved', 'wallTime', '23:59:59', varargin{:});
+        end
         function those = reconAll(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
             
@@ -693,10 +669,20 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             lst = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.repairUmapDefects', varargin{:});
         end
+        function those = reportResolved(varargin)
+            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.reportResolved', varargin{:});
+        end
         function those = reviewUmaps(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.reviewUmaps', 'ac', true, varargin{:});   
+                'mlraichle.TracerDirector.reviewUmaps', varargin{:});   
         end
+        function those = reviewACAlignment(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.reviewACAlignment', 'ac', true, varargin{:});   
+        end  
         function those = viewExports(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.viewExports', 'ac', true, varargin{:});   
@@ -707,9 +693,52 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
                 'mlraichle.TracerDirector.testLaunchingRemotely', 'wallTime', '00:00:05', varargin{:});            
         end
-        function         fetchOutputs(those)
-            for t = 1:length(those)
-                disp(those{t}.job.fetchOutputs{:})
+        function         fetchOutputs(those, varargin)
+            if (~isempty(varargin))
+                that = those(varargin);
+                if (~isempty(that))
+                    fprintf('HyperglycemiaDirector.fetchOutputs.those(%i,%i,%i,%i):\n', varargin{:});
+                    disp(that{1}.job.fetchOutputs{:})
+                end
+                return
+            end
+            
+            for a = 1:size(those,1)
+                for b = 1:size(those,2)
+                    for c = 1:size(those,3)
+                        for d = 1:size(those,4)
+                            that = those(a,b,c,d);
+                            if (~isempty(that))
+                                fprintf('HyperglycemiaDirector.fetchOutputs.those(%i,%i,%i,%i):\n', a,b,c,d);
+                                disp(that{1}.job.fetchOutputs{:})
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        function         job(those, varargin)            
+            if (~isempty(varargin))
+                that = those(varargin);
+                if (~isempty(that))
+                    fprintf('HyperglycemiaDirector.job.those(%i,%i,%i,%i):\n', varargin{:});
+                    disp(that{1}.job)
+                end
+                return
+            end
+            
+            for a = 1:size(those,1)
+                for b = 1:size(those,2)
+                    for c = 1:size(those,3)
+                        for d = 1:size(those,4)
+                            that = those(a,b,c,d);
+                            if (~isempty(that))
+                                fprintf('HyperglycemiaDirector.job.those(%i,%i,%i,%i):\n', a,b,c,d);
+                                disp(that{1}.job)
+                            end
+                        end
+                    end
+                end
             end
         end
     end
@@ -765,8 +794,12 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 rds     = RawDataSorter('sessionData', this.sessionData_);
                 rawData = fullfile(downloadPath, 'RESOURCES', 'RawData', '');
                 scans   = fullfile(downloadPath, 'SCANS', '');
-                rds.dcm_sort_PPG(rawData);
-                rds.moveRawData(rawData);
+                try
+                    rds.dcm_sort_PPG(rawData);
+                    rds.moveRawData(rawData);
+                catch ME
+                    dispwarning(ME);
+                end
                 rds.copyUTE(scans);            
             catch ME
                 handexcept(ME, 'mlraichle:filesystemError', ...
