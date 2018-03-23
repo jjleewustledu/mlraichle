@@ -219,6 +219,34 @@ classdef TracerDirector < mlpet.TracerDirector
             this = this.instanceConstructKinetics;
             
         end
+        function this  = constructHerscovitchOpAtlas(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            import mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'noclobber', true, @islogical);
+            parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;
+            
+            this = TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:})); 
+            if (~ip.Results.noclobber)
+                this.builder_.ignoreTouchfile = true;
+            end
+            sd = this.sessionData;
+            sd.tracer = 'FDG';
+            sources = { sd.cbfOpFdg sd.cbvOpFdg sd.oefOpFdg sd.cmro2OpFdg sd.cmrglcOpFdg sd.ogiOpFdg sd.agiOpFdg };
+            if (~lexist(sd.tracerResolvedFinalSumt, 'file'))
+                this.builder_ = this.builder_.packageProduct(sd.tracerResolvedFinal);
+                this.builder_ = this.builder_.sumProduct;
+            end
+            this = this.instanceConstructOpAtlas( ...
+                'sources', sources, ...
+                'intermediary', sd.tracerResolvedFinalSumt);
+        end
         function this  = constructCompositeResolved(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             
@@ -676,6 +704,10 @@ classdef TracerDirector < mlpet.TracerDirector
                     tval = 0.15;
                 else
                     tval = 0.6;
+                end
+                if (~lexist(sd.tracerResolvedFinalSumt, 'file'))
+                    this.builder_ = this.builder_.packageProduct(sd.tracerResolvedFinal);
+                    this.builder_ = this.builder_.sumProduct;
                 end
                 mlbash(sprintf('fslview_deprecated %s.4dfp.img -b 0,%g %s.4dfp.img -t %g -l Cool', ...
                     sd.tracerResolvedFinal('typ','fp'), bval, sd.tracerResolvedFinalSumt('typ','fp'), tval));

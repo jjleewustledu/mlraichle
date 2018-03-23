@@ -38,6 +38,8 @@ classdef StudyDirector
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
+            addParameter(ip, 'alignMethod', 'align_10243', @ischar);
+            addParameter(ip, 'compAlignMethod', 'align_multiSpectralpp', @ischar);
             parse(ip, varargin{:});
             tracers = ensureCell(ip.Results.tracer);
             factoryMethod = ip.Results.factoryMethod;
@@ -49,10 +51,6 @@ classdef StudyDirector
                 pwds = pushd(sessp);
                 dtv = DirTools(fullfile(sessp, ip.Results.visitsExpr));     
                 for idtv = 1:length(dtv.fqdns)
-                    
-                    if (lstrfind(dtv.dns{idtv}, 'HYGLY25'))
-                        factoryMethod = [factoryMethod '_HYGLY25']; %#ok<AGROW>
-                    end
                     
                     for itrac = 1:length(tracers)
                         for iscan = ip.Results.scanList
@@ -68,6 +66,15 @@ classdef StudyDirector
                                     'tracer', tracers{itrac}, ...
                                     'ac', ip.Results.ac, ...
                                     'supEpoch', ip.Results.supEpoch);
+                                if (ip.Results.ac && strcmp(sessd.sessionFolder, 'HYGLY25') && sessd.vnumber == 1)
+                                    sessd.tauIndices = 1:65;
+                                end
+                                if (~isempty(ip.Results.alignMethod))
+                                    sessd.alignMethod = ip.Results.alignMethod;
+                                end
+                                if (~isempty(ip.Results.compAlignMethod))
+                                    sessd.compAlignMethod = ip.Results.compAlignMethod;
+                                end
                                 
                                 if (isdir(sessd.tracerRawdataLocation))
                                     % there exist spurious tracerLocations; select those with corresponding raw data
@@ -110,6 +117,8 @@ classdef StudyDirector
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
+            addParameter(ip, 'alignMethod', 'align_10243', @ischar);
+            addParameter(ip, 'compAlignMethod', 'align_multiSpectralpp', @ischar);
             parse(ip, varargin{:});
             ipr = ip.Results;
             tracers = ensureCell(ipr.tracer);
@@ -123,10 +132,6 @@ classdef StudyDirector
                 pwds = pushd(sessp);
                 dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
                 for idtv = 1:length(dtv.fqdns)
-                    
-                    if (lstrfind(dtv.dns{idtv}, 'HYGLY25'))
-                        continue
-                    end
                     
                     for itrac = 1:length(tracers)
                         for iscan = ipr.scanList
@@ -142,6 +147,15 @@ classdef StudyDirector
                                     'tracer', tracers{itrac}, ...
                                     'ac', ipr.ac, ...
                                     'supEpoch', ipr.supEpoch);
+                                if (ipr.ac && strcmp(sessd.sessionFolder, 'HYGLY25') && sessd.vnumber == 1)
+                                    sessd.tauIndices = 1:65;
+                                end
+                                if (~isempty(ipr.alignMethod))
+                                    sessd.alignMethod = ipr.alignMethod;
+                                end
+                                if (~isempty(ipr.compAlignMethod))
+                                    sessd.compAlignMethod = ipr.compAlignMethod;
+                                end
                                 
                                 if (isdir(sessd.tracerRawdataLocation))
                                     % there exist spurious tracerLocations; select those with corresponding raw data
@@ -188,6 +202,8 @@ classdef StudyDirector
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
+            addParameter(ip, 'alignMethod', 'align_10243', @ischar);
+            addParameter(ip, 'compAlignMethod', 'align_multiSpectralpp', @ischar);
             addParameter(ip, 'nArgout', 1, @isnumeric);
             addParameter(ip, 'distcompHost', 'chpc_remote_r2016b', @ischar);
             addParameter(ip, 'memUsage', '32000', @ischar);
@@ -221,6 +237,15 @@ classdef StudyDirector
                                     'tracer', tracers{itrac}, ...
                                     'ac', ip.Results.ac, ...
                                     'supEpoch', ip.Results.supEpoch); 
+                                if (ip.Results.ac && strcmp(sessd.sessionFolder, 'HYGLY25') && sessd.vnumber == 1)
+                                    sessd.tauIndices = 1:65;
+                                end
+                                if (~isempty(ip.Results.alignMethod))
+                                    sessd.alignMethod = ip.Results.alignMethod;
+                                end
+                                if (~isempty(ip.Results.compAlignMethod))
+                                    sessd.compAlignMethod = ip.Results.compAlignMethod;
+                                end
                                 
                                 if (isdir(sessd.tracerRawdataLocation))
                                     % there exist spurious tracerLocations; select those with corresponding raw data

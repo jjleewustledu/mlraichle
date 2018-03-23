@@ -32,6 +32,7 @@ classdef UmapDirector < mlpipeline.AbstractDataDirector
             mlpet.TracerDirector.prepareFreesurferData(varargin{:})
             
             sessd = ip.Results.sessionData;
+            sessd.attenuationCorrected = false;
             pwd0 = pushd(sessd.vLocation);
             fv = mlfourdfp.FourdfpVisitor;
             try
@@ -75,6 +76,7 @@ classdef UmapDirector < mlpipeline.AbstractDataDirector
     
 	methods (Access = private)
         function [this,umap] = instanceConstructUmaps(this)
+            this.sessionData.attenuationCorrected = false;
             pwd0 = pushd(this.sessionData.vLocation);
             this.builder_ = this.builder_.prepareMprToAtlasT4;
             [umap,this.builder_] = this.builder_.buildUmap;

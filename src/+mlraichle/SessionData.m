@@ -15,6 +15,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
     properties
         ensureFqfilename = false
         filetypeExt = '.4dfp.ifh'
+        tauIndices = []
+        tauMultiplier = 1
     end
     
 	properties (Dependent)
@@ -150,23 +152,29 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                     otherwise
                         error('mlraichle:unsupportedSwitchcase', 'NAC:SessionData.taus.this.tracer->%s', this.tracer);
                 end
-                return
-            end            
-            switch (upper(this.tracer))
-                case 'FDG'
-                    g = [10,10,10,10,10,10,10,10,10,10,10,10,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
-                    % length -> 73
-                case {'OC' 'CO'}
-                    g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
-                    % length -> 70
-                case 'OO'
-                    g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
-                    % length -> 58
-                case 'HO'
-                    g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
-                    % length -> 58
-                otherwise
-                    error('mlraichle:unsupportedSwitchcase', 'AC:SessionData.taus.this.tracer->%s', this.tracer);
+            else            
+                switch (upper(this.tracer))
+                    case 'FDG'
+                        g = [10,10,10,10,10,10,10,10,10,10,10,10,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
+                        % length -> 73
+                    case {'OC' 'CO'}
+                        g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
+                        % length -> 70
+                    case 'OO'
+                        g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
+                        % length -> 58
+                    case 'HO'
+                        g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
+                        % length -> 58
+                    otherwise
+                        error('mlraichle:unsupportedSwitchcase', 'AC:SessionData.taus.this.tracer->%s', this.tracer);
+                end
+            end
+            if (~isempty(this.tauIndices))
+                g = g(this.tauIndices);
+            end
+            if (this.tauMultiplier > 1)
+                g = this.multiplyTau(g);
             end
         end
         function g = get.times(this)
@@ -196,7 +204,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             ip = inputParser;
             addParameter(ip, 'desc', 'TRIO_Y_NDC', @ischar);
             addParameter(ip, 'suffix', '', @ischar);
-            addParameter(ip, 'typ', 'fqfp', @ischar);
+            addParameter(ip, 'typ', 'mlfourd.ImagingContext', @ischar);
             parse(ip, varargin{:});
             
             obj = imagingType(ip.Results.typ, ...
@@ -808,6 +816,27 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             end
             %assert(lexist(fqfn, 'file'));
         end   
+        function tau1 = multiplyTau(this, tau)
+            %% MULTIPLYTAU increases tau durations by scalar this.tauMultiplier, decreasing the sampling rate,
+            %  decreasing the number of frames for dynamic data and
+            %  potentially increasing SNR.
+            
+            N1   = ceil(length(tau)/this.tauMultiplier);
+            tau1 = zeros(1, N1);
+            
+            ti = 1;
+            a  = 1;
+            b  = this.tauMultiplier;
+            while (ti <= N1)
+                
+                tau1(ti) = sum(tau(a:b));
+                
+                ti =     ti + 1;
+                a  = min(a  + this.tauMultiplier, length(tau));
+                b  = min(b  + this.tauMultiplier, length(tau));
+                if (a > N1 || b > N1); break; end
+            end
+        end
         function fqfp = orientedFileprefix(~, fqfp, orient)
             assert(mlfourdfp.FourdfpVisitor.lexist_4dfp(fqfp));
             switch (orient)
