@@ -13,9 +13,14 @@ classdef SessionData < mlpipeline.ResolvingSessionData
     end
     
     properties
+        compositeT4ResolveBuilderBlurArg = 1.5
         ensureFqfilename = false
+        fractionalImageFrameThresh = 0.05 % of median
+        % cf. mlfourdfp.ImageFrames.nonEmptyImageIndices, mlpet.TracerResolveBuilder; valid for [0..1]
         filetypeExt = '.4dfp.ifh'
-        tauIndices = []
+        indicesEpochCells = {}; % indicesEpochCells{this.epoch} := numeric, size(numeric) == [1 this.maxLengthEpoch]
+        t4ResolveBuilderBlurArg = 5.5
+        tauIndices = [] % use to exclude late frames from builders of AC; e.g., HYGLY25 V1; taus := taus(tauIndices)
         tauMultiplier = 1
     end
     
@@ -24,6 +29,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         convertedTag
         doseAdminDatetimeLabel
         frameTag    
+        indicesLogical
         maxLengthEpoch
         rawdataDir
         supEpoch
@@ -114,6 +120,17 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 return
             end
             g = sprintf('_frame%i', this.frame);
+        end
+        function g = get.indicesLogical(this)
+            g = true;
+            return
+            
+            try
+                g = this.indicesEpochCells{this.epoch};
+            catch ME
+                disp(warning(ME));
+                g = true;
+            end
         end
         function g = get.maxLengthEpoch(this)
             if (~this.attenuationCorrected)
@@ -834,7 +851,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 ti =     ti + 1;
                 a  = min(a  + this.tauMultiplier, length(tau));
                 b  = min(b  + this.tauMultiplier, length(tau));
-                if (a > N1 || b > N1); break; end
+                if (a > length(tau) || b > length(tau)); break; end
             end
         end
         function fqfp = orientedFileprefix(~, fqfp, orient)
