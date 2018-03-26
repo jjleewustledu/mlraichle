@@ -637,6 +637,14 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
                 'mlraichle.TracerDirector.reconstructResolved', 'wallTime', '23:59:59', varargin{:});
         end
+        function those = reconstructUnresolvedRemotely(varargin)
+            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
+            
+            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.pushMinimalToRemote', varargin{:});
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
+                'mlraichle.TracerDirector.reconstructUnresolved', 'wallTime', '23:59:59', varargin{:});
+        end
         function those = reconAll(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
             

@@ -33,19 +33,26 @@ classdef StudyDirector
             ip.KeepUnmatched = true;
             addRequired( ip, 'factoryMethod', @ischar);
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
+            addParameter(ip, 'sesssionsExpr', '');
             addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
             addParameter(ip, 'alignMethod', 'align_10243', @ischar);
-            addParameter(ip, 'compAlignMethod', 'align_multiSpectralpp', @ischar);
+            addParameter(ip, 'compAlignMethod', 'align_multiSpectral', @ischar);
+            addParameter(ip, 'tauIndices', [], @isnumeric);
+            addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
             parse(ip, varargin{:});
+            sessExpr = ip.Results.sessionsExpr;
+            if (~isempty(ip.Results.sesssionsExpr))
+                sessExpr = ip.Results.sesssionsExpr;
+            end
             tracers = ensureCell(ip.Results.tracer);
             factoryMethod = ip.Results.factoryMethod;
             
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, ip.Results.sessionsExpr));
+                fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
@@ -68,6 +75,12 @@ classdef StudyDirector
                                     'supEpoch', ip.Results.supEpoch);
                                 if (ip.Results.ac && strcmp(sessd.sessionFolder, 'HYGLY25') && sessd.vnumber == 1)
                                     sessd.tauIndices = 1:65;
+                                end
+                                if (~isempty(ip.Results.tauIndices))
+                                    sessd.tauIndices = ip.Results.tauIndices;
+                                end
+                                if (~isempty(ip.Results.tauIndices))
+                                    sessd.fractionalImageFrameThresh = ip.Results.fractionalImageFrameThresh;
                                 end
                                 if (~isempty(ip.Results.alignMethod))
                                     sessd.alignMethod = ip.Results.alignMethod;
@@ -112,6 +125,7 @@ classdef StudyDirector
             ip.KeepUnmatched = true;
             addRequired( ip, 'factoryMethod', @ischar);
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
+            addParameter(ip, 'sesssionsExpr', '');
             addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
@@ -119,14 +133,20 @@ classdef StudyDirector
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
             addParameter(ip, 'alignMethod', 'align_10243', @ischar);
             addParameter(ip, 'compAlignMethod', 'align_multiSpectralpp', @ischar);
+            addParameter(ip, 'tauIndices', [], @isnumeric);
+            addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
             parse(ip, varargin{:});
             ipr = ip.Results;
+            sessExpr = ipr.sessionsExpr;
+            if (~isempty(ipr.sesssionsExpr))
+                sessExpr = ipr.sesssionsExpr;
+            end
             tracers = ensureCell(ipr.tracer);
             factoryMethod = ipr.factoryMethod;
             
             those = [];
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+                fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
@@ -149,6 +169,12 @@ classdef StudyDirector
                                     'supEpoch', ipr.supEpoch);
                                 if (ipr.ac && strcmp(sessd.sessionFolder, 'HYGLY25') && sessd.vnumber == 1)
                                     sessd.tauIndices = 1:65;
+                                end
+                                if (~isempty(ipr.tauIndices))
+                                    sessd.tauIndices = ipr.tauIndices;
+                                end
+                                if (~isempty(ipr.tauIndices))
+                                    sessd.fractionalImageFrameThresh = ipr.fractionalImageFrameThresh;
                                 end
                                 if (~isempty(ipr.alignMethod))
                                     sessd.alignMethod = ipr.alignMethod;
@@ -196,7 +222,8 @@ classdef StudyDirector
             ip.KeepUnmatched = true;
             addRequired( ip, 'factoryMethod', @ischar);
             addParameter(ip, 'factoryArgs', {}, @iscell);
-            addParameter(ip, 'sessionsExpr', 'HYGLY*');
+            addParameter(ip, 'sessionsExpr',  'HYGLY*');
+            addParameter(ip, 'sesssionsExpr', '');
             addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
@@ -204,12 +231,18 @@ classdef StudyDirector
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
             addParameter(ip, 'alignMethod', 'align_10243', @ischar);
             addParameter(ip, 'compAlignMethod', 'align_multiSpectralpp', @ischar);
+            addParameter(ip, 'tauIndices', [], @isnumeric);
+            addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
             addParameter(ip, 'nArgout', 1, @isnumeric);
             addParameter(ip, 'distcompHost', 'chpc_remote_r2016b', @ischar);
             addParameter(ip, 'memUsage', '32000', @ischar);
             addParameter(ip, 'wallTime', '12:00:00', @ischar);
             addParameter(ip, 'pushData', false, @islogical);
             parse(ip, varargin{:});
+            sessExpr = ip.Results.sessionsExpr;
+            if (~isempty(ip.Results.sesssionsExpr))
+                sessExpr = ip.Results.sesssionsExpr;
+            end
             tracers = ensureCell(ip.Results.tracer);
             wallTime = ip.Results.wallTime;
             if (ip.Results.ac)
@@ -217,7 +250,7 @@ classdef StudyDirector
             end
             
             dtsess = DirTools( ...
-                fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, ip.Results.sessionsExpr));
+                fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, sessExpr));
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
@@ -239,6 +272,12 @@ classdef StudyDirector
                                     'supEpoch', ip.Results.supEpoch); 
                                 if (ip.Results.ac && strcmp(sessd.sessionFolder, 'HYGLY25') && sessd.vnumber == 1)
                                     sessd.tauIndices = 1:65;
+                                end
+                                if (~isempty(ip.Results.tauIndices))
+                                    sessd.tauIndices = ip.Results.tauIndices;
+                                end
+                                if (~isempty(ip.Results.tauIndices))
+                                    sessd.fractionalImageFrameThresh = ip.Results.fractionalImageFrameThresh;
                                 end
                                 if (~isempty(ip.Results.alignMethod))
                                     sessd.alignMethod = ip.Results.alignMethod;

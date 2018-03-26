@@ -243,7 +243,7 @@ classdef TracerDirector < mlpet.TracerDirector
                 this.builder_ = this.builder_.packageProduct(sd.tracerResolvedFinal);
                 this.builder_ = this.builder_.sumProduct;
             end
-            this = this.instanceConstructOpAtlas( ...
+            this = this.instanceConstructHerscovitchOpAtlas( ...
                 'sources', sources, ...
                 'intermediary', sd.tracerResolvedFinalSumt);
         end
@@ -583,6 +583,28 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:}));   
             this = this.instanceReconstructResolved;
         end 
+        function this  = reconstructUnresolved(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
+            %  @return umap files generated per motionUncorrectedUmap ready
+            %  for use by TriggeringTracers.js; 
+            %  sequentially run FDG NAC, 15O NAC, then all tracers AC.
+            %  @return this.sessionData.attenuationCorrection == false.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;  
+            mlpet.TracerDirector.prepareFreesurferData(varargin{:})          
+            
+            mlraichle.UmapDirector.constructUmaps('sessionData', ip.Results.sessionData);
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));   
+            this = this.instanceReconstructUnresolved;
+        end 
         function list  = repairUmapDefects(varargin)
             
             ip = inputParser;
@@ -730,7 +752,39 @@ classdef TracerDirector < mlpet.TracerDirector
     end
     
     methods
-        function rerunConstructResolvedRemotely(this, varargin)
+        function this  = instanceConstructHerscovitchOpAtlas(this, varargin)
+            %% INSTANCECONSTRUCTHERSCOVITCHOPATLAS
+            %  @param named target is the filename of a target, recognizable by mlfourd.ImagingContext.ctor;
+            %  the default target is this.tracerResolvedFinal('epoch', this.sessionData.epoch) for FDG;
+            %  see also TracerDirector.tracerResolvedTarget.
+            %  @param this.anatomy is char; it is the sessionData function-name for anatomy in the space of
+            %  this.sessionData.T1; e.g., 'T1', 'T1001', 'brainmask'.
+            %  @result ready-to-use t4 transformation files aligned to this.tracerResolvedTarget.
+            
+            bv = this.builder_.buildVisitor;
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sources', @iscell);
+            addParameter(ip, 'intermediary', @ischar);
+            parse(ip, varargin{:});  
+            ss = ip.Results.sources;
+            
+            assert(~isempty(ss));
+            pwd0 = pushd(myfileparts(ss{1}));
+            bv.ensureLocalFourdfp(ip.Results.intermediary); 
+            this.builder_ = this.builder_.packageProduct(ip.Results.intermediary); % build everything resolved to intermediary
+            this.builder_ = this.builder_.resolveModalitiesToProduct( ...
+                thus.sessionData.tracerResolvedFinalSumt, varargin{:});
+            
+            cRB = this.builder_.compositeResolveBuilder;
+            for is = 1:length(ss)
+                this.localResolvedOpAtlas(cRB, mlfourd.ImagingContext(ss{is}));
+            end
+            deleteExisting('*_b15.4dfp.*');
+            popd(pwd0);
+        end
+        function         rerunConstructResolvedRemotely(this, varargin)
             %  @param named distcompHost is the hostname or distcomp profile.
             
             ip = inputParser;
@@ -762,7 +816,7 @@ classdef TracerDirector < mlpet.TracerDirector
                 handwarning(ME);
             end
         end        
- 		function this = TracerDirector(varargin)
+ 		function this  = TracerDirector(varargin)
  			%% TRACERDIRECTOR
  			%  Usage:  this = TracerDirector()
 
@@ -824,6 +878,32 @@ classdef TracerDirector < mlpet.TracerDirector
             this.n = sum(this.string ~= '');
             this.complete = this.n == numel(sessd.taus);
         end
+    end
+    
+    methods
+        function c = localResolvedOpAtlas(this, cRB, ic)
+            %  TODO:  refactor with localTracerResolvedFinalSumt
+            
+            assert(isa(cRB, 'mlfourdfp.CompositeT4ResolveBuilder'));
+            assert(lexist_4dfp(ic.fileprefix));
+            sd = this.sessionData;
+            
+            c = {};
+            t4 = sprintf('%sr0_to_%s_t4', sd.tracerResolvedFinalSumt('typ','fp'), cRB.resolveTag);
+            outfile = [ic.fileprefix 'op_TRIO_Y_NDC']; 
+            if (lexist(strrep(t4,'r0','r2'), 'file') && ~lexist_4dfp(outfile))
+                try
+                    cRB.t4img_4dfp( ...
+                        t4, ...
+                        ic.fqfileprefix, ...
+                        'out', outfile, ...
+                        'options', sprintf('-n -O%s', sd.atlas('typ','fqfp')));
+                    c{1} = outfile;
+                catch ME
+                    dispwarning(ME);
+                end
+            end
+        end        
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
