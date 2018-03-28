@@ -15,13 +15,13 @@ classdef SessionData < mlpipeline.ResolvingSessionData
     properties
         compositeT4ResolveBuilderBlurArg = 1.5
         ensureFqfilename = false
-        fractionalImageFrameThresh = 0 % of median
+        fractionalImageFrameThresh = 0.25 % of median
         % cf. mlfourdfp.ImageFrames.nonEmptyImageIndices, mlpet.TracerResolveBuilder; valid for [0..1]
         filetypeExt = '.4dfp.ifh'
         indicesEpochCells = {}; % indicesEpochCells{this.epoch} := numeric, size(numeric) == [1 this.maxLengthEpoch]
         t4ResolveBuilderBlurArg = 5.5
         tauIndices = [] % use to exclude late frames from builders of AC; e.g., HYGLY25 V1; taus := taus(tauIndices)
-        tauMultiplier = 1
+        tauMultiplier = 1 % 1,2,4,8,16
     end
     
 	properties (Dependent)

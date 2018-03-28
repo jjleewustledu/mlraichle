@@ -39,8 +39,8 @@ classdef StudyDirector
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
-            addParameter(ip, 'alignMethod', 'align_10243', @ischar);
-            addParameter(ip, 'compAlignMethod', 'align_multiSpectral', @ischar);
+            addParameter(ip, 'alignMethod', '', @ischar); % align_10243
+            addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
             parse(ip, varargin{:});
@@ -79,7 +79,7 @@ classdef StudyDirector
                                 if (~isempty(ip.Results.tauIndices))
                                     sessd.tauIndices = ip.Results.tauIndices;
                                 end
-                                if (~isempty(ip.Results.tauIndices))
+                                if (~isempty(ip.Results.fractionalImageFrameThresh))
                                     sessd.fractionalImageFrameThresh = ip.Results.fractionalImageFrameThresh;
                                 end
                                 if (~isempty(ip.Results.alignMethod))
@@ -96,7 +96,9 @@ classdef StudyDirector
                                     fprintf('mlraichle.StudyDirector.constructCellArrayOfObjects:\n');
                                     fprintf(['\t' evalee '\n']);
                                     fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
+                                    warning('off', 'MATLAB:subsassigndimmismatch');
                                     those(idtsess,idtv,itrac,iscan) = eval(evalee); %#ok<AGROW>
+                                    warning('on', 'MATLAB:subsassigndimmismatch');
                                 end
                             catch ME
                                 handwarning(ME);
@@ -107,7 +109,7 @@ classdef StudyDirector
                 popd(pwds);
             end
         end
-        function [those,dtsess] = constructCellArrayOfObjectsPar(varargin)
+        function [those,dtSessp] = constructCellArrayOfObjectsPar(varargin)
             %% CONSTRUCTCELLARRAYOFOBJECTS iterates over session and visit directories, 
             %  tracers and scan-instances, evaluating factoryMethod for each.
             %  @param  factoryMethod     is char, specifying static methods for:  those := factoryMethod('sessionData', sessionData).
@@ -131,8 +133,8 @@ classdef StudyDirector
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
-            addParameter(ip, 'alignMethod', 'align_10243', @ischar);
-            addParameter(ip, 'compAlignMethod', 'align_multiSpectralpp', @ischar);
+            addParameter(ip, 'alignMethod', '', @ischar); % align_10243
+            addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
             parse(ip, varargin{:});
@@ -145,26 +147,28 @@ classdef StudyDirector
             factoryMethod = ipr.factoryMethod;
             
             those = [];
-            dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
-            parfor idtsess = 1:length(dtsess.fqdns)
-                sessp = dtsess.fqdns{idtsess};
-                pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
-                    
-                    for itrac = 1:length(tracers)
-                        for iscan = ipr.scanList
-                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
+            dtSessp = DirTools(fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
+            
+            %%%%%%
+            parfor isessp = 1:length(dtSessp.fqdns)
+                sessp_i = dtSessp.fqdns{isessp};
+                pwdsess = pushd(sessp_i);
+                dtVisits = DirTools(fullfile(sessp_i, ipr.visitsExpr));     
+                for iv = 1:length(dtVisits.fqdns)   
+                    visits_i = dtVisits.dns{iv};
+                    for itr = 1:length(tracers)
+                        tracer_i = tracers{itr};
+                        for isc = ipr.scanList
+                            if (isc > 1 && strcmpi(tracer_i, 'FDG'))
                                 continue
                             end
                             try
                                 sessd = SessionData( ...
                                     'studyData', StudyData, ...
-                                    'sessionPath', sessp, ...
-                                    'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                                    'snumber', iscan, ...
-                                    'tracer', tracers{itrac}, ...
+                                    'sessionPath', sessp_i, ...
+                                    'vnumber', str2double(visits_i(2:end)), ...
+                                    'snumber', isc, ...
+                                    'tracer', tracer_i, ...
                                     'ac', ipr.ac, ...
                                     'supEpoch', ipr.supEpoch);
                                 if (ipr.ac && strcmp(sessd.sessionFolder, 'HYGLY25') && sessd.vnumber == 1)
@@ -173,7 +177,7 @@ classdef StudyDirector
                                 if (~isempty(ipr.tauIndices))
                                     sessd.tauIndices = ipr.tauIndices;
                                 end
-                                if (~isempty(ipr.tauIndices))
+                                if (~isempty(ipr.fractionalImageFrameThresh))
                                     sessd.fractionalImageFrameThresh = ipr.fractionalImageFrameThresh;
                                 end
                                 if (~isempty(ipr.alignMethod))
@@ -193,13 +197,15 @@ classdef StudyDirector
                                     eval(evalee);
                                 end
                             catch ME
-                                handwarning(ME);
+                                dispwarning(ME);
                             end
-                        end
+                        end                        
                     end
                 end                        
-                popd(pwds);
+                popd(pwdsess);
             end
+            %%%
+            
         end
         function [those,dtsess] = constructCellArrayOfObjectsRemotely(varargin)
             %% CONSTRUCTCELLARRAYOFOBJECTSREMOTELY iterates over session and visit directories, 
@@ -229,8 +235,8 @@ classdef StudyDirector
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
-            addParameter(ip, 'alignMethod', 'align_10243', @ischar);
-            addParameter(ip, 'compAlignMethod', 'align_multiSpectralpp', @ischar);
+            addParameter(ip, 'alignMethod', '', @ischar); % align_10243
+            addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
             addParameter(ip, 'nArgout', 1, @isnumeric);
@@ -276,7 +282,7 @@ classdef StudyDirector
                                 if (~isempty(ip.Results.tauIndices))
                                     sessd.tauIndices = ip.Results.tauIndices;
                                 end
-                                if (~isempty(ip.Results.tauIndices))
+                                if (~isempty(ip.Results.fractionalImageFrameThresh))
                                     sessd.fractionalImageFrameThresh = ip.Results.fractionalImageFrameThresh;
                                 end
                                 if (~isempty(ip.Results.alignMethod))
@@ -305,8 +311,10 @@ classdef StudyDirector
                                          ip.Results.factoryMethod);
                                     fprintf('mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely:\n');
                                     fprintf(['\t' evalee '\n']);
-                                    fprintf(['\tcsessd.TracerLocation->' csessd.tracerLocation '\n']);
+                                    fprintf(['\tcsessd.TracerLocation->' csessd.tracerLocation '\n']);                                    
+                                    warning('off', 'MATLAB:subsassigndimmismatch');
                                     those(idtsess,idtv,itrac,iscan) = eval(evalee); %#ok<AGROW>
+                                    warning('on', 'MATLAB:subsassigndimmismatch');
                                 end
                             catch ME
                                 handexcept(ME);

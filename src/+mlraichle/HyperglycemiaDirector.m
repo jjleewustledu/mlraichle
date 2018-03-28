@@ -446,18 +446,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             % mlsiemens.Herscovitch1985.constructPhysiologicals will
             % iterate tracers and s-numbers.
         end
-        function those = constructResolved(varargin)
-            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
-            
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.constructResolved', varargin{:});
-        end
-        function those = constructResolvedRemotely(varargin)
-            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
-            
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
-                'mlraichle.TracerDirector.constructResolved', 'wallTime', '23:59:59', varargin{:});
-        end
         function those = constructResolveReports(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
             
@@ -629,6 +617,18 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.reconstituteImgRec', varargin{:});  
         end 
+        function those = reconstructResolved(varargin)
+            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.reconstructResolved', varargin{:});
+        end
+        function those = reconstructResolvedPar(varargin)
+            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsPar( ...
+                'mlraichle.TracerDirector.reconstructResolved', varargin{:});
+        end
         function those = reconstructResolvedRemotely(varargin)
             %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
             
@@ -675,6 +675,120 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.reviewACAlignment', 'ac', true, varargin{:});   
         end  
+        function those = sumTracerRevision1Par(varargin)
+            import mlsystem.* mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionsExpr', 'HYGLY*');
+            addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'scanList', StudyDirector.SCANS);
+            addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
+            addParameter(ip, 'ac', true);
+            addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
+            addParameter(ip, 'tauIndices', [], @isnumeric);
+            parse(ip, varargin{:});
+            ipr = ip.Results;
+            tracers = ensureCell(ipr.tracer);
+            
+            those = {};
+            dtsess = DirTools( ...
+                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+            parfor idtsess = 1:length(dtsess.fqdns)
+                sessp = dtsess.fqdns{idtsess};
+                pwds = pushd(sessp);
+                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
+                for idtv = 1:length(dtv.fqdns)
+                    
+                    for itrac = 1:length(tracers)
+                        for iscan = ipr.scanList
+                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
+                                continue
+                            end
+                            try
+                                sessd = SessionData( ...
+                                    'studyData', StudyData, ...
+                                    'sessionPath', sessp, ...
+                                    'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
+                                    'snumber', iscan, ...
+                                    'tracer', tracers{itrac}, ...
+                                    'ac', ipr.ac, ...
+                                    'supEpoch', ipr.supEpoch);                                
+                                if (~isempty(ipr.tauIndices))
+                                    sessd.tauIndices = ipr.tauIndices;
+                                end
+                                
+                                if (isdir(sessd.tracerRawdataLocation))
+                                    % there exist spurious tracerLocations; select those with corresponding raw data
+                                    
+                                    mlraichle.TracerDirector.sumTracerRevision1( ...
+                                        'sessionData', sessd, varargin{:});
+                                end
+                            catch ME
+                                handwarning(ME);
+                            end
+                        end
+                    end
+                end                        
+                popd(pwds);
+            end 
+        end 
+        function those = sumTracerResolvedFinalPar(varargin)
+            import mlsystem.* mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionsExpr', 'HYGLY*');
+            addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'scanList', StudyDirector.SCANS);
+            addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
+            addParameter(ip, 'ac', true);
+            addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
+            addParameter(ip, 'tauIndices', [], @isnumeric);
+            parse(ip, varargin{:});
+            ipr = ip.Results;
+            tracers = ensureCell(ipr.tracer);
+            
+            those = {};
+            dtsess = DirTools( ...
+                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+            parfor idtsess = 1:length(dtsess.fqdns)
+                sessp = dtsess.fqdns{idtsess};
+                pwds = pushd(sessp);
+                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
+                for idtv = 1:length(dtv.fqdns)
+                    
+                    for itrac = 1:length(tracers)
+                        for iscan = ipr.scanList
+                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
+                                continue
+                            end
+                            try
+                                sessd = SessionData( ...
+                                    'studyData', StudyData, ...
+                                    'sessionPath', sessp, ...
+                                    'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
+                                    'snumber', iscan, ...
+                                    'tracer', tracers{itrac}, ...
+                                    'ac', ipr.ac, ...
+                                    'supEpoch', ipr.supEpoch);                                
+                                if (~isempty(ipr.tauIndices))
+                                    sessd.tauIndices = ipr.tauIndices;
+                                end
+                                
+                                if (isdir(sessd.tracerRawdataLocation))
+                                    % there exist spurious tracerLocations; select those with corresponding raw data
+                                    
+                                    mlraichle.TracerDirector.sumTracerResolvedFinal( ...
+                                        'sessionData', sessd, varargin{:});
+                                end
+                            catch ME
+                                handwarning(ME);
+                            end
+                        end
+                    end
+                end                        
+                popd(pwds);
+            end 
+        end 
         function those = viewExports(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.viewExports', 'ac', true, varargin{:});   
@@ -686,8 +800,12 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 'mlraichle.TracerDirector.testLaunchingRemotely', 'wallTime', '00:00:05', varargin{:});            
         end
         function         fetchOutputs(those, varargin)
+            %  @param those is cell-array of mlraichle.TracerDirector
+            %  objects. 
+            %  @param varargin are indices for those.
+            
             if (~isempty(varargin))
-                that = those(varargin);
+                that = those(varargin{:});
                 if (~isempty(that))
                     fprintf('HyperglycemiaDirector.fetchOutputs.those(%i,%i,%i,%i):\n', varargin{:});
                     disp(that{1}.job.fetchOutputs{:})
@@ -701,17 +819,25 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                         for d = 1:size(those,4)
                             that = those(a,b,c,d);
                             if (~isempty(that))
-                                fprintf('HyperglycemiaDirector.fetchOutputs.those(%i,%i,%i,%i):\n', a,b,c,d);
-                                disp(that{1}.job.fetchOutputs{:})
+                                try
+                                    fprintf('HyperglycemiaDirector.fetchOutputs.those(%i,%i,%i,%i):\n', a,b,c,d);
+                                    disp(that{1}.job.fetchOutputs{:})
+                                catch ME
+                                    dispwarning(ME);
+                                end
                             end
                         end
                     end
                 end
             end
         end
-        function         job(those, varargin)            
+        function         job(those, varargin)  
+            %  @param those is cell-array of mlraichle.TracerDirector
+            %  objects. 
+            %  @param varargin are indices for those.
+            
             if (~isempty(varargin))
-                that = those(varargin);
+                that = those(varargin{:});
                 if (~isempty(that))
                     fprintf('HyperglycemiaDirector.job.those(%i,%i,%i,%i):\n', varargin{:});
                     disp(that{1}.job)
@@ -725,8 +851,12 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                         for d = 1:size(those,4)
                             that = those(a,b,c,d);
                             if (~isempty(that))
-                                fprintf('HyperglycemiaDirector.job.those(%i,%i,%i,%i):\n', a,b,c,d);
-                                disp(that{1}.job)
+                                try
+                                    fprintf('HyperglycemiaDirector.job.those(%i,%i,%i,%i):\n', a,b,c,d);
+                                    disp(that{1}.job)
+                                catch ME
+                                    dispwarning(ME);
+                                end
                             end
                         end
                     end

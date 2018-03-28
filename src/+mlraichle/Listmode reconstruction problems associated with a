@@ -1,0 +1,11 @@
+Listmode reconstruction problem associated with aborted scans on Biograph mMR
+
+John Lee
+March 26, 2018
+
+
+
+
+This document summarizes a problem with reconstructing images from listmode data acquired on the Biograph mMR at the Center for Clinical Imaging Research of Washington University in Saint Louis.  The JSRecon12 and e7tools toolchains 
+
+I first identified the problem in data acquired on 10/18/2017 but have observed similar instances of the problems in scans .

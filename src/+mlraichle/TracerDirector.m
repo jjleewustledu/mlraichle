@@ -334,31 +334,7 @@ classdef TracerDirector < mlpet.TracerDirector
             those = mlsiemens.Herscovitch1985.constructPhysiologicals(ip.Results.sessionData);
         end 
         function this  = constructResolved(varargin)
-            %  @param varargin for mlpet.TracerResolveBuilder.
-            %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
-            %  @return umap files generated per motionUncorrectedUmap ready
-            %  for use by TriggeringTracers.js; 
-            %  sequentially run FDG NAC, 15O NAC, then all tracers AC.
-            %  @return this.sessionData.attenuationCorrection == false.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            
-            mlpet.TracerDirector.assertenv;  
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:})          
-            
-            mlraichle.UmapDirector.constructUmaps('sessionData', ip.Results.sessionData);
-            
-            tr = ip.Results.sessionData.tracer;
-            if (~ip.Results.sessionData.attenuationCorrected && (strcmpi('OC', tr) || strcmpi('OO', tr)))
-                varargin = [varargin {'f2rep', 1, 'fsrc', 2}]; % first frame has breathing tube which confuses T4ResolveBuilder.
-            end
-            
-            this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));   
-            this = this.instanceConstructResolved;
+            this = mlraichle.TracerDirector.reconstructResolved(varargin{:});
         end 
         function rpts  = constructResolveReports(varargin)
             %  @param  varargin for mlfourdfp.T4ResolveReporter.
@@ -572,7 +548,7 @@ classdef TracerDirector < mlpet.TracerDirector
             mlpet.TracerDirector.assertenv;  
             mlpet.TracerDirector.prepareFreesurferData(varargin{:})          
             
-            mlraichle.UmapDirector.constructUmaps('sessionData', ip.Results.sessionData);
+            %mlraichle.UmapDirector.constructUmaps('sessionData', ip.Results.sessionData);
             
             tr = ip.Results.sessionData.tracer;
             if (~ip.Results.sessionData.attenuationCorrected && (strcmpi('OC', tr) || strcmpi('OO', tr)))
@@ -684,26 +660,6 @@ classdef TracerDirector < mlpet.TracerDirector
             end
             popd(pwd0);
         end 
-        function this  = viewExports(varargin)
-            %  @param varargin for mlpet.TracerResolveBuilder.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            
-            this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));
-            sd = this.sessionData;
-            pwd0 = pushd(fullfile(sd.vLocation, 'export', ''));
-            try
-                mlbash(sprintf('fslview_deprecated %s.4dfp.img %s_%s.4dfp.img', ...
-                    sd.tracerResolvedFinal('typ','fp'), sd.T1001('typ','fp'), sd.resolveTag));
-            catch ME
-                handwarning(ME);
-            end
-            popd(pwd0);
-        end 
         function this  = reviewACAlignment(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             
@@ -738,6 +694,49 @@ classdef TracerDirector < mlpet.TracerDirector
             end
             popd(pwd0);
         end
+        function this  = sumTracerResolvedFinal(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));
+            sd = this.sessionData;
+            pwd0 = pushd(fullfile(sd.tracerLocation, ''));
+            try
+                if (~lexist(sd.tracerResolvedFinalSumt, 'file'))
+                    this.builder_ = this.builder_.packageProduct(sd.tracerResolvedFinal);
+                    this.builder_ = this.builder_.sumProduct;
+                end
+            catch ME
+                handwarning(ME);
+            end
+            popd(pwd0);
+        end
+        function this  = sumTracerRevision1(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));
+            sd = this.sessionData;
+            sd.rnumber = 1;
+            pwd0 = pushd(fullfile(sd.tracerLocation, ''));
+            try
+                if (~lexist(sd.tracerRevisionSumt, 'file'))
+                    this.builder_ = this.builder_.packageProduct(sd.tracerRevision);
+                    this.builder_ = this.builder_.sumProduct;
+                end
+            catch ME
+                handwarning(ME);
+            end
+            popd(pwd0);
+        end
         function this  = testLaunchingRemotely(varargin)
             
             ip = inputParser;
@@ -749,6 +748,26 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:}));          
             this = this.instanceTestLaunching;
         end
+        function this  = viewExports(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));
+            sd = this.sessionData;
+            pwd0 = pushd(fullfile(sd.vLocation, 'export', ''));
+            try
+                mlbash(sprintf('fslview_deprecated %s.4dfp.img %s_%s.4dfp.img', ...
+                    sd.tracerResolvedFinal('typ','fp'), sd.T1001('typ','fp'), sd.resolveTag));
+            catch ME
+                handwarning(ME);
+            end
+            popd(pwd0);
+        end 
     end
     
     methods
