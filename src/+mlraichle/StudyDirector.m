@@ -101,7 +101,7 @@ classdef StudyDirector
                                     warning('on', 'MATLAB:subsassigndimmismatch');
                                 end
                             catch ME
-                                handwarning(ME);
+                                dispwarning(ME);
                             end
                         end
                     end
@@ -317,7 +317,7 @@ classdef StudyDirector
                                     warning('on', 'MATLAB:subsassigndimmismatch');
                                 end
                             catch ME
-                                handexcept(ME);
+                                dispexcept(ME);
                             end
                         end                    
                     end

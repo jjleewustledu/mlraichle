@@ -19,12 +19,14 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         % cf. mlfourdfp.ImageFrames.nonEmptyImageIndices, mlpet.TracerResolveBuilder; valid for [0..1]
         filetypeExt = '.4dfp.ifh'
         indicesEpochCells = {}; % indicesEpochCells{this.epoch} := numeric, size(numeric) == [1 this.maxLengthEpoch]
+        studyCensusXlsx = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), 'census 2018mar29.xlsx')
+        supScanList = 3;
         t4ResolveBuilderBlurArg = 5.5
         tauIndices = [] % use to exclude late frames from builders of AC; e.g., HYGLY25 V1; taus := taus(tauIndices)
         tauMultiplier = 1 % 1,2,4,8,16
     end
     
-	properties (Dependent)
+	properties (Dependent)    
         attenuationTag
         convertedTag
         doseAdminDatetimeLabel
@@ -36,6 +38,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         taus
         times
         timeMidpoints
+        timeWindowDurationSuvr
         vfolder
     end
     
@@ -203,6 +206,16 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function g = get.timeMidpoints(this)
             g = this.times + this.taus/2;
         end
+        function g = get.timeWindowDurationSuvr(this)
+            switch (this.tracer)
+                case 'FDG'
+                    g = 40*60;
+                case {'OC' 'CO' 'OO' 'HO'}
+                    g = 60;
+                otherwise
+                    error('mlraichle:unsupportedSwitchcase', 'SessionData.get.timeWindowDurationSuvr');
+            end
+        end
         
         %% IMRData
         
@@ -253,6 +266,10 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end  
         function obj  = mpr(this, varargin)
             obj = this.T1(varargin{:});
+        end
+        function obj  = mprForReconall(this, varargin)
+            obj = this.fqfilenameObject( ...
+                fullfile(this.vLocation, ['mpr' this.filetypeExt]), varargin{:});            
         end
         function obj  = mprage(this, varargin)
             obj = this.T1(varargin{:});
@@ -379,6 +396,9 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             catch ME %#ok<NASGU>
                 [dt0_,date_] = readDatetime0@mlpipeline.SessionData(this);
             end
+        end
+        function obj  = t1MprageSagSeriesForReconall(this, varargin)            
+            obj = this.studyCensus_.t1MprageSagSeriesForReconall(this, varargin{:});  
         end
         function loc  = tracerConvertedLocation(this, varargin)
             
@@ -543,7 +563,16 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 obj  = this.fqfilenameObject(fqfn, varargin{:});
             end
         end
+        function obj  = tracerResolvedFinalOnAtl(this, varargin)
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('%s_on_%s_333%s', this.tracerResolvedFinal('typ', 'fp'), this.atlas.fileprefix, this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
         function obj  = tracerResolvedFinalOpFdg(this, varargin)
+            if (strcmpi(this.tracer, 'FDG'))
+                obj = this.tracerResolvedFinal(varargin{:});
+                return
+            end
             this.rnumber = 2;
             fqfn = fullfile(this.vLocation, ...
                 sprintf('%sr2_op_%s%s', this.tracerResolvedFinal('typ', 'fp'), this.fdgACRevision('typ', 'fp'), this.filetypeExt));
@@ -627,41 +656,50 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end        
         
         function obj  = cbfOpFdg(this, varargin)
-            fqfn = fullfile(this.vLocation, ...
-                sprintf('cbf%i_op_%s%s', this.snumber, this.fdgACRevision('typ', 'fp'), this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+            obj = this.visitMapOpFdg('cbf', varargin{:});
         end
         function obj  = cbvOpFdg(this, varargin)
-            fqfn = fullfile(this.vLocation, ...
-                sprintf('cbv%i_op_%s%s', this.snumber, this.fdgACRevision('typ', 'fp'), this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+            obj = this.visitMapOpFdg('cbv', varargin{:});
         end
         function obj  = oefOpFdg(this, varargin)
-            fqfn = fullfile(this.vLocation, ...
-                sprintf('oef%i_op_%s%s', this.snumber, this.fdgACRevision('typ', 'fp'), this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+            obj = this.visitMapOpFdg('oef', varargin{:});
         end
         function obj  = cmro2OpFdg(this, varargin)
-            fqfn = fullfile(this.vLocation, ...
-                sprintf('cmro2%i_op_%s%s', this.snumber, this.fdgACRevision('typ', 'fp'), this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+            obj = this.visitMapOpFdg('cmro2', varargin{:});
         end
         function obj  = cmrglcOpFdg(this, varargin)
-            fqfn = fullfile(this.vLocation, ...
-                sprintf('cmrglc_op_%s%s', this.fdgACRevision('typ', 'fp'), this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+            obj = this.visitMapOpFdg('cmrglc', varargin{:});
         end
         function obj  = ogiOpFdg(this, varargin)
-            fqfn = fullfile(this.vLocation, ...
-                sprintf('ogi_op_%s%s', this.fdgACRevision('typ', 'fp'), this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+            obj = this.visitMapOpFdg('ogi', varargin{:});
         end
         function obj  = agiOpFdg(this, varargin)
-            % dag := cmrglc - 6*cmro2 \approx aerobic glycolysis
+            % dag := cmrglc - cmro2/6 \approx aerobic glycolysis
             
-            fqfn = fullfile(this.vLocation, ...
-                sprintf('agi_op_%s%s', this.fdgACRevision('typ', 'fp'), this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+            obj = this.visitMapOpFdg('agi', varargin{:});
+        end        
+        function obj  = cbfOnAtl(this, varargin)
+            obj = this.visitMapOnAtl('cbf', varargin{:});
+        end
+        function obj  = cbvOnAtl(this, varargin)
+            obj = this.visitMapOnAtl('cbv', varargin{:});
+        end
+        function obj  = oefOnAtl(this, varargin)
+            obj = this.visitMapOnAtl('oef', varargin{:});
+        end
+        function obj  = cmro2OnAtl(this, varargin)
+            obj = this.visitMapOnAtl('cmro2', varargin{:});
+        end
+        function obj  = cmrglcOnAtl(this, varargin)
+            obj = this.visitMapOnAtl('cmrglc', varargin{:});
+        end
+        function obj  = ogiOnAtl(this, varargin)
+            obj = this.visitMapOnAtl('ogi', varargin{:});
+        end
+        function obj  = agiOnAtl(this, varargin)
+            % dag := cmrglc - cmro2/6 \approx aerobic glycolysis
+            
+            obj = this.visitMapOnAtl('agi', varargin{:});
         end
 
         %%  
@@ -738,20 +776,24 @@ classdef SessionData < mlpipeline.ResolvingSessionData
  		function this = SessionData(varargin)
  			this = this@mlpipeline.ResolvingSessionData(varargin{:});
             
+            setenv('CCIR_RAD_MEASUREMENTS_DIR', fullfile(getenv('HOME'), 'Documents', 'private', ''));
+            
             if (isnat(this.sessionDate_))
                 this.sessionDate_ = this.readDatetime0;
             end
-%             try
-%                 this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct( ...
-%                     fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), this.bloodGlucoseAndHctXlsx));
-%             catch ME
-%                 fprintf('mlraichle.SessionData.ctor:  exception thrown while assigning this.bloodGlucoseAndHct\n');
-%                 handwarning(ME, 'mlraichle:dataNotAvailable', 'SessionData.ctor.%s', this.bloodGlucoseAndHctXlsx);
-%             end
+            try
+                this.studyCensus_ = mlraichle.StudyCensus(this.studyCensusXlsx, 'sessionData', this);
+            catch ME
+                dispwarning(ME);
+            end
         end
     end
     
     %% PROTECTED
+    
+    properties (Access = protected)
+        studyCensus_
+    end
     
     methods (Access = protected)
         function fqfn = ensureOrientation(this, fqfn, orient)
@@ -885,7 +927,17 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                     error('mlraichle:switchCaseNotSupported', ...
                           'SessionData.readOrientation.o -> %s', o);
             end
-        end 
+        end    
+        function obj  = visitMapOnAtl(map, varargin)
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('%s_on_%s_333%s', map, this.atlas.fileprefix, this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end     
+        function obj  = visitMapOpFdg(map, varargin)
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('%s_op_%s%s', map, this.fdgACRevision('typ', 'fp'), this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
     end
     
     %% HIDDEN

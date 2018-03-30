@@ -195,6 +195,76 @@ classdef TracerDirector < mlpet.TracerDirector
                 'mask', this.anatomy_, ...
                 'target', ip.Results.target);
         end 
+        function out   = constructAtlasRepresentations(varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            parse(ip, varargin{:});
+        
+            sd = this.sessionData;
+            fv = mlfourdfp.FourdfpVisitor;
+            fv.mpr2atl_4dfp(sd.mprForReconall, 'options', sprintf('-T%s -S711-2B', sd.atlas('typ','fqfp')));
+            fv.freesurfer2mpr_4dfp(sd.mprForReconall, sd.T1001, 'options', ['-T' sd.atlas('typ','fqfp')]);
+            maps = {sd.cbfOpFdg('typ','fqfp') ...
+                    sd.cbvOpFdg('typ','fqfp') ...
+                    sd.oefOpFdg('typ','fqfp') ...
+                    sd.cmro2OpFdg('typ','fqfp') ...
+                    sd.cmrglcOpFdg('typ','fqfp') ...
+                    sd.ogiOpFdg('typ','fqfp') ...
+                    sd.agiOpFdg('typ','fqfp')};
+            onatl = {sd.cbfOnAtl('typ','fqfp') ...
+                     sd.cbvOnAtl('typ','fqfp') ...
+                     sd.oefOnAtl('typ','fqfp') ...
+                     sd.cmro2OnAtl('typ','fqfp') ...
+                     sd.cmrglcOnAtl('typ','fqfp') ...
+                     sd.ogiOnAtl('typ','fqfp') ...
+                     sd.agiOnAtl('typ','fqfp')};
+                 
+            sdFdg = sd;
+            sdFdg.tracer = 'FDG';
+            sdFdg.rnumber = 1;
+            sdFdg.attentuationCorrected = true;
+            fdg_to_T1_t4  = fullfile(sdFdg.vLocation, sprintf('%s_to_%s_t4', sdFdg.tracerRevision('typ','fp'), sdFdg.T1001('typ','fp')));
+            T1_to_atl_t4  = fullfile(sdFdg.vLocation, sprintf('%s_to_%s_t4', sdFdg.T1001('typ','fp'), sdFdg.atlas('typ','fp')));
+            fdg_to_atl_t4 = fullfile(sdFdg.vLocation, sprintf('%s_to_%s_t4', sdFdg.tracerRevision('typ','fp'), sdFdg.atlas('typ','fp')));
+            T1_to_fdg_t4  = fullfile(sdFdg.tracerLocation, sprintf('brainmaskr1r2_to_op_%s_t4', sdFdg.tracerRevision('typ','fp')));
+            
+            fv.t4_mul( ...
+                fullfile(sdFdg.tracerLocation, sprintf('brainmaskr1_to_op_%s_t4', sdFdg.tracerRevision('typ','fp'))), ...
+                fullfile(sdFdg.tracerLocation, sprintf('brainmaskr2_to_op_%s_t4', sdFdg.tracerRevision('typ','fp'))), ...
+                T1_to_fdg_t4); 
+            fv.t4_inv(T1_to_fdg_t4, 'out', fdg_to_T1_t4);
+            fv.t4_mul(fdg_to_T1_t4, T1_to_atl_t4, fdg_to_atl_t4);
+            out = [];
+            for m = 1:length(maps)
+                out = [out fv.t4img_4dfp(fdg_to_atl_t4, maps{m}, 'out', onatl{m}, 'options', '-O333')]; %#ok<AGROW>
+            end
+        end
+        function this  = constructCompositeResolved(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            import mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'anatomy', 'T1001', @ischar);
+            addParameter(ip, 'noclobber', true, @islogical);
+            addParameter(ip, 'target', '', @ischar);
+            parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;
+            mlpet.TracerDirector.prepareFreesurferData(varargin{:})
+            
+            this = TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:})); 
+            this.anatomy_ = ip.Results.anatomy;
+            if (~ip.Results.noclobber)
+                this.builder_.ignoreTouchfile = true;
+            end
+            this = this.instanceConstructCompositeResolved( ...
+                'tag2', 'constructCR_', ...
+                'target', ip.Results.target);
+        end
         function this  = constructExports(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             
@@ -246,31 +316,6 @@ classdef TracerDirector < mlpet.TracerDirector
             this = this.instanceConstructHerscovitchOpAtlas( ...
                 'sources', sources, ...
                 'intermediary', sd.tracerResolvedFinalSumt);
-        end
-        function this  = constructCompositeResolved(varargin)
-            %  @param varargin for mlpet.TracerResolveBuilder.
-            
-            import mlraichle.*;
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
-            addParameter(ip, 'anatomy', 'T1001', @ischar);
-            addParameter(ip, 'noclobber', true, @islogical);
-            addParameter(ip, 'target', '', @ischar);
-            parse(ip, varargin{:});
-            
-            mlpet.TracerDirector.assertenv;
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:})
-            
-            this = TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:})); 
-            this.anatomy_ = ip.Results.anatomy;
-            if (~ip.Results.noclobber)
-                this.builder_.ignoreTouchfile = true;
-            end
-            this = this.instanceConstructCompositeResolved( ...
-                'tag2', 'constructCR_', ...
-                'target', ip.Results.target);
         end
         function this  = constructNiftyPETy(varargin)
             
@@ -546,7 +591,7 @@ classdef TracerDirector < mlpet.TracerDirector
             parse(ip, varargin{:});
             
             mlpet.TracerDirector.assertenv;  
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:})          
+            mlpet.TracerDirector.prepareFreesurferData(varargin{:});          
             
             %mlraichle.UmapDirector.constructUmaps('sessionData', ip.Results.sessionData);
             
