@@ -708,36 +708,42 @@ classdef TracerDirector < mlpet.TracerDirector
         function this  = reviewACAlignment(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));
-            sd = this.sessionData;
-            pwd0 = pushd(fullfile(sd.tracerLocation, ''));
-            try
-                if (strcmp(sd.tracer, 'HO'))
-                    bval = 100000;
-                else
-                    bval = 50000;
+            
+            sd = this.sessionData;          
+            if (strcmp(sd.tracer, 'HO'))
+                bval = 100000;
+            else
+                bval = 50000;
+            end
+            if (strcmp(sd.tracer, 'FDG'))
+                tval = 0.15;
+            else
+                tval = 0.6;
+            end
+            
+            try                
+                pwd0 = pushd(fullfile(sd.tracerLocation, ''));
+                while (~lexist(sd.tracerResolvedFinal('typ','fn'), 'file') && ...
+                    sd.supEpoch > 0)
+                    sd.supEpoch = sd.supEpoch - 1;                 
                 end
-                if (strcmp(sd.tracer, 'FDG'))
-                    tval = 0.15;
-                else
-                    tval = 0.6;
-                end
+                assert(lexist(sd.tracerResolvedFinal('typ','fn'), 'file'), ...
+                    'mlraichle.TracerDirector.reviewACAlignment.fatalError');
                 if (~lexist(sd.tracerResolvedFinalSumt, 'file'))
                     this.builder_ = this.builder_.packageProduct(sd.tracerResolvedFinal);
                     this.builder_ = this.builder_.sumProduct;
                 end
                 mlbash(sprintf('fslview_deprecated %s.4dfp.img -b 0,%g %s.4dfp.img -t %g -l Cool', ...
-                    sd.tracerResolvedFinal('typ','fp'), bval, sd.tracerResolvedFinalSumt('typ','fp'), tval));
-            catch ME
-                handwarning(ME);
+                    sd.tracerResolvedFinal('typ','fp'), ...
+                    bval, ...
+                    sd.tracerResolvedFinalSumt('typ','fp'), ...
+                    tval));
+                popd(pwd0);
+            catch ME                
+                handexcept(ME);
             end
-            popd(pwd0);
         end
         function this  = sumTracerResolvedFinal(varargin)
             

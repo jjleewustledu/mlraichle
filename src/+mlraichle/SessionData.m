@@ -19,7 +19,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         % cf. mlfourdfp.ImageFrames.nonEmptyImageIndices, mlpet.TracerResolveBuilder; valid for [0..1]
         filetypeExt = '.4dfp.ifh'
         indicesEpochCells = {}; % indicesEpochCells{this.epoch} := numeric, size(numeric) == [1 this.maxLengthEpoch]
-        studyCensusXlsx = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), 'census 2018mar29.xlsx')
         supScanList = 3;
         t4ResolveBuilderBlurArg = 5.5
         tauIndices = [] % use to exclude late frames from builders of AC; e.g., HYGLY25 V1; taus := taus(tauIndices)
@@ -34,10 +33,12 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         indicesLogical
         maxLengthEpoch
         rawdataDir
+        studyCensusXlsx
         supEpoch
         taus
         times
         timeMidpoints
+        timeWindowDelaySuvr
         timeWindowDurationSuvr
         vfolder
     end
@@ -124,16 +125,16 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             end
             g = sprintf('_frame%i', this.frame);
         end
-        function g = get.indicesLogical(this)
+        function g = get.indicesLogical(this) %#ok<MANU>
             g = true;
             return
-            
-            try
-                g = this.indicesEpochCells{this.epoch};
-            catch ME
-                disp(warning(ME));
-                g = true;
-            end
+%             
+%             try
+%                 g = this.indicesEpochCells{this.epoch};
+%             catch ME
+%                 disp(warning(ME));
+%                 g = true;
+%             end
         end
         function g = get.maxLengthEpoch(this)
             if (~this.attenuationCorrected)
@@ -148,8 +149,19 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function g = get.rawdataDir(this)
             g = this.studyData_.rawdataDir;
         end 
+        function g = get.studyCensusXlsx(this) %#ok<MANU>
+            g = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), 'census 2018mar29.xlsx');
+        end
         function g = get.supEpoch(this)
+            if (~isempty(this.supEpoch_))
+                g = this.supEpoch_;
+                return
+            end
             g = ceil(length(this.taus) / this.maxLengthEpoch);
+        end
+        function this = set.supEpoch(this, s) %#ok<MCHV2>
+            assert(isnumeric(s));
+            this.supEpoch_ = s;
         end
         function g = get.vfolder(this)
             g = sprintf('V%i', this.vnumber);
@@ -206,10 +218,22 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function g = get.timeMidpoints(this)
             g = this.times + this.taus/2;
         end
-        function g = get.timeWindowDurationSuvr(this)
+        function g = get.timeWindowDelaySuvr(this)
             switch (this.tracer)
                 case 'FDG'
                     g = 40*60;
+                case {'OC' 'CO'}
+                    g = 2*60;
+                case {'OO' 'HO'}
+                    g = 0;
+                otherwise
+                    error('mlraichle:unsupportedSwitchcase', 'SessionData.get.timeWindowDurationSuvr');
+            end
+        end
+        function g = get.timeWindowDurationSuvr(this)
+            switch (this.tracer)
+                case 'FDG'
+                    g = 20*60;
                 case {'OC' 'CO' 'OO' 'HO'}
                     g = 60;
                 otherwise
@@ -397,7 +421,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 [dt0_,date_] = readDatetime0@mlpipeline.SessionData(this);
             end
         end
-        function obj  = t1MprageSagSeriesForReconall(this, varargin)            
+        function obj  = t1MprageSagSeriesForReconall(this, varargin)
             obj = this.studyCensus_.t1MprageSagSeriesForReconall(this, varargin{:});  
         end
         function loc  = tracerConvertedLocation(this, varargin)
@@ -605,6 +629,40 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function obj  = tracerScrubbed(this, varargin)
             fqfn = sprintf('%s_scrubbed%s', this.tracerResolved('typ', 'fqfp'), this.filetypeExt);
             obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end        
+        function obj  = tracerSuvr(this, varargin)
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('%s_suvr_333%s', this.tracerRevision('typ', 'fp'), this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = tracerSuvrAveraged(this, varargin)   
+            ipr = this.iprLocation(varargin{:});         
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('%sav%i%sr%i_suvr_333%s', ...
+                lower(ipr.tracer), this.vnumber, this.epochLabel, ipr.rnumber, this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = tracerSuvrNamed(this, name, varargin)
+            schar = '';
+            if (strcmpi(this.tracer, 'OC') || ...
+                strcmpi(this.tracer, 'CO') || ...
+                strcmpi(this.tracer, 'OO') || ...
+                strcmpi(this.tracer, 'HO'))
+                schar = 'a'; % sprintf('%i', this.snumber);
+            end
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('%s%sv%ir%i_suvr_333%s', lower(name), schar, this.vnumber, this.rnumber, this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = tracerTimeWindowed(this, varargin)
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('%s_timeWindowed%s', this.tracerRevision('typ', 'fp'), this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = tracerTimeWindowedOnAtl(this, varargin)
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('%s_timeWindowed_333%s', this.tracerRevision('typ', 'fp'), this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerVisit(this, varargin)
             [ipr,schar] = this.iprLocation(varargin{:});
@@ -793,6 +851,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
     
     properties (Access = protected)
         studyCensus_
+        supEpoch_
     end
     
     methods (Access = protected)

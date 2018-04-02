@@ -625,7 +625,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
             
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.reconstructResolved', varargin{:});
+                'mlraichle.TracerDirector.reconstructResolved', varargin{:}); %#ok<NASGU>0å
         end
         function those = reconstructResolvedPar(varargin)
             import mlsystem.* mlraichle.*;
