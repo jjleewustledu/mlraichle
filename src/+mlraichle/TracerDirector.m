@@ -195,51 +195,6 @@ classdef TracerDirector < mlpet.TracerDirector
                 'mask', this.anatomy_, ...
                 'target', ip.Results.target);
         end 
-        function out   = constructAtlasRepresentations(varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
-            parse(ip, varargin{:});
-        
-            sd = this.sessionData;
-            fv = mlfourdfp.FourdfpVisitor;
-            fv.mpr2atl_4dfp(sd.mprForReconall, 'options', sprintf('-T%s -S711-2B', sd.atlas('typ','fqfp')));
-            fv.freesurfer2mpr_4dfp(sd.mprForReconall, sd.T1001, 'options', ['-T' sd.atlas('typ','fqfp')]);
-            maps = {sd.cbfOpFdg('typ','fqfp') ...
-                    sd.cbvOpFdg('typ','fqfp') ...
-                    sd.oefOpFdg('typ','fqfp') ...
-                    sd.cmro2OpFdg('typ','fqfp') ...
-                    sd.cmrglcOpFdg('typ','fqfp') ...
-                    sd.ogiOpFdg('typ','fqfp') ...
-                    sd.agiOpFdg('typ','fqfp')};
-            onatl = {sd.cbfOnAtl('typ','fqfp') ...
-                     sd.cbvOnAtl('typ','fqfp') ...
-                     sd.oefOnAtl('typ','fqfp') ...
-                     sd.cmro2OnAtl('typ','fqfp') ...
-                     sd.cmrglcOnAtl('typ','fqfp') ...
-                     sd.ogiOnAtl('typ','fqfp') ...
-                     sd.agiOnAtl('typ','fqfp')};
-                 
-            sdFdg = sd;
-            sdFdg.tracer = 'FDG';
-            sdFdg.rnumber = 1;
-            sdFdg.attentuationCorrected = true;
-            fdg_to_T1_t4  = fullfile(sdFdg.vLocation, sprintf('%s_to_%s_t4', sdFdg.tracerRevision('typ','fp'), sdFdg.T1001('typ','fp')));
-            T1_to_atl_t4  = fullfile(sdFdg.vLocation, sprintf('%s_to_%s_t4', sdFdg.T1001('typ','fp'), sdFdg.atlas('typ','fp')));
-            fdg_to_atl_t4 = fullfile(sdFdg.vLocation, sprintf('%s_to_%s_t4', sdFdg.tracerRevision('typ','fp'), sdFdg.atlas('typ','fp')));
-            T1_to_fdg_t4  = fullfile(sdFdg.tracerLocation, sprintf('brainmaskr1r2_to_op_%s_t4', sdFdg.tracerRevision('typ','fp')));
-            
-            fv.t4_mul( ...
-                fullfile(sdFdg.tracerLocation, sprintf('brainmaskr1_to_op_%s_t4', sdFdg.tracerRevision('typ','fp'))), ...
-                fullfile(sdFdg.tracerLocation, sprintf('brainmaskr2_to_op_%s_t4', sdFdg.tracerRevision('typ','fp'))), ...
-                T1_to_fdg_t4); 
-            fv.t4_inv(T1_to_fdg_t4, 'out', fdg_to_T1_t4);
-            fv.t4_mul(fdg_to_T1_t4, T1_to_atl_t4, fdg_to_atl_t4);
-            out = [];
-            for m = 1:length(maps)
-                out = [out fv.t4img_4dfp(fdg_to_atl_t4, maps{m}, 'out', onatl{m}, 'options', '-O333')]; %#ok<AGROW>
-            end
-        end
         function this  = constructCompositeResolved(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             
@@ -393,6 +348,108 @@ classdef TracerDirector < mlpet.TracerDirector
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerReportsBuilder(varargin{:}));          
             rpts = this.instanceMakeReports;
+        end
+        function this  = constructSuvr(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            import mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'anatomy', 'T1001', @ischar);
+            addParameter(ip, 'noclobber', true, @islogical);
+            addParameter(ip, 'target', '', @ischar);
+            parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;
+            mlpet.TracerDirector.prepareFreesurferData(varargin{:})
+            
+            this = TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:})); 
+            this.anatomy_ = ip.Results.anatomy;
+            if (~ip.Results.noclobber)
+                this.builder_.ignoreTouchfile = true;
+            end
+            
+            this.anatomy_ = 'brainmask';
+            this = this.instanceConstructAnatomy( ...
+                'tag2', ['constructAnat_' this.anatomy_], ...
+                'mask', this.anatomy_, ...
+                'target', ip.Results.target);
+            this.anatomy_ = 'T1001';
+            this = this.instanceConstructCompositeResolved( ...
+                'tag2', 'constructCR_', ...
+                'target', ip.Results.target);
+            this = this.instanceConstructAtlas;
+            this = this.instanceConstructSuvr;
+        end
+        function this  = constructSuvr1(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            import mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'anatomy', 'T1001', @ischar);
+            addParameter(ip, 'noclobber', true, @islogical);
+            addParameter(ip, 'target', '', @ischar);
+            parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;
+            mlpet.TracerDirector.prepareFreesurferData(varargin{:})
+            
+            this = TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:})); 
+            this.anatomy_ = ip.Results.anatomy;
+            if (~ip.Results.noclobber)
+                this.builder_.ignoreTouchfile = true;
+            end
+            
+            this.anatomy_ = 'brainmask';
+            this = this.instanceConstructAnatomy( ...
+                'tag2', ['constructAnat_' this.anatomy_], ...
+                'mask', this.anatomy_, ...
+                'target', ip.Results.target);
+            this.anatomy_ = 'T1001';
+            this = this.instanceConstructCompositeResolved( ...
+                'tag2', 'constructCR_', ...
+                'target', ip.Results.target);
+            %this = this.instanceConstructAtlas;
+            %this = this.instanceConstructSuvr;
+        end
+        function this  = constructSuvr2(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            import mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'anatomy', 'T1001', @ischar);
+            addParameter(ip, 'noclobber', true, @islogical);
+            addParameter(ip, 'target', '', @ischar);
+            parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;
+%            mlpet.TracerDirector.prepareFreesurferData(varargin{:})
+            
+            this = TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:})); 
+            this.anatomy_ = ip.Results.anatomy;
+            if (~ip.Results.noclobber)
+                this.builder_.ignoreTouchfile = true;
+            end
+            
+%             this.anatomy_ = 'brainmask';
+%             this = this.instanceConstructAnatomy( ...
+%                 'tag2', ['constructAnat_' this.anatomy_], ...
+%                 'mask', this.anatomy_, ...
+%                 'target', ip.Results.target);
+%             this.anatomy_ = 'T1001';
+%             this = this.instanceConstructCompositeResolved( ...
+%                 'tag2', 'constructCR_', ...
+%                 'target', ip.Results.target);
+            this = this.instanceConstructAtlas;
+            this = this.instanceConstructSuvr;
         end
         function this  = constructUmapSynthForDynamicFrames(varargin)
             
@@ -565,18 +622,6 @@ classdef TracerDirector < mlpet.TracerDirector
             this.builder.linkRawdataMPR;
             this.builder.reconAllSurferObjects;
         end 
-        function bldr  = reconstituteImgRec(varargin)
-            %  @param varargin for mlpet.TracerResolveBuilder.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            
-            bldr =  mlpet.TracerBuilder(varargin{:});    
-            bldr.product_ = mlfourd.ImagingContext(bldr.tracerResolvedFinal);
-            bldr.reconstituteImgRec();
-        end
         function this  = reconstructResolved(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
@@ -745,6 +790,67 @@ classdef TracerDirector < mlpet.TracerDirector
                 handexcept(ME);
             end
         end
+        function tica  = reviewTracerAlignments(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            parse(ip, varargin{:});            
+            import mlraichle.*;
+                
+            sd = ip.Results.sessionData;   
+            sd.attenuationCorrected = true;
+            vw = mlfourdfp.Viewer; %(fullfile(getenv('FSLDIR'), 'bin', 'fsleyes'));            
+            try                
+                pwd0 = pushd(sd.vLocation);
+                assertExistResolved(sd);
+                tica = tracerImgCellArr(sd);
+                vw.view(tica);
+                popd(pwd0);
+            catch ME                
+                dispwarning(ME);
+            end    
+            
+            function cella = tracerImgCellArr(sd_)
+                import mlraichle.*;
+                cella = {};
+                for tr = 1:length(StudyDirector.TRACERS)
+                    sd_.tracer = StudyDirector.TRACERS{tr};                    
+                    if (strcmpi(sd_.tracer, 'FDG'))
+                        if (isdir(sd_.tracerLocation))
+                            try
+                                assertExistResolved(sd_);
+                                cella = [cella sd_.tracerResolvedFinalSumtOpFdg('typ','fn.4dfp.img')]; %#ok<AGROW>
+                            catch ME_                
+                                dispwarning(ME_);
+                            end    
+                        end
+                    else
+                        for sc = 1:3
+                            sd_.snumber = sc;
+                            if (isdir(sd_.tracerLocation))
+                                try
+                                    assertExistResolved(sd_);
+                                    cella = [cella sd_.tracerResolvedFinalSumtOpFdg('typ','fn.4dfp.img')]; %#ok<AGROW>
+                                catch ME_
+                                    dispwarning(ME_);
+                                end
+                            end
+                        end
+                    end
+                end
+            end            
+            function assertExistResolved(sd_)
+                assertExistFourdfp(sd_.tracerResolvedFinal('typ','fqfp'));
+                assertExistFourdfp(sd_.tracerResolvedFinalSumt('typ','fqfp'));
+                assertExistFourdfp(sd_.tracerResolvedFinalSumtOpFdg('typ','fqfp'));
+            end
+            function assertExistFourdfp(fqfp)
+                assert(lexist_4dfp(fqfp, 'file'), ...
+                    'mlraichle:qualityAssuranceFailure', ...
+                    'TracerDirector.reviewTracerAlignments:  missing %s', fqfp);
+            end    
+        end
         function this  = sumTracerResolvedFinal(varargin)
             
             ip = inputParser;
@@ -885,7 +991,8 @@ classdef TracerDirector < mlpet.TracerDirector
             catch ME
                 handwarning(ME);
             end
-        end        
+        end   
+        
  		function this  = TracerDirector(varargin)
  			%% TRACERDIRECTOR
  			%  Usage:  this = TracerDirector()
