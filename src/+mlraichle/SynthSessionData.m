@@ -9,16 +9,8 @@ classdef SynthSessionData < mlraichle.SessionData
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
  	
 
-	properties
- 		
- 	end
-
-	methods 
-		  
+	methods 		  
  		function this = SynthSessionData(varargin)
- 			%% SYNTHSESSIONDATA
- 			%  Usage:  this = SynthSessionData()
-
  			this = this@mlraichle.SessionData(varargin{:});
  		end
  	end 

@@ -33,7 +33,7 @@ classdef SynthStudyData < mlraichle.StudyData
  			%  Usage:  this = SynthStudyData()
 
  			this = this@mlraichle.StudyData(varargin{:});
-            this.subjectsFolder = '';
+            this.subjectsFolder = 'jjleeSynth';
  		end
  	end 
 

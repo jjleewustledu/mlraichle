@@ -188,11 +188,10 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:}));    
             this.anatomy_ = ip.Results.anatomy;
             if (~ip.Results.noclobber)
-                this.builder_.ignoreTouchfile = true;
+                this.builder_.ignoreFinishfile = true;
             end
             this = this.instanceConstructAnatomy( ...
                 'tag2', ['constructAnat_' this.anatomy_], ...
-                'mask', this.anatomy_, ...
                 'target', ip.Results.target);
         end 
         function this  = constructCompositeResolved(varargin)
@@ -214,7 +213,7 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:})); 
             this.anatomy_ = ip.Results.anatomy;
             if (~ip.Results.noclobber)
-                this.builder_.ignoreTouchfile = true;
+                this.builder_.ignoreFinishfile = true;
             end
             this = this.instanceConstructCompositeResolved( ...
                 'tag2', 'constructCR_', ...
@@ -232,6 +231,25 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:}));    
             this = this.instanceConstructExports;
         end 
+        function this  = constructFdgOpT1001(varargin)
+            %  @param varargin for mlpet.AtlasBuilder.
+            
+            import mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'noclobber', true, @islogical);
+            parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;
+            
+            this = TracerDirector( ...
+                mlpet.TracerBuilder(varargin{:})); 
+            if (~ip.Results.noclobber)
+                this.builder_.ignoreFinishfile = true;
+            end
+            this = this.instanceConstructFdgOpT1001;
+        end
         function this  = constructKinetics(varargin)
             
             ip = inputParser;
@@ -259,7 +277,7 @@ classdef TracerDirector < mlpet.TracerDirector
             this = TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:})); 
             if (~ip.Results.noclobber)
-                this.builder_.ignoreTouchfile = true;
+                this.builder_.ignoreFinishfile = true;
             end
             sd = this.sessionData;
             sd.tracer = 'FDG';
@@ -368,7 +386,7 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:})); 
             this.anatomy_ = ip.Results.anatomy;
             if (~ip.Results.noclobber)
-                this.builder_.ignoreTouchfile = true;
+                this.builder_.ignoreFinishfile = true;
             end
             
             this.anatomy_ = 'brainmask';
@@ -378,7 +396,7 @@ classdef TracerDirector < mlpet.TracerDirector
                 'target', ip.Results.target);
             this.anatomy_ = 'T1001';
             this = this.instanceConstructCompositeResolved( ...
-                'tag2', 'constructCR_', ...
+                'tag2', 'constructSuvr_', ...
                 'target', ip.Results.target);
             this = this.instanceConstructAtlas;
             this = this.instanceConstructSuvr;
@@ -402,7 +420,7 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:})); 
             this.anatomy_ = ip.Results.anatomy;
             if (~ip.Results.noclobber)
-                this.builder_.ignoreTouchfile = true;
+                this.builder_.ignoreFinishfile = true;
             end
             
             this.anatomy_ = 'brainmask';
@@ -412,10 +430,8 @@ classdef TracerDirector < mlpet.TracerDirector
                 'target', ip.Results.target);
             this.anatomy_ = 'T1001';
             this = this.instanceConstructCompositeResolved( ...
-                'tag2', 'constructCR_', ...
+                'tag2', 'constructSuvr_', ...
                 'target', ip.Results.target);
-            %this = this.instanceConstructAtlas;
-            %this = this.instanceConstructSuvr;
         end
         function this  = constructSuvr2(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
@@ -430,24 +446,14 @@ classdef TracerDirector < mlpet.TracerDirector
             parse(ip, varargin{:});
             
             mlpet.TracerDirector.assertenv;
-%            mlpet.TracerDirector.prepareFreesurferData(varargin{:})
             
             this = TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:})); 
             this.anatomy_ = ip.Results.anatomy;
             if (~ip.Results.noclobber)
-                this.builder_.ignoreTouchfile = true;
+                this.builder_.ignoreFinishfile = true;
             end
             
-%             this.anatomy_ = 'brainmask';
-%             this = this.instanceConstructAnatomy( ...
-%                 'tag2', ['constructAnat_' this.anatomy_], ...
-%                 'mask', this.anatomy_, ...
-%                 'target', ip.Results.target);
-%             this.anatomy_ = 'T1001';
-%             this = this.instanceConstructCompositeResolved( ...
-%                 'tag2', 'constructCR_', ...
-%                 'target', ip.Results.target);
             this = this.instanceConstructAtlas;
             this = this.instanceConstructSuvr;
         end
@@ -466,8 +472,7 @@ classdef TracerDirector < mlpet.TracerDirector
             this = this.instanceConstructUmapSynthForDynamicFrames;
         end
         
-        function list  = listRawdataAndConverted(varargin)
-            
+        function list  = listRawdataAndConverted(varargin)            
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
@@ -496,6 +501,64 @@ classdef TracerDirector < mlpet.TracerDirector
                     'rawdataLocation', sessd.tracerRawdataLocation, ...
                     'filenameMhdr', ME.message);
             end
+        end
+        function tbl   = listT4ResolveErrTable(varargin)
+            fprintf('mlraichle.TracerDirector.listT4ResolveErrTable\n');
+            
+            census = mlraichle.StudyCensus;
+            ct = census.censusTable;
+            sd = mlraichle.SessionData('studyData', mlraichle.StudyData, 'ac', true);
+            err = nan(size(ct.date));
+            for d = 1:length(ct.date)
+                try
+                    sid = ct.subjectID(d);
+                    sd.sessionFolder = sid{1};
+                    sd.vnumber = ct.v_(d);
+                    if (isnan(ct.v_(d)))
+                        continue
+                    end
+                    dt = mlsystem.DirTool([sd.tracerResolvedFinalSumtOpFdg('typ','fqfp') '*_this_2018*T*.mat']);
+                    if (isempty(dt.fqfns))
+                        continue
+                    end
+                    load(dt.fqfns{1});
+                    err(d) = mlraichle.TracerDirector.meanNotNan(this.t4_resolve_err);
+                    fprintf('\t%s %s %g\n', ct.date(d), sd.vLocation, err(d));
+                catch ME
+                    dispwarning(ME)
+                end
+            end            
+            
+            tbl = table(ct.date, ct.subjectID, ct.v_, err);
+        end
+        function tbl   = listT4ResolveErrTable2(varargin)
+            fprintf('mlraichle.TracerDirector.listT4ResolveErrTable2\n');
+            
+            census = mlraichle.StudyCensus;
+            ct = census.censusTable;
+            sd = mlraichle.SessionData('studyData', mlraichle.StudyData, 'ac', true);
+            err = nan(size(ct.date));
+            for d = 1:length(ct.date)
+                try
+                    sid = ct.subjectID(d);
+                    sd.sessionFolder = sid{1};
+                    sd.vnumber = ct.v_(d);
+                    if (isnan(ct.v_(d)))
+                        continue
+                    end
+                    dt = mlsystem.DirTool(fullfile(sd.tracerLocation, 'T1001r1_op_T1001_this_20180408T1*.mat'));
+                    if (isempty(dt.fqfns))
+                        continue
+                    end
+                    load(dt.fqfns{1});
+                    err(d) = mlraichle.TracerDirector.meanNotNan(this.t4_resolve_err);
+                    fprintf('\t%s %s %g\n', ct.date(d), sd.vLocation, err(d));
+                catch ME
+                    dispwarning(ME)
+                end
+            end            
+            
+            tbl = table(ct.date, ct.subjectID, ct.v_, err);
         end
         function lst   = listTracersConverted(varargin)
             
@@ -905,6 +968,26 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:}));          
             this = this.instanceTestLaunching;
         end
+        function fqfp_ = urgentCheckFdgOnAtl(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            sd = ip.Results.sessionData;
+            sd.tracer = 'FDG';
+            sd.attenuationCorrected = true;
+            
+            pwd0 = pushd(sd.vLocation);
+            fv = mlfourdfp.FourdfpVisitor;
+            t4_ = fv.t4_inv( ...
+                fullfile(sd.tracerLocation, sprintf('brainmaskr1r2_to_op_fdgv%ir1_t4', sd.vnumber)), ...
+                                            sprintf('fdgv%ir1_to_brainmask_t4', sd.vnumber));            
+            t4_ = fv.t4_mul(t4_, 'T1001_to_TRIO_Y_NDC_t4', 'urgentCheckFdg_to_TRIO_Y_NDC_t4');
+            fp_ = fv.t4img_4dfp(t4_, sd.tracerResolvedFinalSumt('typ','fqfp'), 'out', 'urgentCheckFdgOnAtl', 'options', '-O111');
+            fqfp_ = fullfile(sd.vLocation, fp_);
+            popd(pwd0);
+        end
         function this  = viewExports(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             
@@ -1003,7 +1086,10 @@ classdef TracerDirector < mlpet.TracerDirector
     
     %% PRIVATE
     
-    methods (Static, Access = private)   
+    methods (Static, Access = private)  
+        function m = meanNotNan(mat)
+            m = mean(mat(~isnan(mat)));
+        end 
         function obj  = replaceEmptyWithSessionDataImagingContext(sessd, obj, whichIC)
             assert(isa(sessd, 'mlpipeline.SessionData'));
             assert(ischar(whichIC))
@@ -1080,7 +1166,7 @@ classdef TracerDirector < mlpet.TracerDirector
                     dispwarning(ME);
                 end
             end
-        end        
+        end     
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

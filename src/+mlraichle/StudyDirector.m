@@ -39,7 +39,7 @@ classdef StudyDirector
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
-            addParameter(ip, 'alignMethod', '', @ischar); % align_10243
+            addParameter(ip, 'frameAlignMethod', '', @ischar); % align_10243
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
@@ -50,6 +50,7 @@ classdef StudyDirector
             end
             tracers = ensureCell(ip.Results.tracer);
             factoryMethod = ip.Results.factoryMethod;
+            those = {};
             
             dtsess = DirTools( ...
                 fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
@@ -82,8 +83,8 @@ classdef StudyDirector
                                 if (~isempty(ip.Results.fractionalImageFrameThresh))
                                     sessd.fractionalImageFrameThresh = ip.Results.fractionalImageFrameThresh;
                                 end
-                                if (~isempty(ip.Results.alignMethod))
-                                    sessd.alignMethod = ip.Results.alignMethod;
+                                if (~isempty(ip.Results.frameAlignMethod))
+                                    sessd.frameAlignMethod = ip.Results.frameAlignMethod;
                                 end
                                 if (~isempty(ip.Results.compAlignMethod))
                                     sessd.compAlignMethod = ip.Results.compAlignMethod;
@@ -97,7 +98,7 @@ classdef StudyDirector
                                     fprintf(['\t' evalee '\n']);
                                     fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
                                     warning('off', 'MATLAB:subsassigndimmismatch');
-                                    those(idtsess,idtv,itrac,iscan) = eval(evalee); %#ok<AGROW>
+                                    those{idtsess,idtv,itrac,iscan} = eval(evalee); %#ok<AGROW>
                                     warning('on', 'MATLAB:subsassigndimmismatch');
                                 end
                             catch ME
@@ -133,7 +134,7 @@ classdef StudyDirector
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
-            addParameter(ip, 'alignMethod', '', @ischar); % align_10243
+            addParameter(ip, 'frameAlignMethod', '', @ischar); % align_10243
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
@@ -146,7 +147,7 @@ classdef StudyDirector
             tracers = ensureCell(ipr.tracer);
             factoryMethod = ipr.factoryMethod;
             
-            those = [];
+            those = {};
             dtSessp = DirTools(fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
             
             %%%%%%
@@ -180,8 +181,8 @@ classdef StudyDirector
                                 if (~isempty(ipr.fractionalImageFrameThresh))
                                     sessd.fractionalImageFrameThresh = ipr.fractionalImageFrameThresh;
                                 end
-                                if (~isempty(ipr.alignMethod))
-                                    sessd.alignMethod = ipr.alignMethod;
+                                if (~isempty(ipr.frameAlignMethod))
+                                    sessd.frameAlignMethod = ipr.frameAlignMethod;
                                 end
                                 if (~isempty(ipr.compAlignMethod))
                                     sessd.compAlignMethod = ipr.compAlignMethod;
@@ -235,7 +236,7 @@ classdef StudyDirector
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
-            addParameter(ip, 'alignMethod', '', @ischar); % align_10243
+            addParameter(ip, 'frameAlignMethod', '', @ischar); % align_10243
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
@@ -254,6 +255,7 @@ classdef StudyDirector
             if (ip.Results.ac)
                 wallTime = '23:59:59';
             end
+            those = {};
             
             dtsess = DirTools( ...
                 fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, sessExpr));
@@ -285,8 +287,8 @@ classdef StudyDirector
                                 if (~isempty(ip.Results.fractionalImageFrameThresh))
                                     sessd.fractionalImageFrameThresh = ip.Results.fractionalImageFrameThresh;
                                 end
-                                if (~isempty(ip.Results.alignMethod))
-                                    sessd.alignMethod = ip.Results.alignMethod;
+                                if (~isempty(ip.Results.frameAlignMethod))
+                                    sessd.frameAlignMethod = ip.Results.frameAlignMethod;
                                 end
                                 if (~isempty(ip.Results.compAlignMethod))
                                     sessd.compAlignMethod = ip.Results.compAlignMethod;

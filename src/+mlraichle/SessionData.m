@@ -13,20 +13,21 @@ classdef SessionData < mlpipeline.ResolvingSessionData
     end
     
     properties
-        compositeT4ResolveBuilderBlurArg = 1.5
         ensureFqfilename = false
         fractionalImageFrameThresh = 0.25 % of median
         % cf. mlfourdfp.ImageFrames.nonEmptyImageIndices, mlpet.TracerResolveBuilder; valid for [0..1]
         filetypeExt = '.4dfp.ifh'
         indicesEpochCells = {}; % indicesEpochCells{this.epoch} := numeric, size(numeric) == [1 this.maxLengthEpoch]
         supScanList = 3;
-        t4ResolveBuilderBlurArg = 5.5
         tauIndices = [] % use to exclude late frames from builders of AC; e.g., HYGLY25 V1; taus := taus(tauIndices)
         tauMultiplier = 1 % 1,2,4,8,16
+        tracerBlurArg = 5.5;
+        umapBlurArg = 1.5
     end
     
 	properties (Dependent)    
         attenuationTag
+        compositeT4ResolveBuilderBlurArg
         convertedTag
         doseAdminDatetimeLabel
         frameTag    
@@ -35,6 +36,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         rawdataDir
         studyCensusXlsx
         supEpoch
+        t4ResolveBuilderBlurArg
         taus
         times
         timeMidpoints
@@ -83,6 +85,13 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 return
             end
             g = 'NAC';
+        end
+        function g = get.compositeT4ResolveBuilderBlurArg(this)
+            if (~this.attenuationCorrected)
+                g = this.umapBlurArg;
+            else
+                g = this.tracerBlurArg;
+            end
         end
         function g = get.convertedTag(this)
             if (~isnan(this.frame_))
@@ -165,7 +174,10 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end
         function g = get.vfolder(this)
             g = sprintf('V%i', this.vnumber);
-        end        
+        end  
+        function g = get.t4ResolveBuilderBlurArg(this)
+            g = this.tracerBlurArg;
+        end
         function g = get.taus(this)
             if (~this.attenuationCorrected)
                 switch (upper(this.tracer))
@@ -300,6 +312,17 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end
         function obj  = perf(this, varargin)
             obj = this.mrObject('ep2d_perf', varargin{:});
+        end
+        function obj  = studyAtlas(this, varargin)
+            ip = inputParser;
+            addParameter(ip, 'desc', 'HYGLY_atlas', @ischar);
+            addParameter(ip, 'suffix', '', @ischar);
+            addParameter(ip, 'typ', 'mlfourd.ImagingContext', @ischar);
+            parse(ip, varargin{:});
+            
+            obj = imagingType(ip.Results.typ, ...
+                fullfile(this.subjectsDir, 'atlasTest', 'source', ...
+                         sprintf('%s%s%s', ip.Results.desc, ip.Results.suffix, this.filetypeExt)));
         end
         function obj  = T1(this, varargin)
             obj = this.T1001(varargin{:});
@@ -589,7 +612,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end
         function obj  = tracerResolvedFinalOnAtl(this, varargin)
             fqfn = fullfile(this.vLocation, ...
-                sprintf('%s_on_%s_333%s', this.tracerResolvedFinal('typ', 'fp'), this.atlas.fileprefix, this.filetypeExt));
+                sprintf('%s_on_%s_333%s', this.tracerResolvedFinal('typ', 'fp'), this.studyAtlas.fileprefix, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerResolvedFinalOpFdg(this, varargin)
@@ -607,9 +630,11 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerResolvedFinalSumtOpFdg(this, varargin)
-            fqfn = fullfile(this.vLocation, ...
-                sprintf('%sr2_op_%s%s', this.tracerResolvedFinalSumt('typ', 'fp'), this.fdgACRevision('typ', 'fp'), this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+            fn = this.tracerResolvedFinalSumt('typ', 'fn');
+            if (~strcmpi(this.tracer, 'FDG'))
+                fn = sprintf('%sr2_op_%s', this.tracerResolvedFinalSumt('typ', 'fp'), this.fdgACRevision('typ', 'fn')); 
+            end
+            obj  = this.fqfilenameObject(fullfile(this.vLocation, fn), varargin{:});
         end
         function obj  = tracerResolvedSumt(this, varargin)
             fqfn = sprintf('%s_%s_sumt%s', this.tracerRevision('typ', 'fqfp'), this.resolveTag, this.filetypeExt);
@@ -989,7 +1014,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end    
         function obj  = visitMapOnAtl(map, varargin)
             fqfn = fullfile(this.vLocation, ...
-                sprintf('%s_on_%s_333%s', map, this.atlas.fileprefix, this.filetypeExt));
+                sprintf('%s_on_%s_333%s', map, this.studyAtlas.fileprefix, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end     
         function obj  = visitMapOpFdg(map, varargin)
