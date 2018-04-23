@@ -1012,12 +1012,12 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                           'SessionData.readOrientation.o -> %s', o);
             end
         end    
-        function obj  = visitMapOnAtl(map, varargin)
+        function obj  = visitMapOnAtl(this, map, varargin)
             fqfn = fullfile(this.vLocation, ...
                 sprintf('%s_on_%s_333%s', map, this.studyAtlas.fileprefix, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end     
-        function obj  = visitMapOpFdg(map, varargin)
+        function obj  = visitMapOpFdg(this, map, varargin)
             fqfn = fullfile(this.vLocation, ...
                 sprintf('%s_op_%s%s', map, this.fdgACRevision('typ', 'fp'), this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
