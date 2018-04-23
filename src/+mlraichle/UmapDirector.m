@@ -29,7 +29,7 @@ classdef UmapDirector < mlpipeline.AbstractDataDirector
             parse(ip, varargin{:});
             
             mlpet.TracerDirector.assertenv;
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:})
+            mlpet.TracerDirector.prepareFreesurferData(varargin{:});
             
             sessd = ip.Results.sessionData;
             sessd.attenuationCorrected = false;
