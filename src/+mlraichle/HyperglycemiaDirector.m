@@ -526,6 +526,32 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             % mlsiemens.Herscovitch1985.constructPhysiologicals will
             % iterate tracers and s-numbers.
         end
+        function those = constructResolved(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.constructResolved', varargin{:}); 
+        end
+        function those = constructResolvedPar(varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'tracer', mlraichle.StudyDirector.TRACERS, @(x) iscell(x) || ischar(x));
+            parse(ip, varargin{:});
+            
+            if (iscell(ip.Results.tracer))
+                those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsParTrac( ...
+                    'mlraichle.TracerDirector.constructResolved', varargin{:});
+            else
+                those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsParSess( ...
+                    'mlraichle.TracerDirector.constructResolved', varargin{:});
+            end
+        end 
+        function those = constructResolvedRemotely(varargin)
+            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
+            
+            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.pushMinimalToRemote', varargin{:});
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
+                'mlraichle.TracerDirector.constructResolved', 'wallTime', '23:59:59', varargin{:});
+        end
         function those = constructResolveReports(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
             
@@ -1045,98 +1071,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             end
             cd(pwd0);
         end    
-        function those = reconstructResolved(varargin)
-            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
-            
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.reconstructResolved', varargin{:}); 
-        end
-        function those = reconstructResolvedPar(varargin)
-            import mlsystem.* mlraichle.*;
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'sesssionsExpr', '');
-            addParameter(ip, 'visitsExpr', 'V*');
-            addParameter(ip, 'scanList', StudyDirector.SCANS);
-            addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
-            addParameter(ip, 'ac', StudyDirector.AC);
-            addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
-            addParameter(ip, 'frameAlignMethod', '', @ischar); % align_10243
-            addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
-            addParameter(ip, 'tauIndices', [], @isnumeric);
-            addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
-            parse(ip, varargin{:});
-            ipr = ip.Results;
-            sessExpr = ipr.sessionsExpr;
-            if (~isempty(ipr.sesssionsExpr))
-                sessExpr = ipr.sesssionsExpr;
-            end
-            tracers = ensureCell(ipr.tracer);
-            
-            those = {};
-            dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
-            dtsessFqdns = dtsess.fqdns;
-            parfor idtsess = 1:length(dtsessFqdns)
-                sessp = dtsessFqdns{idtsess};
-                pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
-                    
-                    for itrac = 1:length(tracers)
-                        for iscan = ipr.scanList
-                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
-                                continue
-                            end
-                            try
-                                sessd = SessionData( ...
-                                    'studyData', StudyData, ...
-                                    'sessionPath', sessp, ...
-                                    'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                                    'snumber', iscan, ...
-                                    'tracer', tracers{itrac}, ...
-                                    'ac', ipr.ac, ...
-                                    'supEpoch', ipr.supEpoch);                                
-                                if (ipr.ac && strcmp(sessd.sessionFolder, 'HYGLY25') && sessd.vnumber == 1)
-                                    sessd.tauIndices = 1:65;
-                                end
-                                if (~isempty(ipr.tauIndices))
-                                    sessd.tauIndices = ipr.tauIndices;
-                                end
-                                if (~isempty(ipr.fractionalImageFrameThresh))
-                                    sessd.fractionalImageFrameThresh = ipr.fractionalImageFrameThresh;
-                                end
-                                if (~isempty(ipr.frameAlignMethod))
-                                    sessd.frameAlignMethod = ipr.frameAlignMethod;
-                                end
-                                if (~isempty(ipr.compAlignMethod))
-                                    sessd.compAlignMethod = ipr.compAlignMethod;
-                                end
-                                
-                                if (isdir(sessd.tracerRawdataLocation))
-                                    % there exist spurious tracerLocations; select those with corresponding raw data
-                                    
-                                    mlraichle.TracerDirector.reconstructResolved( ...
-                                        'sessionData', sessd, varargin{:});
-                                end
-                            catch ME
-                                handwarning(ME);
-                            end
-                        end
-                    end
-                end                        
-                popd(pwds);
-            end 
-        end 
-        function those = reconstructResolvedRemotely(varargin)
-            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
-            
-            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.pushMinimalToRemote', varargin{:});
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
-                'mlraichle.TracerDirector.reconstructResolved', 'wallTime', '23:59:59', varargin{:});
-        end
         function those = reconstructUnresolvedRemotely(varargin)
             %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
             

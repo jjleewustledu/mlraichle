@@ -352,7 +352,29 @@ classdef TracerDirector < mlpet.TracerDirector
             those = mlsiemens.Herscovitch1985.constructPhysiologicals(ip.Results.sessionData);
         end 
         function this  = constructResolved(varargin)
-            this = mlraichle.TracerDirector.reconstructResolved(varargin{:});
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
+            %  @return umap files generated per motionUncorrectedUmap ready
+            %  for use by TriggeringTracers.js; 
+            %  sequentially run FDG NAC, 15O NAC, then all tracers AC.
+            %  @return this.sessionData.attenuationCorrection == false.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;  
+            mlpet.TracerDirector.prepareFreesurferData(varargin{:});          
+            
+            tr = ip.Results.sessionData.tracer;
+            if (~ip.Results.sessionData.attenuationCorrected && (strcmpi('OC', tr) || strcmpi('OO', tr)))
+                varargin = [varargin {'f2rep', 1, 'fsrc', 2}]; % first frame has breathing tube which confuses T4ResolveBuilder.
+            end
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));   
+            this = this.instanceConstructResolved;
         end 
         function rpts  = constructResolveReports(varargin)
             %  @param  varargin for mlfourdfp.T4ResolveReporter.
@@ -472,7 +494,7 @@ classdef TracerDirector < mlpet.TracerDirector
             this = this.instanceConstructUmapSynthForDynamicFrames;
         end
         
-        function list  = listRawdataAndConverted(varargin)            
+        function list  = listRawdataAndConverted(varargin)
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
@@ -684,33 +706,6 @@ classdef TracerDirector < mlpet.TracerDirector
             end
             this.builder.linkRawdataMPR;
             this.builder.reconAllSurferObjects;
-        end 
-        function this  = reconstructResolved(varargin)
-            %  @param varargin for mlpet.TracerResolveBuilder.
-            %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
-            %  @return umap files generated per motionUncorrectedUmap ready
-            %  for use by TriggeringTracers.js; 
-            %  sequentially run FDG NAC, 15O NAC, then all tracers AC.
-            %  @return this.sessionData.attenuationCorrection == false.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            
-            mlpet.TracerDirector.assertenv;  
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:});          
-            
-            %mlraichle.UmapDirector.constructUmaps('sessionData', ip.Results.sessionData);
-            
-            tr = ip.Results.sessionData.tracer;
-            if (~ip.Results.sessionData.attenuationCorrected && (strcmpi('OC', tr) || strcmpi('OO', tr)))
-                varargin = [varargin {'f2rep', 1, 'fsrc', 2}]; % first frame has breathing tube which confuses T4ResolveBuilder.
-            end
-            
-            this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));   
-            this = this.instanceReconstructResolved;
         end 
         function this  = reconstructUnresolved(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
