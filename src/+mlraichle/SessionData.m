@@ -592,7 +592,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             addParameter(ip, 'resolvedFrame', rFrame, @isnumeric); 
             parse(ip, varargin{:});
             
-            this.rnumber = 2;
+            % this.rnumber = 2; % POSSIBLE BUG
             sessd1 = this;
             sessd1.rnumber = 1;
             if (this.attenuationCorrected)
