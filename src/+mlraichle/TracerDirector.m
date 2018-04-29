@@ -365,12 +365,7 @@ classdef TracerDirector < mlpet.TracerDirector
             parse(ip, varargin{:});
             
             mlpet.TracerDirector.assertenv;  
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:});          
-            
-            tr = ip.Results.sessionData.tracer;
-            if (~ip.Results.sessionData.attenuationCorrected && (strcmpi('OC', tr) || strcmpi('OO', tr)))
-                varargin = [varargin {'f2rep', 1, 'fsrc', 2}]; % first frame has breathing tube which confuses T4ResolveBuilder.
-            end
+            mlpet.TracerDirector.prepareFreesurferData(varargin{:});
             
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));   
@@ -802,7 +797,10 @@ classdef TracerDirector < mlpet.TracerDirector
             sd1.attenuationCorrected = true;
             pwd0 = pushd(sd0.tracerLocation);
             try
-                mlbash(sprintf('fslview_deprecated %s -b 0,20000 umapSynth.4dfp.img -b 0.07,0.15 -t 0.15 -l Cool', sd0.tracerRevision('typ', '.4dfp.img')));
+                this.builder.ensureBlurred4dfp(sd0.tracerRevision, 11);
+                mlbash(sprintf( ...
+                    'fslview_deprecated %s_b%i.4dfp.img -b 0,8000 umapSynth.4dfp.img -b 0.07,0.15 -t 0.15 -l Cool', ...
+                    sd0.tracerRevision('typ', 'fqfp'), 110));
             catch ME
                 handwarning(ME);
             end
