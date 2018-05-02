@@ -14,15 +14,18 @@ classdef SessionData < mlpipeline.ResolvingSessionData
     
     properties
         ensureFqfilename = false
-        fractionalImageFrameThresh = 0.25 % of median
+        fractionalImageFrameThresh = 0.1 % of median
         % cf. mlfourdfp.ImageFrames.nonEmptyImageIndices, mlpet.TracerResolveBuilder; valid for [0..1]
         filetypeExt = '.4dfp.ifh'
-        indicesEpochCells = {}; % indicesEpochCells{this.epoch} := numeric, size(numeric) == [1 this.maxLengthEpoch]
-        supScanList = 3;
+        indicesEpochCells = {} % indicesEpochCells{this.epoch} := numeric, size(numeric) == [1 this.maxLengthEpoch]
+        supScanList = 3
         tauIndices = [] % use to exclude late frames from builders of AC; e.g., HYGLY25 V1; taus := taus(tauIndices)
         tauMultiplier = 1 % 1,2,4,8,16
-        tracerBlurArg = 5.5;
+        maskBlurArg = 33
+        tracerBlurArg = 5.5
         umapBlurArg = 1.5
+        atlVoxelSize = 222
+        motionCorrectCTAndUmapConfig
     end
     
 	properties (Dependent)    
@@ -182,8 +185,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             if (~this.attenuationCorrected)
                 switch (upper(this.tracer))
                     case 'FDG'
-                        g = [30,30,30,30,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
-                        % length -> 65
+                        g = this.taus_FDG_NAC_;
                     case {'OC' 'CO'}
                         g = [30,30,30,30,30,30,30,30,30,30,30,30,30,30];
                         % length -> 14
@@ -199,8 +201,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             else            
                 switch (upper(this.tracer))
                     case 'FDG'
-                        g = [10,10,10,10,10,10,10,10,10,10,10,10,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
-                        % length -> 73
+                        g = this.taus_FDG_AC_;
                     case {'OC' 'CO'}
                         g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
                         % length -> 70
@@ -380,15 +381,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end
         function obj  = CCIRRadMeasurements(this)
             obj = mldata.CCIRRadMeasurements.date2filename(this.datetime);
-        end
-        function obj  = ct(this, varargin)
-            obj = this.ctObject('ct', varargin{:});
-        end
-        function obj  = ctMasked(this, varargin)
-            obj = this.ctObject('ctMasked', varargin{:});
-        end
-        function obj  = ctMask(this, varargin)
-            obj = this.ctObject('ctMask', varargin{:});
         end
         function obj  = ctRescaled(this, varargin)
             fqfn = fullfile( ...
@@ -612,7 +604,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end
         function obj  = tracerResolvedFinalOnAtl(this, varargin)
             fqfn = fullfile(this.vLocation, ...
-                sprintf('%s_on_%s_333%s', this.tracerResolvedFinal('typ', 'fp'), this.studyAtlas.fileprefix, this.filetypeExt));
+                sprintf('%s_on_%s_%i%s', this.tracerResolvedFinal('typ', 'fp'), this.studyAtlas.fileprefix, this.atlVoxelSize, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerResolvedFinalOpFdg(this, varargin)
@@ -620,7 +612,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 obj = this.tracerResolvedFinal(varargin{:});
                 return
             end
-            this.rnumber = 2;
+            %this.rnumber = 2;
             fqfn = fullfile(this.vLocation, ...
                 sprintf('%sr2_op_%s%s', this.tracerResolvedFinal('typ', 'fp'), this.fdgACRevision('typ', 'fp'), this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
@@ -657,14 +649,14 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end        
         function obj  = tracerSuvr(this, varargin)
             fqfn = fullfile(this.vLocation, ...
-                sprintf('%s_suvr_333%s', this.tracerRevision('typ', 'fp'), this.filetypeExt));
+                sprintf('%s_suvr_%i%s', this.tracerRevision('typ', 'fp'), this.atlVoxelSize, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerSuvrAveraged(this, varargin)   
             ipr = this.iprLocation(varargin{:});         
             fqfn = fullfile(this.vLocation, ...
-                sprintf('%sav%i%sr%i_suvr_333%s', ...
-                lower(ipr.tracer), this.vnumber, this.epochLabel, ipr.rnumber, this.filetypeExt));
+                sprintf('%sav%i%sr%i_suvr_%i%s', ...
+                lower(ipr.tracer), this.vnumber, this.epochLabel, ipr.rnumber, this.atlVoxelSize, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerSuvrNamed(this, name, varargin)
@@ -676,7 +668,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 schar = 'a'; % sprintf('%i', this.snumber);
             end
             fqfn = fullfile(this.vLocation, ...
-                sprintf('%s%sv%ir%i_suvr_333%s', lower(name), schar, this.vnumber, this.rnumber, this.filetypeExt));
+                sprintf('%s%sv%ir%i_suvr_%i%s', lower(name), schar, this.vnumber, this.rnumber, this.atlVoxelSize, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerTimeWindowed(this, varargin)
@@ -686,7 +678,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end
         function obj  = tracerTimeWindowedOnAtl(this, varargin)
             fqfn = fullfile(this.vLocation, ...
-                sprintf('%s_timeWindowed_333%s', this.tracerRevision('typ', 'fp'), this.filetypeExt));
+                sprintf('%s_timeWindowed_%i%s', this.tracerRevision('typ', 'fp'), this.atlVoxelSize, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerVisit(this, varargin)
@@ -877,6 +869,10 @@ classdef SessionData < mlpipeline.ResolvingSessionData
     properties (Access = protected)
         studyCensus_
         supEpoch_
+        taus_FDG_NAC_ = [30,30,30,30,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
+        % length -> 65        
+        taus_FDG_AC_ = [10,10,10,10,10,10,10,10,10,10,10,10,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
+        % length -> 73
     end
     
     methods (Access = protected)
@@ -1014,7 +1010,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end    
         function obj  = visitMapOnAtl(this, map, varargin)
             fqfn = fullfile(this.vLocation, ...
-                sprintf('%s_on_%s_333%s', map, this.studyAtlas.fileprefix, this.filetypeExt));
+                sprintf('%s_on_%s_%i%s', map, this.studyAtlas.fileprefix, this.atlVoxelSize, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end     
         function obj  = visitMapOpFdg(this, map, varargin)
