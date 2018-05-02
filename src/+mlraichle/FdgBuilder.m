@@ -42,7 +42,10 @@ classdef FdgBuilder < mlraichle.TracerKineticsBuilder
                             try
                                 pwd0 = pushd(eFrame.fqdns{iFrame});
                                 fortranNumFrame = T4ResolveBuilder.frameNumber(eFrame.dns{iFrame}, 1);
-                                fdgFramename = this.fileprefixIndexed(fdgACRevision, fortranNumFrame);
+                                ipr = struct( ...
+                                    'dest', fdgACRevision, ...
+                                    'currentIndex', fortranNumFrame);
+                                fdgFramename = this.fileprefixIndexed(ipr);
                                 fv.sif_4dfp(fdgPrefix);
                                 fdgT4 = sprintf('%s_frame%i_to_resolved_t4', ...
                                                 sessd.fdgNACRevision('typ', 'fp'), fortranNumFrame);
