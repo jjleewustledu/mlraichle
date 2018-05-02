@@ -552,6 +552,62 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
                 'mlraichle.TracerDirector.constructResolved', 'wallTime', '23:59:59', varargin{:});
         end
+        function         constructResolvedSingle(varargin)
+            import mlsystem.* mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addOptional( ip, 'factoryMethod', @mlraichle.TracerDirector.constructResolved, @(x) isa(x, 'function_handle'));
+            addParameter(ip, 'sessionsExpr', 'HYGLY*');
+            addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'scanList', StudyDirector.SCANS);
+            addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
+            addParameter(ip, 'ac', StudyDirector.AC);
+            addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
+            addParameter(ip, 'frameAlignMethod', '', @ischar); % align_2051
+            addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
+            addParameter(ip, 'tauIndices', [], @isnumeric);
+            addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
+            parse(ip, varargin{:});
+            ipr = ip.Results;
+            sessExpr = ipr.sessionsExpr;
+            tracers = ensureCell(ipr.tracer);
+            
+            dtsess = DirTools(fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
+            for idtsess = 1:length(dtsess.fqdns)
+                sessp = dtsess.fqdns{idtsess}; 
+                pwdsess = pushd(sessp);
+                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));
+                for idtv = 1:length(dtv.fqdns)                   
+                    for itrac = 1:length(tracers)                        
+                        for iscan = ipr.scanList
+                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
+                                continue
+                            end
+                            try                                
+                                sessd = StudyDirector.constructSessionData( ...
+                                    ipr, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac});
+                                sessHo = sessd;
+                                sessHo.rnumber = 2; sessHo.tracer = 'HO';
+                                sessd.motionCorrectCTAndUmapConfig.theImages = {'ho2v2e1to2r2_op_ho2v2e1to2r1_frame2_sumt' 'T1001'};
+                                sessd.motionCorrectCTAndUmapConfig.maskForImages = {'Msktgen' 'T1001'};
+                                if (isdir(sessd.tracerRawdataLocation)) %#ok<ISDIR>
+                                    % there exist spurious tracerLocations; select those with corresponding raw data
+                                    
+                                    fprintf('mlraichle.StudyDirector.constructCellArrayOfObjects:\n');
+                                    fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
+                                    warning('off', 'MATLAB:subsassigndimmismatch');
+                                    ipr.factoryMethod('sessionData', sessd, varargin{:});
+                                    warning('on',  'MATLAB:subsassigndimmismatch');
+                                end
+                            catch ME
+                                dispwarning(ME);
+                            end
+                        end                        
+                    end
+                end                        
+                popd(pwdsess);
+            end
+        end
         function those = constructResolveReports(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
             
