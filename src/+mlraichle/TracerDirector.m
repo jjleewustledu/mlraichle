@@ -812,7 +812,9 @@ classdef TracerDirector < mlpet.TracerDirector
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));
             
-            sd = this.sessionData;          
+            fv = mlfourdfp.FourdfpVisitor;
+            sd = this.sessionData;
+            sd.rnumber = 2;
             if (strcmp(sd.tracer, 'HO'))
                 bval = 100000;
             else
@@ -836,7 +838,8 @@ classdef TracerDirector < mlpet.TracerDirector
                     this.builder_ = this.builder_.packageProduct(sd.tracerResolvedFinal);
                     this.builder_ = this.builder_.sumProduct;
                 end
-                mlbash(sprintf('fslview_deprecated %s.4dfp.img -b 0,%g %s.4dfp.img -t %g -l Cool', ...
+                fv.imgblur_4dfp(sd.tracerResolvedFinal('typ','fp'), 11);
+                mlbash(sprintf('fslview_deprecated %s_b110.4dfp.img -b 0,%g %s.4dfp.img -t %g -l Cool', ...
                     sd.tracerResolvedFinal('typ','fp'), ...
                     bval, ...
                     sd.tracerResolvedFinalSumt('typ','fp'), ...

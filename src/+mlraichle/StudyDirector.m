@@ -7,9 +7,9 @@ classdef StudyDirector
  	%% It was developed on Matlab 9.3.0.713579 (R2017b) for MACI64.  Copyright 2017 John Joowon Lee.
  	
 	properties (Constant)
- 		SCANS = 1:3
+ 		SCANS = 1:4
         SUP_EPOCH = 3
-        TRACERS = {'FDG' 'OC' 'OO' 'HO'}
+        TRACERS = {'FDG' 'HO' 'OC' 'OO'}
         AC = true
     end
     
@@ -263,7 +263,6 @@ classdef StudyDirector
             if (ip.Results.ac)
                 wallTime = '23:59:59';
             end
-            those = {};
             
             dtsess = DirTools( ...
                 fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, sessExpr));
@@ -301,7 +300,7 @@ classdef StudyDirector
                                     fprintf(['\t' evalee '\n']);
                                     fprintf(['\tcsessd.TracerLocation->' csessd.tracerLocation '\n']);                                    
                                     warning('off', 'MATLAB:subsassigndimmismatch');
-                                    those(idtsess,idtv,itrac,iscan) = eval(evalee); 
+                                    those{idtsess,idtv,itrac,iscan} = eval(evalee); 
                                     warning('on', 'MATLAB:subsassigndimmismatch');
                                 end
                             catch ME
