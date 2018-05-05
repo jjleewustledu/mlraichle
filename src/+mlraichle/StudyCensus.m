@@ -1,5 +1,5 @@
-classdef StudyCensus < mlio.AbstractXlsxIO
-	%% STUDYCENSUS  
+classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
+	%% STUDYCENSUS
     %     c.censusTable
     %     ans =
     %        date        subjectID     v_     ready    control    hypergly    hyperins    x_15O_TwiliteSamplingComplete    FDGFastArt_SamplingComplete    Var10    Var11                                     missingImaging_KeyData                                        a_K_A_            comments                          t4ResolvedCompleteWithUmap                        t4ResolvedCompleteWithAC                                   computationNotes                                 seriesForFreesurfer    Var19    Var20    CBFDone    CBVDone    OEFDone    CMRO2Done    CMRglcDone    Var26    Var27         x_HO         x_OC    x_FDG    x_CMRO2    x_OEF       x_OGI    
@@ -18,12 +18,12 @@ classdef StudyCensus < mlio.AbstractXlsxIO
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2018 John Joowon Lee.
  	
     properties         
-        fqfilenameDefault = fullfile(getenv('HOME'), 'Documents', 'private', 'census 2018apr2.xlsx');
+        fqfilenameDefault = fullfile(getenv('HOME'), 'Documents', 'private', 'census 2018may2.xlsx');
     end
     
 	properties (Dependent)
  		censusTable
-        row
+        row % requires assigned sessionData
         seriesForFreesurfer
         sessionData
  	end
@@ -36,6 +36,7 @@ classdef StudyCensus < mlio.AbstractXlsxIO
             g = this.censusTable_;
         end  
         function g = get.row(this)
+            assert(~iseempty(this.sessionData), 'please assign sessionData before requesting a row');
             sdate_ = this.sessionData.sessionDate;
             [~,g] = max(this.censusTable.date == datetime(sdate_.Year, sdate_.Month, sdate_.Day) > 0);
             assert(strcmpi(this.censusTable.subjectID(g), this.sessionData.sessionFolder));

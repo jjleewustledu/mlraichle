@@ -162,7 +162,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             g = this.studyData_.rawdataDir;
         end 
         function g = get.studyCensusXlsx(this) %#ok<MANU>
-            g = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), 'census 2018mar29.xlsx');
+            g = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), 'census 2018may2.xlsx');
         end
         function g = get.supEpoch(this)
             if (~isempty(this.supEpoch_))
