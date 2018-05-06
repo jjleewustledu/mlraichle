@@ -40,7 +40,7 @@ classdef SubjectImages
             %  @param tracer, ctor.census & ctor.sessionData select images.
             %  @return resolved in this.product.
             
-            imgs = reshape(this.sourceImages(tracer), 1, []);
+            imgs = reshape(this.sourceImages(tracer, true), 1, []);
             this.sessionData_.tracer = upper(tracer);
             this.referenceTracer_ = lower(tracer);
             this = this.resolve(imgs);
@@ -70,17 +70,28 @@ classdef SubjectImages
             
             assert(lexist_4dfp('T1001'));
             imgs = {'T1001' this.product.fqfileprefix};
-            this = this.resolve(imgs);
+            this = this.resolve(imgs, 'NRevisions', 2);
         end
-        function front = frontOfFileprefix(this, fps)
+        function front = frontOfFileprefix(this, fps, varargin) 
+            %  @param fps is cell (recursive) or char (base-case).
+            %  @param optional sumt is boolean.
+            
+            ip = inputParser;
+            addOptional(ip, 'sumt', false, @islogical);
+            parse(ip, varargin{:});
+            
             fps = mybasename(fps);
             if (iscell(fps))
-                front = cellfun(@(x) this.frontOfFileprefix(x), fps, 'UniformOutput', false);
+                front = cellfun(@(x) this.frontOfFileprefix(x, varargin{:}), fps, 'UniformOutput', false);
                 return
             end
             assert(ischar(fps));
             loc = regexp(fps, '_op_\w+');
-            front = fps(1:loc-1);
+            if (~ip.Results.sumt)
+                front = fps(1:loc-1);
+            else
+                front = sprintf('%s_sumt', fps(1:loc-1));
+            end
         end
         function this = productAverage(this)
             avgf = this.product_{1}.fourdfp;
@@ -92,30 +103,40 @@ classdef SubjectImages
             avgf.fileprefix = [avgf.fileprefix '_avg'];
             this.product_ = {mlfourd.ImagingContext(avgf)};
         end
-        function sessd = refreshTracerResolvedFinalSumt(this, sessd, sessdRef)
+        function sessd = refreshTracerResolvedFinal(this, sessd, sessdRef, varargin)
             %  @param sessionData.
             %  @param sessionData of reference.
+            %  @param optional sumt is boolean.
             %  @return sessionData has refreshed supEpoch.
-            %  @return sym-link created at (sessdRef.vallLocation, sessd.tracerResolvedFinalSumt('typ','fp')).
+            %  @return sym-link created at (sessdRef.vallLocation, sessd.tracerResolvedFinal('typ','fp')).
             
-            while (~lexist(sessd.tracerResolvedFinalSumt) && sessd.supEpoch > 0)
+            ip = inputParser;
+            addOptional(ip, 'sumt', false, @islogical);
+            parse(ip, varargin{:});
+            if (~ip.Results.sumt)
+                meth = 'tracerResolvedFinal';
+            else
+                meth = 'tracerResolvedFinalSumt';
+            end
+            
+            while (~lexist(sessd.(meth)) && sessd.supEpoch > 0)
                 sessd.supEpoch    = sessd.supEpoch - 1;
                 sessdRef.supEpoch = sessdRef.supEpoch - 1;
             end
             if (sessd.supEpoch == 0)
                 error( ...
                     'mlraichle:invalidParamValue', ...
-                    'SubjectImages.refreshTracerResolvedFinalSumt.sessd.supEpoch->%i', sessd.supEpoch);
+                    'SubjectImages.refreshTracerResolvedFinal.sessd.supEpoch->%i', sessd.supEpoch);
             end
-            if (~lexist(sessd.tracerResolvedFinalSumt('typ','fqfn')))
+            if (~lexist(sessd.(meth)('typ','fqfn')))
                 error( ...
                     'mlraichle:missingPrerequisiteFile', ...
-                    'SubjectImages.refreshTracerResolvedFinalSumt.sessd.tracerResolvedFinalSumt->%i', ...
-                    sessd.tracerResolvedFinalSumt);                
+                    'SubjectImages.refreshTracerResolvedFinal.sessd.tracerResolvedFinal->%i', ...
+                    sessd.(meth));                
             end   
             ensuredir(sessdRef.vallLocation);
             cwd = pushd(sessdRef.vallLocation);
-            this.buildVisitor_.lns_4dfp(sessd.tracerResolvedFinalSumt('typ','fqfp'));
+            this.buildVisitor_.lns_4dfp(sessd.(meth)('typ','fqfp'));
             popd(cwd);
         end
         function this = resolve(this, imgs, varargin)
@@ -131,10 +152,10 @@ classdef SubjectImages
             
             assert(iscell(imgs));
             cwd = pushd(fileparts(imgs{1}));
-            cellfun(@(x) this.buildVisitor_.copy_4dfp(x, this.frontOfFileprefix(x)), ...
+            cellfun(@(x) this.buildVisitor_.copy_4dfp(x, this.frontOfFileprefix(x, true)), ...
                 mybasename(imgs), ...
                 'UniformOutput', false);
-            imgs = this.frontOfFileprefix(imgs);
+            imgs = this.frontOfFileprefix(imgs, true);
             cRB = mlfourdfp.CompositeT4ResolveBuilder( ...
                 'sessionData', this.sessionData_, ...
                 'theImages', imgs, ...
@@ -149,8 +170,19 @@ classdef SubjectImages
             
             this.areAligned_ = true;
         end
-        function imgs = sourceImages(this, tracer)
+        function imgs = sourceImages(this, tracer, varargin)
+            %  @param tracer is char.
+            %  @param optional sumt is boolean.
             %  @return imgs = cell(Nvisits, Nscans) of char fqfp.
+            
+            ip = inputParser;
+            addOptional(ip, 'sumt', false, @islogical);
+            parse(ip, varargin{:});
+            if (~ip.Results.sumt)
+                meth = 'tracerResolvedFinal';
+            else
+                meth = 'tracerResolvedFinalSumt';
+            end
             
             sessd = this.sessionData_;
             sessd.tracer = upper(tracer);  
@@ -176,9 +208,9 @@ classdef SubjectImages
                         if (1 == i && 1 == j)
                             sessdRef = sessd;
                         end
-                        sessd = this.refreshTracerResolvedFinalSumt(sessd, sessdRef);
+                        sessd = this.refreshTracerResolvedFinal(sessd, sessdRef, ip.Results.sumt);
                         imgs{i,j} = fullfile(sessdRef.vallLocation, ...
-                            sessd.tracerResolvedFinalSumt('typ','fp')); % sym-link
+                            sessd.(meth)('typ','fp')); % sym-link
                     catch ME
                         dispexcept(ME);
                     end
@@ -195,7 +227,7 @@ classdef SubjectImages
             addOptional(ip, 'out', out_, @ischar);
             parse(ip, varargin{:});
             
-            %this.cRB_.t4img_4dfp();
+            this.cRB_.t4img_4dfp();
         end
         function view(this)
             mlfourdfp.Viewer.view(this.product);
@@ -210,7 +242,7 @@ classdef SubjectImages
             ip = inputParser;
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
             addParameter(ip, 'census', [], @(x) isa(x, 'mlpipeline.IStudyCensus'));
-            addParameter(ip, 'referenceTracer', varargin{2}.tracer, @ischar);
+            addParameter(ip, 'referenceTracer', 'FDG', @ischar);
             addParameter(ip, 'rnumberOfSource', 2, @isnumeric);
             parse(ip, varargin{:});
 
