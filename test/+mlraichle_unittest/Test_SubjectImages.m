@@ -41,9 +41,26 @@ classdef Test_SubjectImages < matlab.unittest.TestCase
             this.testObj = this.testObj.alignCommonModal('OC');
             this.testObj.view;
         end
-        function test_alignCrossModalToReference(this)
+        function test_alignCrossModal(this)
             this.assertTrue(strcmpi(this.testObj.referenceImage, 'FDG'));
-            this.testObj.alignCrossModalToReference;
+            this.testObj.alignCrossModal;
+            this.testObj.view;
+        end
+        function test_alignOpT1001(this)
+            this.testObj = this.testObj.alignCommonModal('FDG');
+            this.testObj = this.testObj.alignOpT1001;
+            this.testObj.view;
+        end
+        function test_frontOfFileprefix(this)
+            fps = {'fdgv1r2_op_fdgv1e1to4r1_frame4_sumt' 'fdgv1r2_op_fdgv1e1to4r1_frame4_sumt_op_somethingv1r1'};
+            this.verifyEqual(this.testObj.frontOfFileprefix(fps{1}), 'fdgv1r2');
+            this.verifyEqual(this.testObj.frontOfFileprefix(fps{2}), 'fdgv1r2');
+            this.verifyEqual(this.testObj.frontOfFileprefix(fps), {'fdgv1r2' 'fdgv1r2'});
+        end
+        function test_productAverage(this)
+            this.testObj = this.testObj.alignCommonModal('FDG');
+            this.testObj = this.testObj.productAverage;
+            this.testObj.view;
         end
         function test_sourceImages(this)
             disp(this.testObj.sourceImages('OC'))

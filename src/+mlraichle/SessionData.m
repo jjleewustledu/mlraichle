@@ -14,7 +14,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
     
     properties
         ensureFqfilename = false
-        fractionalImageFrameThresh = 0.1 % of median
+        fractionalImageFrameThresh = 0.2 % of median
         % cf. mlfourdfp.ImageFrames.nonEmptyImageIndices, mlpet.TracerResolveBuilder; valid for [0..1]
         filetypeExt = '.4dfp.ifh'
         indicesEpochCells = {} % indicesEpochCells{this.epoch} := numeric, size(numeric) == [1 this.maxLengthEpoch]
@@ -22,7 +22,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         tauIndices = [] % use to exclude late frames from builders of AC; e.g., HYGLY25 V1; taus := taus(tauIndices)
         tauMultiplier = 1 % 1,2,4,8,16
         maskBlurArg = 33
-        tracerBlurArg = 5.5
+        tracerBlurArg = 7.5
         umapBlurArg = 1.5
         atlVoxelSize = 222
         motionCorrectCTAndUmapConfig
@@ -628,6 +628,35 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             end
             obj  = this.fqfilenameObject(fullfile(this.vLocation, fn), varargin{:});
         end
+        function obj  = tracerResolvedSubj(this, varargin)
+            %% TRACERRESOLVEDSUBJ is designed for use with mlraichle.SubjectImages.
+            %  @param named name; e.g., 'cbfv1r2'.
+            %  @param named vnumber.
+            %  @param named rnumber.
+            %  @param named dest.
+            %  @param named tag1 is inserted before '_op_'; e.g., '_sumt'
+            %  @param named tag2 is inserted before this.filetypeExt; e.g., '_sumxyz'.
+                       
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'name', this.tracerRevision('typ','fp'), @ischar);
+            addParameter(ip, 'dest', 'fdg', @ischar);
+            addParameter(ip, 'destVnumber', 1, @isnumeric); 
+            addParameter(ip, 'destRnumber', 1, @isnumeric); 
+            addParameter(ip, 'tag1', '', @ischar);
+            addParameter(ip, 'tag2', '', @ischar);
+            parse(ip, varargin{:});  
+            ipr = ip.Results;
+            
+            this.attenuationCorrected = true;
+            this.epoch = [];
+            ensuredir(this.vallLocation);
+            fqfn = fullfile( ...
+                this.vallLocation, ...
+                sprintf('%s%s_op_%sv%ir%i%s%s', ...
+                        ipr.name, ipr.tag1, ipr.dest, ipr.destVnumber, ipr.destRnumber, ipr.tag2, this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
         function obj  = tracerResolvedSumt(this, varargin)
             fqfn = sprintf('%s_%s_sumt%s', this.tracerRevision('typ', 'fqfp'), this.resolveTag, this.filetypeExt);
             obj  = this.fqfilenameObject(fqfn, varargin{:});
@@ -779,6 +808,16 @@ classdef SessionData < mlpipeline.ResolvingSessionData
 
         %%  
          
+        function loc  = vallLocation(this, varargin)
+            %  @override
+            
+            ip = inputParser;
+            addParameter(ip, 'typ', 'path', @ischar);
+            parse(ip, varargin{:});
+            
+            loc = locationType(ip.Results.typ, ...
+                fullfile(this.sessionPath, 'Vall'));
+        end       
         function obj  = fqfilenameObject(this, varargin)
             %  @override
             %  @param named typ has default 'fqfn'
