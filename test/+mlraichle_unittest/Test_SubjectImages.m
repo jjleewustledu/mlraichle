@@ -42,14 +42,26 @@ classdef Test_SubjectImages < matlab.unittest.TestCase
             this.testObj.view;
         end
         function test_alignCrossModal(this)
-            this.assertTrue(strcmpi(this.testObj.referenceImage, 'FDG'));
-            this.testObj.alignCrossModal;
+            this.assertTrue(strcmpi(this.testObj.referenceTracer, 'FDG'));
+            [this.testObj,theFdg] = this.testObj.alignCrossModal;
             this.testObj.view;
+            theFdg.view;
         end
         function test_alignOpT1001(this)
-            this.testObj = this.testObj.alignCommonModal('FDG');
+            imgsSumt = reshape(this.testObj.sourceImages('FDG', true), 1, []);
+            this.testObj.product = imgsSumt;
             this.testObj = this.testObj.alignOpT1001;
             this.testObj.view;
+        end
+        function test_dropSumt(this)
+            this.verifyEqual(this.testObj.dropSumt('/path/to/file_sumt_op_something_sumt.4dfp.ifh'), ...
+                '/path/to/file.4dfp.ifh');
+            this.verifyEqual(this.testObj.dropSumt('/path/to/file_sumt_op_something.4dfp.ifh'), ...
+                '/path/to/file.4dfp.ifh');
+            this.verifyEqual(this.testObj.dropSumt('/path/to/file_sumt_op_something'), ...
+                '/path/to/file');
+            this.verifyEqual(this.testObj.dropSumt({'file_sumt_op_something' 'stuff_sumt_op_or_other'}), ...
+                {'file' 'stuff'});
         end
         function test_frontOfFileprefix(this)
             fps = {'fdgv1r2_op_fdgv1e1to4r1_frame4_sumt' 'fdgv1r2_op_fdgv1e1to4r1_frame4_sumt_op_somethingv1r1'};
@@ -67,6 +79,15 @@ classdef Test_SubjectImages < matlab.unittest.TestCase
             disp(this.testObj.sourceImages('OO'))
             disp(this.testObj.sourceImages('HO'))
             disp(this.testObj.sourceImages('FDG'))
+        end
+        function test_t4img_4dfp(this)
+            this.testObj = this.testObj.alignCommonModal('FDG');
+            this.testObj.view;
+            this.testObj = this.testObj.t4img_4dfp('FDG');
+            this.testObj.view;
+        end
+        function test_t4mul(this)
+            
         end
 	end
 

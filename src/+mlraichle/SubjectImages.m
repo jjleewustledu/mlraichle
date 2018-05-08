@@ -33,6 +33,9 @@ classdef SubjectImages
         function g = get.product(this)
             g = this.product_;
         end
+        function this = set.product(this, s)
+            this.product_ = s;
+        end
         
         %%
         
@@ -40,37 +43,58 @@ classdef SubjectImages
             %  @param tracer, ctor.census & ctor.sessionData select images.
             %  @return resolved in this.product.
             
-            imgs = reshape(this.sourceImages(tracer, true), 1, []);
+            imgsSumt = reshape(this.sourceImages(tracer, true), 1, []);
             this.sessionData_.tracer = upper(tracer);
             this.referenceTracer_ = lower(tracer);
-            this = this.resolve(imgs);
+            this = this.resolve(imgsSumt);
         end
-        function [this,opT1001] = alignCrossModal(this)
+        function [this,theFdg,theHo] = alignCrossModal(this)
             theHo  = this.alignCommonModal('HO');
-            theHo  = theHo.productAverage;         
+            theHo  = theHo.productAverage;     
+            theHo.save;
             theOo  = this.alignCommonModal('OO');
             theOo  = theOo.productAverage;          
+            theOo.save;
             theOc  = this.alignCommonModal('OC');            
             theOc  = theOc.productAverage;
+            theOc.save;
             this   = this.alignCommonModal('FDG');
             this   = this.productAverage;
+            this.save;
             theFdg = this;
             
-            imgs = {theFdg.product.fqfileprefix ...
-                    theHo.product.fqfileprefix ...
-                    theOo.product.fqfileprefix ...
-                    theOc.product.fqfileprefix};
-            this = this.resolve(imgs, 'NRevisions', 2);
-           
-            opT1001 = theFdg.alignOpT1001;
+            imgs = {theFdg.product{1}.fqfileprefix ...
+                    theHo.product{1}.fqfileprefix ...
+                    theOo.product{1}.fqfileprefix ...
+                    theOc.product{1}.fqfileprefix ...
+                    'T1001'};
+            this = this.resolve(imgs);
+            theFdg = theFdg.t4mulR(this.t4s_{1}{1});
+            theFdg = theFdg.t4imgDynamicImages;  
+            theHo  = theHo.t4mulR(this.t4s_{1}{2});
+            theHo  = theHo.t4imgDynamicImages;           
         end
-        function this = alignOpT1001(this)
+        function this = alignOpT1001(this, varargin)
             %  @param this.product.
             %  @return resolved to T1001 in this.product.
             
             assert(lexist_4dfp('T1001'));
-            imgs = {'T1001' this.product.fqfileprefix};
-            this = this.resolve(imgs, 'NRevisions', 2);
+            imgs = ['T1001' cellfun(@(x) x.fqfileprefix, this.product, 'UniformOutput', false)];
+            this = this.resolve(imgs, 'NRevisions', 1);
+        end
+        function fqfn = dropSumt(this, fqfn)
+            
+            if (iscell(fqfn))
+                fqfn = cellfun(@(x) this.dropSumt(x), fqfn, 'UniformOutput', false);
+                return
+            end
+            
+            [p,f,x] = myfileparts(fqfn);            
+            idx = regexp(f, '_sumt');
+            if (~isempty(idx) && all(idx > 1))
+                f = f(1:idx(1)-1);
+            end
+            fqfn = fullfile(p, [f x]);
         end
         function front = frontOfFileprefix(this, fps, varargin) 
             %  @param fps is cell (recursive) or char (base-case).
@@ -85,13 +109,24 @@ classdef SubjectImages
                 front = cellfun(@(x) this.frontOfFileprefix(x, varargin{:}), fps, 'UniformOutput', false);
                 return
             end
+            
             assert(ischar(fps));
             loc = regexp(fps, '_op_\w+');
+            if (isempty(loc))
+                front = fps;
+                return
+            end
             if (~ip.Results.sumt)
                 front = fps(1:loc-1);
-            else
+                return
+            end
+            if (~strcmp(fps(loc-7:loc-2), '_sumtr'))
                 front = sprintf('%s_sumt', fps(1:loc-1));
             end
+        end
+        function front = frontOfFileprefixR1(this, fps, varargin)
+            front = this.ensureLastRnumber( ...
+                this.frontOfFileprefix(fps, varargin{:}), 1);
         end
         function this = productAverage(this)
             avgf = this.product_{1}.fourdfp;
@@ -136,39 +171,46 @@ classdef SubjectImages
             end   
             ensuredir(sessdRef.vallLocation);
             cwd = pushd(sessdRef.vallLocation);
-            this.buildVisitor_.lns_4dfp(sessd.(meth)('typ','fqfp'));
+            this.buildVisitor_.lns_4dfp( ...
+                sessd.(meth)('typ','fqfp'), ...
+                this.frontOfFileprefixR1(sessd.(meth)('typ','fqfp'), ip.Results.sumt));
             popd(cwd);
         end
-        function this = resolve(this, imgs, varargin)
-            %  @param imgs = cell(Nvisits, Nscans) of char fqfp.
+        function this = resolve(this, imgsSumt, varargin)
+            %  @param imgsSumt = cell(Nvisits, Nscans) of char fqfp.
             
             ip = inputParser;
-            addRequired( ip, 'imgs', @iscell);
+            addRequired( ip, 'imgsSumt', @iscell);
             addParameter(ip, 'NRevisions', 1, @isnumeric);
             addParameter(ip, 'maskForImages', 'Msktgen');
             addParameter(ip, 'resolveTag', ...
                 sprintf('op_%sv%ir1', lower(this.referenceTracer), this.sessionData_.vnumber), @ischar);
-            parse(ip, imgs, varargin{:});
+            parse(ip, imgsSumt, varargin{:});
             
-            assert(iscell(imgs));
-            cwd = pushd(fileparts(imgs{1}));
-            cellfun(@(x) this.buildVisitor_.copy_4dfp(x, this.frontOfFileprefix(x, true)), ...
-                mybasename(imgs), ...
+            assert(iscell(imgsSumt));
+            cwd = pushd(fileparts(imgsSumt{1}));
+            cellfun(@(x) this.buildVisitor_.copy_4dfp(x, this.frontOfFileprefixR1(x, true)), ...
+                mybasename(imgsSumt), ...
                 'UniformOutput', false);
-            imgs = this.frontOfFileprefix(imgs, true);
+            imgsSumt = this.frontOfFileprefixR1(imgsSumt, true);
             cRB = mlfourdfp.CompositeT4ResolveBuilder( ...
                 'sessionData', this.sessionData_, ...
-                'theImages', imgs, ...
+                'theImages', imgsSumt, ...
                 'maskForImages', ip.Results.maskForImages, ...
                 'resolveTag', ip.Results.resolveTag, ...
                 'NRevisions', ip.Results.NRevisions);
             cRB.neverTouchFinishfile = true;
             cRB.ignoreFinishfile = true;
-            this.cRB_ = cRB.resolve;
+            this.cRB_ = cRB.resolve; 
+            this.t4s_ = this.cRB_.t4s;
             this.product_ = this.cRB_.product;
-            popd(cwd);
-            
             this.areAligned_ = true;
+            popd(cwd);            
+        end
+        function        save(this)
+            for p = 1:length(this.product)
+                this.product{p}.save;
+            end
         end
         function imgs = sourceImages(this, tracer, varargin)
             %  @param tracer is char.
@@ -217,17 +259,28 @@ classdef SubjectImages
                 end
             end
         end
-        function this = t4img_4dfp(this, varargin)
+        function this = t4imgDynamicImages(this)
             
-            in_ = this.sessionData_.tracerResolvedFinal('typ','fqfp');
-            out_ = this.sessionData_.tracerResolvedSubj('typ','fqfp');
+            assert(this.areAligned);  
+            assert(~isempty(this.cRB_));
+            %imgsSumt = cellfun(@(x) x.fqfileprefix, this.product, 'UniformOutput', false);   
+            imgs     = reshape(this.sourceImages(tracer), 1, []);
             
-            ip = inputParser;
-            addOptional(ip, 'in', in_, @ischar);
-            addOptional(ip, 'out', out_, @ischar);
-            parse(ip, varargin{:});
-            
-            this.cRB_.t4img_4dfp();
+            this.product_ = cell(size(imgs));
+            for i = 1:length(imgs)
+                this.cRB_ = this.cRB_.t4img_4dfp( ...
+                    this.t4s_{1}{i}, ...
+                    this.frontOfFileprefixR1(imgs{i}), ...
+                    'ref', this.frontOfFileprefixR1(imgs{1}));
+                % sprintf('%sr0_to_%s_t4',  this.frontOfFileprefix(imgsSumt{i}, true), this.cRB_.resolveTag), ...
+                this.product_{i} = this.cRB_.product;
+            end        
+        end
+        function this = t4mulR(this, t4R)
+            for t = 1:size(this.t4s_{1})
+                this.t4s_{1}{t} = this.buildVisitor_.t4_mul( ...
+                    this.t4s_{1}{t}, t4R);
+            end
         end
         function view(this)
             mlfourdfp.Viewer.view(this.product);
@@ -266,6 +319,7 @@ classdef SubjectImages
         referenceTracer_
         rnumberOfSource_
         sessionData_
+        t4s_
     end
     
     methods (Access = private)
@@ -274,6 +328,29 @@ classdef SubjectImages
             ctbl = census.censusTable;
             ctbl = ctbl(1 == ctbl.ready, :);
             stbl = ctbl(strcmpi(ctbl.subjectID, this.sessionData_.sessionFolder), :);
+        end
+        function fqfp = ensureLastRnumber(this, fqfp, r)
+            %% ENSURELASTRNUMBER
+            %  @param fqfp
+            %  @param r integer
+            %  @return             ${fqfp}r${r}                     if not fqfp has r[0-9]
+            %  @return ${fqfp_upto_r[0-9]}r${r}${fqfp_after_r[0-9]} if fqfp has r[0-9]
+            
+            assert(isnumeric(r));
+            
+            if (iscell(fqfp))
+                for f = 1:length(fqfp)
+                    fqfp{f} = this.ensureLastRnumber(fqfp{f}, r);
+                end
+                return
+            end
+            
+            startIdx = regexp(fqfp, 'r\d');
+            if (~isempty(startIdx))
+                fqfp(startIdx(end)+1) = num2str(r);
+                return
+            end
+            fqfp = sprintf('%sr%i', fqfp, r);
         end
         function ab = tracerAbbrev(~, tr)
             switch (upper(tr))
