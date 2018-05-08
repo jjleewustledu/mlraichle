@@ -10,6 +10,11 @@ classdef TracerDirector < mlpet.TracerDirector
         
         %% factory methods        
         
+        function         cleanLocalLogs
+            logfold = 'Log';
+            ensuredir(logfold);
+            movefileExisting({'*.log' '*.sub' '*.mat0' '*.mat'}, logfold);             
+        end
         function out   = cleanMore(varargin)
             %% cleanMore
             %  @param works in mlraichle.RaichleRegistry.instance.subjectsDir
@@ -136,12 +141,24 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
             parse(ip, varargin{:});
             
-            this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));          
-            this.instanceCleanSymlinks;
+            suffs = {'.4dfp.hdr' '.4dfp.ifh' '.4dfp.img' '.4dfp.img.rec'};
+            sd = ip.Results.sessionData;
+            try
+                pwd0 = pushd(sd.tracerLocation);
+                for s = 1:length(suffs)
+                    deleteExisting(                 [sd.T1001('typ','fp') suffs{s}]);
+                    copyfile(fullfile(sd.vLocation, [sd.T1001('typ','fp') suffs{s}]));
+                    deleteExisting(                              [sd.tracerListmodeSif('typ','fp') suffs{s}]);
+                    copyfile(fullfile(sd.tracerListmodeLocation, [sd.tracerListmodeSif('typ','fp') suffs{s}]));
+                end
+                popd(pwd0);
+            catch ME
+                handwarning(ME);
+            end
             out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
         end
         function out   = cleanTracerRemotely(varargin)
+            %  @param named distcompHost is the hostname or distcomp profile.
             
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -150,11 +167,16 @@ classdef TracerDirector < mlpet.TracerDirector
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));          
-            this.instanceCleanTracerRemotely('distcompHost', ip.Results.distcompHost);
+                mlpet.TracerResolveBuilder(varargin{:}));
+            try
+                chpc = mlpet.CHPC4TracerDirector( ...
+                    this, 'distcompHost', ip.Results.distcompHost, 'sessionData', this.sessionData);                
+                chpc.cleanTracer;
+            catch ME
+                handwarning(ME);
+            end
             out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
-        end
-        
+        end        
         function those = constructAifs(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
@@ -487,6 +509,49 @@ classdef TracerDirector < mlpet.TracerDirector
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));             
             this = this.instanceConstructUmapSynthForDynamicFrames;
+        end
+        function out   = deleteTracer(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            parse(ip, varargin{:});
+            sd = ip.Results.sessionData;            
+                       
+            import mlraichle.*;
+            TracerDirector.deleteTracerFolderContents(sd);
+            for e = 1:sd.supEpoch
+                sde = sd; sde.epoch = e;                
+                cwd = pushd(sde.tracerLocation);
+                deleteExisting('*.4dfp.*');
+                TracerDirector.cleanLocalLogs;
+                popd(cwd);
+            end
+            sde.epoch = 1:sde.supEpoch;
+            if (isdir(sde.tracerLocation)) %#ok<ISDIR>
+                rmdir(sde.tracerLocation, 's');
+            end
+            out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
+        end
+        function         deleteTracerFolderContents(sd)
+            assert(isa(sd, 'mlpipeline.SessionData'));
+            
+            sd1 = sd; sd1.rnumber = 1;
+            sd2 = sd; sd2.rnumber = 2;
+            sdf = sd; sdf.epoch = 1:sdf.supEpoch; sdf.frame = ceil(length(sdf.taus)/sdf.maxLengthEpoch);
+            
+            cwd = pushd(sd.tracerLocation);            
+            mlbash(sprintf('rm %sOnResolved_sumt.4dfp.*', sd.tracerRevision('typ','fp')));
+            mlbash(sprintf('rm %sOnResolved_sumt_brain.4dfp.*', sd.tracerRevision('typ','fp')));
+            deleteExisting(sprintf('%sOnResolved_sumt_*.4dfp.*', sd.tracerRevision('typ','fp')));
+            deleteExisting(sprintf('%s_*.4dfp.*', sd2.tracerResolvedFinal));
+            deleteExisting(sprintf('mask_%s_*.4dfp.*', sd2.tracerResolvedFinal));
+            deleteExisting(sprintf('%s_*_%s%s.4dfp.*', sd1.tracerRevision('typ','fp'), sdf.resolveTag, sdf.frameTag));
+            deleteExisting(sprintf('%s_*_%s%s.4dfp.*', sd2.tracerRevision('typ','fp'), sdf.resolveTag, sdf.frameTag));
+            deleteExisting('*_to_op_*_t4');
+            deleteExisting(sprintf('*_op_*%sv%ie*_frame*.4dfp.*', lower(sd.tracer), sd.vnumber));   
+            mlraichle.TracerDirector.cleanLocalLogs;         
+            popd(cwd);
         end
         
         function list  = listRawdataAndConverted(varargin)

@@ -22,7 +22,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
         sessionData
     end
     
-    methods (Static)
+    methods (Static)   
         function         cleanConverted(varargin)
             %% cleanConverted
             %  @param named verifyForDeletion must be set to the fully-qualified study directory to clean.
@@ -116,6 +116,12 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
                 'mlraichle.TracerDirector.cleanSymlinks', varargin{:});
         end
+        function         cleanTracer(varargin)
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
+            
+            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.cleanTracer', varargin{:});
+        end 
         function         cleanTracerRemotely(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
             
