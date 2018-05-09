@@ -662,10 +662,17 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerRevision(this, varargin)
+            %  @param rLabel may be useful for generating files such as '*r1r2_to_resolveTag_t4'.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'rLabel', sprintf('r%i', this.rnumber), @ischar);
+            parse(ip, varargin{:});
+            
             [ipr,schar] = this.iprLocation(varargin{:});
             fqfn = fullfile( ...
                 this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
-                sprintf('%s%sv%i%sr%i%s', lower(ipr.tracer), schar, this.vnumber, this.epochLabel, ipr.rnumber, this.filetypeExt));
+                sprintf('%s%sv%i%s%s', lower(ipr.tracer), schar, this.vnumber, this.epochLabel, ip.Results.rLabel, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerRevisionSumt(this, varargin)
