@@ -544,10 +544,10 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             if (iscell(ip.Results.tracer))
                 those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsParTrac( ...
-                    'mlraichle.TracerDirector.constructResolved', varargin{:});
+                    @mlraichle.TracerDirector.constructResolved, varargin{:});
             else
                 those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsParSess( ...
-                    'mlraichle.TracerDirector.constructResolved', varargin{:});
+                    @mlraichle.TracerDirector.constructResolved, varargin{:});
             end
         end 
         function those = constructResolvedRemotely(varargin)
@@ -1132,7 +1132,44 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                     this  = this.instanceSortDownloadFreesurfer(downloadPath);
             end
             cd(pwd0);
-        end    
+        end        
+        function those = reconstructE1toN(varargin)
+            %% RECONSTRUCTE1TON is a bug-fix detailed in method T4ResolveBuilder.t4ForReconstituteFramesAC2.
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects  
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.reconstructE1toN', varargin{:});
+        end
+        function those = reconstructE1E1toN(varargin)
+            %% RECONSTRUCTE1TON is a bug-fix detailed in method T4ResolveBuilder.t4ForReconstituteFramesAC2.
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects  
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.reconstructE1E1toN', varargin{:});
+        end
+        function those = reconstructE1toNPar(varargin)
+            %% RECONSTRUCTE1TONPAR is a bug-fix detailed in method T4ResolveBuilder.t4ForReconstituteFramesAC2.
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects  
+            
+            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsParTrac( ...
+                @mlraichle.TracerDirector.cleanE1toN, varargin{:});
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsParTrac( ...
+                @mlraichle.TracerDirector.constructResolved, varargin{:});
+        end
+        function those = reconstructE1toNRemotely(varargin)
+            %% RECONSTRUCTE1TON is a bug-fix detailed in method T4ResolveBuilder.t4ForReconstituteFramesAC2.
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects  
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
+                'mlraichle.TracerDirector.reconstructE1toN', varargin{:});
+        end
+        function those = reconstructE1E1toNRemotely(varargin)
+            %% RECONSTRUCTE1TON is a bug-fix detailed in method T4ResolveBuilder.t4ForReconstituteFramesAC2.
+            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects  
+            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
+                'mlraichle.TracerDirector.reconstructE1E1toN', varargin{:});
+        end
         function those = reconstructUnresolvedRemotely(varargin)
             %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
             
