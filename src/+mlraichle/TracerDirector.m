@@ -10,10 +10,68 @@ classdef TracerDirector < mlpet.TracerDirector
         
         %% factory methods        
         
+        function out   = purgeE1E1toN(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            parse(ip, varargin{:});
+            sd = ip.Results.sessionData;
+            sd1 = sd;
+            sd1.epoch = 1;
+            sd1toN = sd;
+            sd1toN.epoch = 1:sd1toN.supEpoch;
+            
+            import mlraichle.*;
+            cwd = pushd(sd.tracerLocation);
+            deleteExisting([sd.tracerResolvedFinal '.4dfp.*']);
+            deleteExisting([sd.tracerResolvedFinal '_*']);
+            TracerDirector.cleanLocalLogs;
+            popd(cwd);
+            
+            if (isdir(sd1.tracerLocation))
+                rmdir(sd1.tracerLocation, 's');
+            end
+            if (isdir(sd1toN.tracerLocation))
+                rmdir(sd1toN.tracerLocation, 's');
+            end
+            
+            out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
+        end
+        function out   = cleanE1toN(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            parse(ip, varargin{:});
+            sd = ip.Results.sessionData;
+            sd1toN = sd;
+            sd1toN.epoch = 1:sd1toN.supEpoch;
+            
+            import mlraichle.*;
+            cwd = pushd(sd.tracerLocation);
+            deleteExisting([sd.tracerResolvedFinal '.4dfp.*']);
+            deleteExisting([sd.tracerResolvedFinal '_*']);
+            TracerDirector.cleanLocalLogs;
+            popd(cwd);
+            
+            if (isdir(sd1toN.tracerLocation))
+                cwd1 = pushd(sd1toN.tracerLocation);
+                TracerDirector.cleanLocalLogs;
+                popd(cwd1);
+            end
+            
+            out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
+        end
         function         cleanLocalLogs
             logfold = 'Log';
             ensuredir(logfold);
-            movefileExisting({'*.log' '*.sub' '*.mat0' '*.mat'}, logfold);             
+            movefileExisting({'*.log' '*.sub' '*.mat0' '*.mat'}, logfold);
+            try
+                mlbash(sprintf('rm %s/.*_isfinished.touch', logfold));
+            catch ME %#ok<NASGU>
+                fprintf('mlpet.TracerDirector.cleanLocalLogs found no .*_isfinished.touch files to clean.\n');
+            end
         end
         function out   = cleanMore(varargin)
             %% cleanMore
@@ -381,14 +439,8 @@ classdef TracerDirector < mlpet.TracerDirector
             %  sequentially run FDG NAC, 15O NAC, then all tracers AC.
             %  @return this.sessionData.attenuationCorrection == false.
             
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            
             mlpet.TracerDirector.assertenv;  
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:});
-            
+            mlpet.TracerDirector.prepareFreesurferData(varargin{:});            
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));   
             this = this.instanceConstructResolved;
@@ -767,6 +819,14 @@ classdef TracerDirector < mlpet.TracerDirector
             this.builder.linkRawdataMPR;
             this.builder.reconAllSurferObjects;
         end 
+        function this  = reconstructE1toN(varargin)
+            mlraichle.TracerDirector.cleanE1toN(varargin{:});
+            this = mlraichle.TracerDirector.constructResolved(varargin{:});        
+        end
+        function this  = reconstructE1E1toN(varargin)
+            mlraichle.TracerDirector.purgeE1E1toN(varargin{:});
+            this = mlraichle.TracerDirector.constructResolved(varargin{:});        
+        end
         function this  = reconstructUnresolved(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
