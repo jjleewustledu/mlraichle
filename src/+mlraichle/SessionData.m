@@ -907,6 +907,10 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             catch ME
                 dispwarning(ME);
             end
+            if (lexist(this.tracerRevision))
+                sz = this.size_4dfp(this.tracerRevision('typ','fqfp'));
+                this.tauIndices = 1:sz(4);
+            end
         end
     end
     
