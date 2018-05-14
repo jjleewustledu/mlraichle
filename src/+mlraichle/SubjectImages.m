@@ -8,9 +8,12 @@ classdef SubjectImages
  	
 	properties (Dependent)
  		areAligned
+        compositeRB
         product
         referenceImage
         referenceTracer        
+        sessionData
+        t4s
  	end
 
 	methods 
@@ -20,11 +23,15 @@ classdef SubjectImages
         function g = get.areAligned(this)
             g = this.areAligned_;
         end
+        function g = get.compositeRB(this)
+            g = this.cRB_;
+        end
         function g = get.referenceImage(this)
             %  @return ImagingContext.
             
             sessd = this.sessionData_;
             sessd.tracer = upper(this.referenceTracer);
+            sessd.rnumber = this.rnumberOfSource_;
             g = sessd.tracerResolvedFinal('typ', 'mlfourd.ImagingContext');
         end
         function g = get.referenceTracer(this)
@@ -36,43 +43,60 @@ classdef SubjectImages
         function this = set.product(this, s)
             this.product_ = s;
         end
+        function g = get.sessionData(this)
+            g = this.sessionData_;
+        end
+        function g = get.t4s(this)
+            g = this.t4s_;
+        end
         
         %%
         
-        function this = alignCommonModal(this, tracer)
+        function this = alignCommonModal(this, tracer, varargin)
             %  @param tracer, ctor.census & ctor.sessionData select images.
             %  @return resolved in this.product.
             
             imgsSumt = reshape(this.sourceImages(tracer, true), 1, []);
             this.sessionData_.tracer = upper(tracer);
             this.referenceTracer_ = lower(tracer);
-            this = this.resolve(imgsSumt);
+            this = this.resolve(imgsSumt, varargin{:});
         end
-        function [this,theFdg,theHo] = alignCrossModal(this)
+        function [this,theFdg,theHo,theOo,theOc] = alignCrossModal(this)
             theHo  = this.alignCommonModal('HO');
             theHo  = theHo.productAverage;     
+            theHo.saveThis('alignCrossModal_theHo');
             theHo.save;
             theOo  = this.alignCommonModal('OO');
-            theOo  = theOo.productAverage;          
+            theOo  = theOo.productAverage;  
+            theOo.saveThis('alignCrossModal_theOo');        
             theOo.save;
             theOc  = this.alignCommonModal('OC');            
             theOc  = theOc.productAverage;
+            theOc.saveThis('alignCrossModal_theOc');
             theOc.save;
-            this   = this.alignCommonModal('FDG');
-            this   = this.productAverage;
-            this.save;
-            theFdg = this;
-            
+            theFdg = this.alignCommonModal('FDG');
+            theFdg = theFdg.productAverage;
+            theFdg.saveThis('alignCrossModal_theFdg');
+            theFdg.save;
+            this = theFdg;
+
             imgs = {theFdg.product{1}.fqfileprefix ...
                     theHo.product{1}.fqfileprefix ...
                     theOo.product{1}.fqfileprefix ...
-                    theOc.product{1}.fqfileprefix ...
-                    'T1001'};
-            this = this.resolve(imgs);
-            theFdg = theFdg.t4mulR(this.t4s_{1}{1});
-            theFdg = theFdg.t4imgDynamicImages;  
-            theHo  = theHo.t4mulR(this.t4s_{1}{2});
-            theHo  = theHo.t4imgDynamicImages;           
+                    theOc.product{1}.fqfileprefix}; % product averages
+            this = this.resolveVM(imgs, 'compAlignMethod', 'align_crossModal');
+            this.saveThis('alignCrossModal_this');
+        end
+        function varargout = alignDynamicImages(this, varargin)
+            %% ALIGNDYNAMICIMAGES aligns tracer-averages to this.referenceImage.
+            %  this := alignCrossModal tracer-averages
+            %  varargin := tracer-average instances of SubjectImages
+            
+            u = 1;
+            for v = 1:length(varargin)
+                intermed = varargin{v}.t4mulR(this.t4s_{u}{v});
+                varargout{v} = intermed.t4imgDynamicImages; %#ok<AGROW>
+            end
         end
         function this = alignOpT1001(this, varargin)
             %  @param this.product.
@@ -129,6 +153,9 @@ classdef SubjectImages
                 this.frontOfFileprefix(fps, varargin{:}), 1);
         end
         function this = productAverage(this)
+            %  @param this.product_ is 1xN cell.
+            %  @return this.product_ is 1x1 cell.
+            
             avgf = this.product_{1}.fourdfp;
             for p = 2:length(this.product_)
                 nextf = this.product_{p}.fourdfp;
@@ -138,12 +165,12 @@ classdef SubjectImages
             avgf.fileprefix = [avgf.fileprefix '_avg'];
             this.product_ = {mlfourd.ImagingContext(avgf)};
         end
-        function sessd = refreshTracerResolvedFinal(this, sessd, sessdRef, varargin)
+        function [sessd,acopy] = refreshTracerResolvedFinal(this, sessd, sessdRef, varargin)
             %  @param sessionData.
             %  @param sessionData of reference.
             %  @param optional sumt is boolean.
-            %  @return sessionData has refreshed supEpoch.
-            %  @return sym-link created at (sessdRef.vallLocation, sessd.tracerResolvedFinal('typ','fp')).
+            %  @return sessionData has refreshed supEpoch, checked against the filesystem.
+            %  @return acopy created at this.frontOfFileprefixR1(sessd.tracerResolvedFinal('typ','fp')).
             
             ip = inputParser;
             addOptional(ip, 'sumt', false, @islogical);
@@ -154,30 +181,24 @@ classdef SubjectImages
                 meth = 'tracerResolvedFinalSumt';
             end
             
-            while (~lexist(sessd.(meth)) && sessd.supEpoch > 0)
-                sessd.supEpoch    = sessd.supEpoch - 1;
-                sessdRef.supEpoch = sessdRef.supEpoch - 1;
-            end
-            if (sessd.supEpoch == 0)
-                error( ...
-                    'mlraichle:invalidParamValue', ...
-                    'SubjectImages.refreshTracerResolvedFinal.sessd.supEpoch->%i', sessd.supEpoch);
-            end
-            if (~lexist(sessd.(meth)('typ','fqfn')))
-                error( ...
-                    'mlraichle:missingPrerequisiteFile', ...
-                    'SubjectImages.refreshTracerResolvedFinal.sessd.tracerResolvedFinal->%i', ...
-                    sessd.(meth));                
-            end   
+            [sessd,sessdRef] = this.ensureRefreshedTracerResolvedFinal(sessd, sessdRef, meth); 
             ensuredir(sessdRef.vallLocation);
             cwd = pushd(sessdRef.vallLocation);
-            this.buildVisitor_.lns_4dfp( ...
-                sessd.(meth)('typ','fqfp'), ...
-                this.frontOfFileprefixR1(sessd.(meth)('typ','fqfp'), ip.Results.sumt));
+            acopy = this.frontOfFileprefixR1(sessd.(meth)('typ','fqfp'), ip.Results.sumt);
+            if (~lexist_4dfp(acopy))
+                this.buildVisitor_.copy_4dfp(sessd.(meth)('typ','fqfp'), acopy);
+            end
             popd(cwd);
+            
+            acopy = fullfile(sessdRef.vallLocation, acopy);
         end
         function this = resolve(this, imgsSumt, varargin)
             %  @param imgsSumt = cell(Nvisits, Nscans) of char fqfp.
+            %  @return this.cRB_ := compositeT4ResolveBuilder.resolved.
+            %  @return this.t4s_ := compositeT4ResolveBuilder.t4s.  See also
+            %  mlfourdfp.AbstractT4ResolveBuilder.catchT4s.
+            %  @return this.product := compositeT4ResolveBuilder.product.
+            %  @return this.areAligned := true.
             
             ip = inputParser;
             addRequired( ip, 'imgsSumt', @iscell);
@@ -185,26 +206,62 @@ classdef SubjectImages
             addParameter(ip, 'maskForImages', 'Msktgen');
             addParameter(ip, 'resolveTag', ...
                 sprintf('op_%sv%ir1', lower(this.referenceTracer), this.sessionData_.vnumber), @ischar);
+            addParameter(ip, 'compAlignMethod', 'align_commonModal7', @ischar);
             parse(ip, imgsSumt, varargin{:});
             
             assert(iscell(imgsSumt));
             cwd = pushd(fileparts(imgsSumt{1}));
-            cellfun(@(x) this.buildVisitor_.copy_4dfp(x, this.frontOfFileprefixR1(x, true)), ...
-                mybasename(imgsSumt), ...
-                'UniformOutput', false);
-            imgsSumt = this.frontOfFileprefixR1(imgsSumt, true);
+            this.sessionData_.compAlignMethod = ip.Results.compAlignMethod;
             cRB = mlfourdfp.CompositeT4ResolveBuilder( ...
                 'sessionData', this.sessionData_, ...
                 'theImages', imgsSumt, ...
                 'maskForImages', ip.Results.maskForImages, ...
                 'resolveTag', ip.Results.resolveTag, ...
-                'NRevisions', ip.Results.NRevisions);
+                'NRevisions', ip.Results.NRevisions, ...
+                'logPath', ensuredir(fullfile(cwd, 'Log', '')));
             cRB.neverTouchFinishfile = true;
             cRB.ignoreFinishfile = true;
             this.cRB_ = cRB.resolve; 
             this.t4s_ = this.cRB_.t4s;
             this.product_ = this.cRB_.product;
             this.areAligned_ = true;
+            this.saveThis('resolve_this');
+            popd(cwd);            
+        end
+        function this = resolveVM(this, imgsSumt, varargin)
+            %  @param imgsSumt = cell(Nvisits, Nscans) of char fqfp.
+            %  @return this.cRB_ := compositeT4ResolveBuilder.resolved.
+            %  @return this.t4s_ := compositeT4ResolveBuilder.t4s.  See also
+            %  mlfourdfp.AbstractT4ResolveBuilder.catchT4s.
+            %  @return this.product := compositeT4ResolveBuilder.product.
+            %  @return this.areAligned := true.
+            
+            ip = inputParser;
+            addRequired( ip, 'imgsSumt', @iscell);
+            addParameter(ip, 'NRevisions', 1, @isnumeric);
+            addParameter(ip, 'maskForImages', 'Msktgen');
+            addParameter(ip, 'resolveTag', ...
+                sprintf('op_%sv%ir1', lower(this.referenceTracer), this.sessionData_.vnumber), @ischar);
+            addParameter(ip, 'compAlignMethod', 'align_commonModal7', @ischar);
+            parse(ip, imgsSumt, varargin{:});
+            
+            assert(iscell(imgsSumt));
+            cwd = pushd(fileparts(imgsSumt{1}));
+            this.sessionData_.compAlignMethod = ip.Results.compAlignMethod;
+            vmRB = mlfourdfp.VariableMaskT4ResolveBuilder( ...
+                'sessionData', this.sessionData_, ...
+                'theImages', imgsSumt, ...
+                'maskForImages', ip.Results.maskForImages, ...
+                'resolveTag', ip.Results.resolveTag, ...
+                'NRevisions', ip.Results.NRevisions, ...
+                'logPath', ensuredir(fullfile(cwd, 'Log', '')));
+            vmRB.neverTouchFinishfile = true;
+            vmRB.ignoreFinishfile = true;
+            this.cRB_ = vmRB.resolve; 
+            this.t4s_ = this.cRB_.t4s;
+            this.product_ = this.cRB_.product;
+            this.areAligned_ = true;
+            this.saveThis('resolveVM_this');
             popd(cwd);            
         end
         function        save(this)
@@ -212,19 +269,21 @@ classdef SubjectImages
                 this.product{p}.save;
             end
         end
+        function fn   = saveThis(this, varargin) %#ok<INUSL>
+            ip = inputParser;
+            addOptional(ip, 'client', '', @ischar);
+            parse(ip, varargin{:});
+            fn = sprintf('mlraichle_SubjectImages_%s_this.mat', ip.Results.client);
+            save(fn, 'this')
+        end
         function imgs = sourceImages(this, tracer, varargin)
             %  @param tracer is char.
             %  @param optional sumt is boolean.
-            %  @return imgs = cell(Nvisits, Nscans) of char fqfp.
+            %  @return imgs = cell(Nvisits, Nscans) of char in location acopy from this.refreshTracerResolvedFinal.
             
             ip = inputParser;
             addOptional(ip, 'sumt', false, @islogical);
             parse(ip, varargin{:});
-            if (~ip.Results.sumt)
-                meth = 'tracerResolvedFinal';
-            else
-                meth = 'tracerResolvedFinalSumt';
-            end
             
             sessd = this.sessionData_;
             sessd.tracer = upper(tracer);  
@@ -250,9 +309,8 @@ classdef SubjectImages
                         if (1 == i && 1 == j)
                             sessdRef = sessd;
                         end
-                        sessd = this.refreshTracerResolvedFinal(sessd, sessdRef, ip.Results.sumt);
-                        imgs{i,j} = fullfile(sessdRef.vallLocation, ...
-                            sessd.(meth)('typ','fp')); % sym-link
+                        [sessd,acopy] = this.refreshTracerResolvedFinal(sessd, sessdRef, ip.Results.sumt);
+                        imgs{i,j} = acopy;
                     catch ME
                         dispexcept(ME);
                     end
@@ -260,11 +318,14 @@ classdef SubjectImages
             end
         end
         function this = t4imgDynamicImages(this)
+            %% T4IMGDYNAMICIMAGES applies accumulated this.t4s_, typically obtained from time-sums,
+            %  to the dynamic sources of the time-sums.  
+            %  @param this.cRB_ and this.t4s_ obtained from an align* method.  
+            %  Any NRevision > 1 is managed by this.cRB_. 
             
             assert(this.areAligned);  
-            assert(~isempty(this.cRB_));
-            %imgsSumt = cellfun(@(x) x.fqfileprefix, this.product, 'UniformOutput', false);   
-            imgs     = reshape(this.sourceImages(tracer), 1, []);
+            assert(~isempty(this.cRB_)); 
+            imgs     = reshape(this.sourceImages(tracer, false), 1, []); % dynamic images
             
             this.product_ = cell(size(imgs));
             for i = 1:length(imgs)
@@ -277,9 +338,15 @@ classdef SubjectImages
             end        
         end
         function this = t4mulR(this, t4R)
-            for t = 1:size(this.t4s_{1})
-                this.t4s_{1}{t} = this.buildVisitor_.t4_mul( ...
-                    this.t4s_{1}{t}, t4R);
+            %% T4MULR updates this.t4s_ by right-multiplication.
+            %  r := 1
+            %  foreach p in this.product
+            %      this.t4s_{p} := this.t4s_{p} * t4R            
+            
+            r = 1;
+            for p = 1:size(this.product)
+                this.t4s_{r}{p} = this.buildVisitor_.t4_mul( ...
+                    this.t4s_{r}{p}, t4R);
             end
         end
         function view(this)
@@ -293,6 +360,7 @@ classdef SubjectImages
             %  @param referenceTracer is 'fdg', 'ho', 'oo' or 'oc'.
 
             ip = inputParser;
+            ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
             addParameter(ip, 'census', [], @(x) isa(x, 'mlpipeline.IStudyCensus'));
             addParameter(ip, 'referenceTracer', 'FDG', @ischar);
@@ -300,8 +368,8 @@ classdef SubjectImages
             parse(ip, varargin{:});
 
             this.sessionData_ = ip.Results.sessionData;
-            this.rnumberOfSource_ = ip.Results.rnumberOfSource;
             this.sessionData_.attenuationCorrected = true;
+            this.rnumberOfSource_ = ip.Results.rnumberOfSource;
             this.census_ = this.censusSubtable(ip.Results.census);
             this.referenceTracer_ = ip.Results.referenceTracer;
             this.buildVisitor_ = mlfourdfp.FourdfpVisitor;
@@ -351,6 +419,23 @@ classdef SubjectImages
                 return
             end
             fqfp = sprintf('%sr%i', fqfp, r);
+        end
+        function [sessd,sessdRef] = ensureRefreshedTracerResolvedFinal(~, sessd, sessdRef, meth)
+            while (~lexist(sessd.(meth)) && sessd.supEpoch > 0)
+                sessd.supEpoch    = sessd.supEpoch - 1;
+                sessdRef.supEpoch = sessdRef.supEpoch - 1;
+            end
+            if (sessd.supEpoch == 0)
+                error( ...
+                    'mlraichle:invalidParamValue', ...
+                    'SubjectImages.refreshTracerResolvedFinal.sessd.supEpoch->%i', sessd.supEpoch);
+            end
+            if (~lexist(sessd.(meth)('typ','fqfn')))
+                error( ...
+                    'mlraichle:missingPrerequisiteFile', ...
+                    'SubjectImages.refreshTracerResolvedFinal.sessd.tracerResolvedFinal->%i', ...
+                    sessd.(meth));                
+            end  
         end
         function ab = tracerAbbrev(~, tr)
             switch (upper(tr))
