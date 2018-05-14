@@ -10,6 +10,17 @@ classdef TracerDirector < mlpet.TracerDirector
         
         %% factory methods        
         
+        function this  = alignCrossModal(varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
+            parse(ip, varargin{:});
+            
+            import mlraichle.*;
+            census = StudyCensus('sessionData', ip.Results.sessionData);
+ 			this = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
+            this = this.alignCrossModal;
+        end 
         function out   = purgeE1E1toN(varargin)
             
             ip = inputParser;
