@@ -19,7 +19,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         filetypeExt = '.4dfp.ifh'
         indicesEpochCells = {} % indicesEpochCells{this.epoch} := numeric, size(numeric) == [1 this.maxLengthEpoch]
         supScanList = 3
-        tauIndices = [] % use to exclude late frames from builders of AC; e.g., HYGLY25 V1; taus := taus(tauIndices)
         tauMultiplier = 1 % 1,2,4,8,16
         maskBlurArg = 33
         tracerBlurArg = 7.5
@@ -40,6 +39,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         studyCensusXlsx
         supEpoch
         t4ResolveBuilderBlurArg
+        tauIndices % use to exclude late frames from builders of AC; e.g., HYGLY25 V1; taus := taus(tauIndices)
         taus
         times
         timeMidpoints
@@ -181,6 +181,13 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function g = get.t4ResolveBuilderBlurArg(this)
             g = this.tracerBlurArg;
         end
+        function g = get.tauIndices(this)
+            g = [];
+            if (lexist(this.tracerRevision))
+                sz = this.size_4dfp(this.tracerRevision('typ','fqfp'));
+                g = 1:sz(4);
+            end
+        end
         function g = get.taus(this)
             if (~this.attenuationCorrected)
                 switch (upper(this.tracer))
@@ -215,17 +222,19 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                         error('mlraichle:unsupportedSwitchcase', 'AC:SessionData.taus.this.tracer->%s', this.tracer);
                 end
             end
-            if (~isempty(this.tauIndices))
-                g = g(this.tauIndices);
+            ti = this.tauIndices;
+            if (~isempty(ti))
+                g = g(ti);
             end
             if (this.tauMultiplier > 1)
                 g = this.multiplyTau(g);
             end
-        end
+        end        
         function g = get.times(this)
-            g = zeros(size(this.taus));
-            for ig = 1:length(this.taus)-1
-                g(ig+1) = sum(this.taus(1:ig));
+            t = this.taus;
+            g = zeros(size(t));
+            for ig = 1:length(t)-1
+                g(ig+1) = sum(t(1:ig));
             end
         end
         function g = get.timeMidpoints(this)
@@ -906,10 +915,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 this.studyCensus_ = mlraichle.StudyCensus(this.studyCensusXlsx, 'sessionData', this);
             catch ME
                 dispwarning(ME);
-            end
-            if (lexist(this.tracerRevision))
-                sz = this.size_4dfp(this.tracerRevision('typ','fqfp'));
-                this.tauIndices = 1:sz(4);
             end
         end
     end
