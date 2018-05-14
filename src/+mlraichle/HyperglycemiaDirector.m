@@ -23,6 +23,15 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
     end
     
     methods (Static)   
+        function those = alignCrossModal(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.alignCrossModal', varargin{:});
+        end
+        function those = alignCrossModalPar(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsParSess( ...
+                @mlraichle.TracerDirector.alignCrossModal, varargin{:});
+        end
+        
         function         cleanConverted(varargin)
             %% cleanConverted
             %  @param named verifyForDeletion must be set to the fully-qualified study directory to clean.
@@ -1611,8 +1620,10 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', 'wmparc*.*', varargin{:});
             mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', 'aparc*.*', varargin{:});
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+            mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', '*_t4', varargin{:});
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.pullPattern', 'ac', true, 'pattern', 'Log', varargin{:});
         end
         function those = pullResolvedNAC(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
@@ -1635,6 +1646,9 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             those = [those ...
                 HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.pullPattern', 'ac', false, varargin{:}, 'pattern', '*r2.4dfp.*')];
+            those = [those ...
+                HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.pullPattern', 'ac', false, varargin{:}, 'pattern', 'Log')];
         end
     end
 
