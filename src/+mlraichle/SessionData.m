@@ -183,8 +183,10 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end
         function g = get.tauIndices(this)
             g = [];
-            if (lexist(this.tracerRevision))
-                sz = this.size_4dfp(this.tracerRevision('typ','fqfp'));
+            that = this;
+            that.rnumber = 1;
+            if (lexist(that.tracerRevision))
+                sz = that.size_4dfp(that.tracerRevision('typ','fqfp'));
                 g = 1:sz(4);
             end
         end
