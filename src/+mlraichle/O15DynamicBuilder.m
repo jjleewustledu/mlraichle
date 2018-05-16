@@ -116,7 +116,7 @@ classdef O15DynamicBuilder < mlfourdfp.AbstractTracerResolveBuilder
  			%  Usage:  this = O15DynamicBuilder()
 
  			this = this@mlfourdfp.AbstractTracerResolveBuilder(varargin{:});
-            this.finished_ = mlpipeline.Finished(this, 'path', this.logPath, 'tag', lower(this.sessionData.tracer));
+            this.finished_ = mlpipeline.Finished(this, 'path', this.getLogPath, 'tag', lower(this.sessionData.tracer));
         end
         function printSessionData(this)
             mlraichle.O15DynamicBuilder.printv('O15DynamicBuilder.printSessionData -> \n');
