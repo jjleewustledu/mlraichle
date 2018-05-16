@@ -19,7 +19,7 @@ classdef TracerDirector < mlpet.TracerDirector
             import mlraichle.*;
             census = StudyCensus('sessionData', ip.Results.sessionData);
  			this = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
-            this = this.alignCrossModal;
+            this = this.alignCrossModal2;
         end 
         function out   = purgeE1E1toN(varargin)
             
@@ -34,11 +34,11 @@ classdef TracerDirector < mlpet.TracerDirector
             sd1toN.epoch = 1:sd1toN.supEpoch;
             
             import mlraichle.*;
-            cwd = pushd(sd.tracerLocation);
+            pwd0 = pushd(sd.tracerLocation);
             deleteExisting([sd.tracerResolvedFinal '.4dfp.*']);
             deleteExisting([sd.tracerResolvedFinal '_*']);
             TracerDirector.cleanLocalLogs;
-            popd(cwd);
+            popd(pwd0);
             
             if (isdir(sd1.tracerLocation))
                 rmdir(sd1.tracerLocation, 's');
@@ -60,11 +60,11 @@ classdef TracerDirector < mlpet.TracerDirector
             sd1toN.epoch = 1:sd1toN.supEpoch;
             
             import mlraichle.*;
-            cwd = pushd(sd.tracerLocation);
+            pwd0 = pushd(sd.tracerLocation);
             deleteExisting([sd.tracerResolvedFinal '.4dfp.*']);
             deleteExisting([sd.tracerResolvedFinal '_*']);
             TracerDirector.cleanLocalLogs;
-            popd(cwd);
+            popd(pwd0);
             
             if (isdir(sd1toN.tracerLocation))
                 cwd1 = pushd(sd1toN.tracerLocation);
@@ -585,10 +585,10 @@ classdef TracerDirector < mlpet.TracerDirector
             TracerDirector.deleteTracerFolderContents(sd);
             for e = 1:sd.supEpoch
                 sde = sd; sde.epoch = e;                
-                cwd = pushd(sde.tracerLocation);
+                pwd0 = pushd(sde.tracerLocation);
                 deleteExisting('*.4dfp.*');
                 TracerDirector.cleanLocalLogs;
-                popd(cwd);
+                popd(pwd0);
             end
             sde.epoch = 1:sde.supEpoch;
             if (isdir(sde.tracerLocation)) %#ok<ISDIR>
@@ -603,7 +603,7 @@ classdef TracerDirector < mlpet.TracerDirector
             sd2 = sd; sd2.rnumber = 2;
             sdf = sd; sdf.epoch = 1:sdf.supEpoch; sdf.frame = ceil(length(sdf.taus)/sdf.maxLengthEpoch);
             
-            cwd = pushd(sd.tracerLocation);            
+            pwd0 = pushd(sd.tracerLocation);            
             mlbash(sprintf('rm %sOnResolved_sumt.4dfp.*', sd.tracerRevision('typ','fp')));
             mlbash(sprintf('rm %sOnResolved_sumt_brain.4dfp.*', sd.tracerRevision('typ','fp')));
             deleteExisting(sprintf('%sOnResolved_sumt_*.4dfp.*', sd.tracerRevision('typ','fp')));
@@ -614,7 +614,7 @@ classdef TracerDirector < mlpet.TracerDirector
             deleteExisting('*_to_op_*_t4');
             deleteExisting(sprintf('*_op_*%sv%ie*_frame*.4dfp.*', lower(sd.tracer), sd.vnumber));   
             mlraichle.TracerDirector.cleanLocalLogs;         
-            popd(cwd);
+            popd(pwd0);
         end
         
         function list  = listRawdataAndConverted(varargin)

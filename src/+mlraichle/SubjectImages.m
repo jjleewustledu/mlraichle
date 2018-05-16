@@ -56,7 +56,7 @@ classdef SubjectImages
             %  @param tracer, ctor.census & ctor.sessionData select images.
             %  @return resolved in this.product.
             
-            imgsSumt = reshape(this.sourceImages(tracer, true), 1, []);
+            imgsSumt = reshape(this.sourceImages(tracer, true), 1, []); % reshape should now be unnecessary
             this.sessionData_.tracer = upper(tracer);
             this.referenceTracer_ = lower(tracer);
             this = this.resolve(imgsSumt, varargin{:});
@@ -86,6 +86,17 @@ classdef SubjectImages
                     theOc.product{1}.fqfileprefix}; % product averages
             this = this.resolveVM(imgs, 'compAlignMethod', 'align_crossModal');
             this.saveThis('alignCrossModal_this');
+        end
+        function this = alignCrossModal2(this)
+            pwd0 = pushd(this.sessionData.vallLocation);
+            this.buildVisitor_.sqrt_4dfp('oc1v1r1_sumtr1_op_ocv1r1_avg');
+            imgs = {'fdgv1r1_sumtr1_op_fdgv1r1_avg' ...
+                    'ho2v1r1_sumtr1_op_hov1r1_avg' ...
+                    'oo1v1r1_sumtr1_op_oov1r1_avg' ...
+                    'oc1v1r1_sumtr1_op_ocv1r1_avg_sqrt'}; % product averages
+            this = this.resolveVM(imgs, 'compAlignMethod', 'align_crossModal');
+            this.saveThis('alignCrossModal_this');
+            popd(pwd0);
         end
         function varargout = alignDynamicImages(this, varargin)
             %% ALIGNDYNAMICIMAGES aligns tracer-averages to this.referenceImage.
@@ -162,9 +173,9 @@ classdef SubjectImages
                 avgf.img = avgf.img + nextf.img;
             end
             avgf.img = avgf.img / length(this.product_);
-            avgf.fileprefix = [avgf.fileprefix '_avg'];
+            avgf.fileprefix = [this.scrubSNumber(avgf.fileprefix) '_avg'];
             this.product_ = {mlfourd.ImagingContext(avgf)};
-        end
+        end           
         function [sessd,acopy] = refreshTracerResolvedFinal(this, sessd, sessdRef, varargin)
             %  @param sessionData.
             %  @param sessionData of reference.
@@ -179,16 +190,17 @@ classdef SubjectImages
                 meth = 'tracerResolvedFinal';
             else
                 meth = 'tracerResolvedFinalSumt';
+                mlfourdfp.T4ResolveBuilder.ensureSumtSaved(sessd.(meth));
             end
             
             [sessd,sessdRef] = this.ensureRefreshedTracerResolvedFinal(sessd, sessdRef, meth); 
             ensuredir(sessdRef.vallLocation);
-            cwd = pushd(sessdRef.vallLocation);
+            pwd0 = pushd(sessdRef.vallLocation);
             acopy = this.frontOfFileprefixR1(sessd.(meth)('typ','fqfp'), ip.Results.sumt);
             if (~lexist_4dfp(acopy))
                 this.buildVisitor_.copy_4dfp(sessd.(meth)('typ','fqfp'), acopy);
             end
-            popd(cwd);
+            popd(pwd0);
             
             acopy = fullfile(sessdRef.vallLocation, acopy);
         end
@@ -210,7 +222,7 @@ classdef SubjectImages
             parse(ip, imgsSumt, varargin{:});
             
             assert(iscell(imgsSumt));
-            cwd = pushd(fileparts(imgsSumt{1}));
+            pwd0 = pushd(fileparts(imgsSumt{1}));
             this.sessionData_.compAlignMethod = ip.Results.compAlignMethod;
             cRB = mlfourdfp.CompositeT4ResolveBuilder( ...
                 'sessionData', this.sessionData_, ...
@@ -218,7 +230,7 @@ classdef SubjectImages
                 'maskForImages', ip.Results.maskForImages, ...
                 'resolveTag', ip.Results.resolveTag, ...
                 'NRevisions', ip.Results.NRevisions, ...
-                'logPath', ensuredir(fullfile(cwd, 'Log', '')));
+                'logPath', ensuredir(fullfile(this.sessionData_.vallLocation, 'Log', '')));
             cRB.neverTouchFinishfile = true;
             cRB.ignoreFinishfile = true;
             this.cRB_ = cRB.resolve; 
@@ -226,7 +238,7 @@ classdef SubjectImages
             this.product_ = this.cRB_.product;
             this.areAligned_ = true;
             this.saveThis('resolve_this');
-            popd(cwd);            
+            popd(pwd0);            
         end
         function this = resolveVM(this, imgsSumt, varargin)
             %  @param imgsSumt = cell(Nvisits, Nscans) of char fqfp.
@@ -246,7 +258,7 @@ classdef SubjectImages
             parse(ip, imgsSumt, varargin{:});
             
             assert(iscell(imgsSumt));
-            cwd = pushd(fileparts(imgsSumt{1}));
+            pwd0 = pushd(fileparts(imgsSumt{1}));
             this.sessionData_.compAlignMethod = ip.Results.compAlignMethod;
             vmRB = mlfourdfp.VariableMaskT4ResolveBuilder( ...
                 'sessionData', this.sessionData_, ...
@@ -254,7 +266,7 @@ classdef SubjectImages
                 'maskForImages', ip.Results.maskForImages, ...
                 'resolveTag', ip.Results.resolveTag, ...
                 'NRevisions', ip.Results.NRevisions, ...
-                'logPath', ensuredir(fullfile(cwd, 'Log', '')));
+                'logPath', ensuredir(fullfile(this.sessionData_.vallLocation, 'Log', '')));
             vmRB.neverTouchFinishfile = true;
             vmRB.ignoreFinishfile = true;
             this.cRB_ = vmRB.resolve; 
@@ -262,7 +274,7 @@ classdef SubjectImages
             this.product_ = this.cRB_.product;
             this.areAligned_ = true;
             this.saveThis('resolveVM_this');
-            popd(cwd);            
+            popd(pwd0);            
         end
         function        save(this)
             for p = 1:length(this.product)
@@ -279,7 +291,7 @@ classdef SubjectImages
         function imgs = sourceImages(this, tracer, varargin)
             %  @param tracer is char.
             %  @param optional sumt is boolean.
-            %  @return imgs = cell(Nvisits, Nscans) of char in location acopy from this.refreshTracerResolvedFinal.
+            %  @return imgs = cell(1, N(available images)) of char in location acopy from this.refreshTracerResolvedFinal.
             
             ip = inputParser;
             addOptional(ip, 'sumt', false, @islogical);
@@ -289,14 +301,14 @@ classdef SubjectImages
             sessd.tracer = upper(tracer);  
             sessd.rnumber = this.rnumberOfSource_;
             
-            found    = strfind(this.census_.t4ResolvedCompleteWithAC, this.tracerAbbrev(tracer));  
-            foundmat = cell2mat(found);
+            found    = strfind(this.census_.t4ResolvedCompleteWithAC, this.tracerAbbrev(tracer)); % cell \otimes double
             anyfound = cell2mat(cellfun(@(x) ~isempty(x), found, 'UniformOutput', false));            
             sid      = this.census_.subjectID(anyfound);
             v        = this.census_.v_(anyfound);
-            imgs     = cell(size(foundmat));
-            for i = 1:size(foundmat,1)
-                for j = 1:size(foundmat,2)
+            imgs     = {};
+            k        = 1;
+            for i = 1:length(found)
+                for j = 1:length(found{i})
                     try
                         sessd.sessionFolder = sid{i};
                         sessd.vnumber = v(i);
@@ -304,13 +316,14 @@ classdef SubjectImages
                             sessd.snumber = 1;
                         else
                             sessd.snumber = ...
-                                str2double(this.census_.t4ResolvedCompleteWithAC{i}(foundmat(i,j)+1));
+                                str2double(this.census_.t4ResolvedCompleteWithAC{i}(found{i}(j)+1));
                         end
                         if (1 == i && 1 == j)
                             sessdRef = sessd;
                         end
                         [sessd,acopy] = this.refreshTracerResolvedFinal(sessd, sessdRef, ip.Results.sumt);
-                        imgs{i,j} = acopy;
+                        imgs{k} = acopy; %#ok<AGROW>
+                        k = k + 1;
                     catch ME
                         dispexcept(ME);
                     end
@@ -325,7 +338,7 @@ classdef SubjectImages
             
             assert(this.areAligned);  
             assert(~isempty(this.cRB_)); 
-            imgs     = reshape(this.sourceImages(tracer, false), 1, []); % dynamic images
+            imgs     = reshape(this.sourceImages(tracer, false), 1, []); % reshape should now be unnecessary
             
             this.product_ = cell(size(imgs));
             for i = 1:length(imgs)
@@ -437,6 +450,18 @@ classdef SubjectImages
                     sessd.(meth));                
             end  
         end
+        function fps = ics2fqfps(~, ics)
+            fps = cellfun(@(x) x.fqfileprefix, ics, 'UniformOutput', false);
+        end
+        function s = scrubSNumber(~, s)
+            tracers = {'oc' 'oo' 'ho'};
+            for t = 1:length(tracers)
+                pos = regexp(s, [tracers{t} '\d']);
+                for p = 1:length(pos)
+                    s = [s(pos:pos+1) s(pos+3:end)];
+                end
+            end
+        end 
         function ab = tracerAbbrev(~, tr)
             switch (upper(tr))
                 case {'OC' 'CO'}
