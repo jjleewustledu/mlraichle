@@ -25,11 +25,15 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
     methods (Static)   
         function those = alignCrossModal(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.alignCrossModal', varargin{:});
+                'mlraichle.TracerDirector.alignCrossModal', varargin{:}, 'visitsExpr', 'V1*', 'tracer', 'FDG');
         end
         function those = alignCrossModalPar(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsParSess( ...
-                @mlraichle.TracerDirector.alignCrossModal, varargin{:});
+                @mlraichle.TracerDirector.alignCrossModal, varargin{:}, 'visitsExpr', 'V1*', 'tracer', 'FDG');
+        end
+        function those = alignCrossModalRemotely(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
+                'mlraichle.TracerDirector.alignCrossModal', varargin{:}, 'visitsExpr', 'V1*', 'tracer', 'FDG');
         end
         
         function         cleanConverted(varargin)
