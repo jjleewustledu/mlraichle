@@ -53,24 +53,46 @@ classdef Test_SubjectImages < matlab.unittest.TestCase
         end
         function test_alignCrossModal(this)
             this.assertTrue(strcmpi(this.testObj.referenceTracer, 'FDG'));
-            [this.testObj,theFdg,theHo,theOo,theOc] = this.testObj.alignCrossModal;
+            this.testObj = this.testObj.alignCrossModal;
             this.testObj.view;
-            theHo.view;
-            theOo.view;
-            theOc.view;
-            theFdg.view;
+            cellfun(@(p) p.view, this.testObj.product, 'UniformOutput', false);
+        end
+        function test_alignCrossModalSubset(this)
+            this.testObj = this.testObj.alignCrossModalSubset;
+            this.testObj.view;         
         end
         function test_alignDynamicImages(this)
-            [this.testObj,theFdg,theHo,theOo,theOc] = this.testObj.alignCrossModal;      
-            [theFdg,theHo,theOo,theOc] = this.testObj.alignDynamicImages(theFdg,theHo,theOo,theOc);
-            v = mlfourdfp.Viewer;
-            v.view({theFdg.product{1},theHo.product{1},theOo.product{1},theOc.product{1}});
+            this.testObj = this.testObj.alignCrossModalSubset;      
+            this.testObj = this.testObj.alignDynamicImages;
+            this.testObj.view;
+        end
+        function test_alignFrameGroups(this)
+            this.testObj.alignFrameGroups('FDG', 1:8, 9:73);
+            disp(this.testObj.compositeRB.t4_resolve_err); % [NaN 0.140159562550168;0.140159562550168 NaN]
         end
         function test_alignOpT1001(this)
             return
             imgsSumt = reshape(this.testObj.sourceImages('FDG', true), 1, []);
             this.testObj.product = imgsSumt;
             this.testObj = this.testObj.alignOpT1001;
+            this.testObj.view;
+        end        
+        
+        function test_collectT4ResolveErrors(this)
+            errs = this.testObj_.collectT4ResolveErrors;
+            this.verifyTrue(isa(errs, 'containers.Map'));
+            pcolor(errs('fdge1'));
+            pcolor(errs('fdge2'));
+            pcolor(errs('fdge3'));
+            disp(  errs('fdge1to4'));
+            disp(  errs('fdgall'));
+            disp(  errs('hoall'));
+            disp(  errs('ooall'));
+            disp(  errs('ocall'));
+            disp(  errs('fhoc'));
+        end
+        function test_constructFramesSubset(this) % effective tests resolve
+            this.testObj = this.testObj.constructFramesSubset('FDG', 1:8);
             this.testObj.view;
         end
         function test_dropSumt(this)
@@ -110,6 +132,25 @@ classdef Test_SubjectImages < matlab.unittest.TestCase
             this.verifyEqual(acopy, fullfile(sd.vallLocation, 'fdgv1r1_sumt'));
             %disp(r)
         end
+        function test_selectT4s(this)
+            cross = this.testObj.alignCrossModalSubset;  
+            
+            % select source 
+            c = cross.selectT4s('sourceTracer', 'OC');
+            this.verifyEqual(c{1}{1}, 'ocv1r1_sumtr1_op_ocv1r1_avg_sqrtr1_to_op_fdgv1r1_t4');
+            c = cross.selectT4s('sourceTracer', 'FDG');
+            this.verifyEqual(c{1}{1}, 'fdgv1r1_op_fdgv1r1_frames1to8_sumt_avgr1_to_op_fdgv1r1_t4');
+            
+            % select dest
+            c = cross.selectT4s('destTracer', 'FDG');
+            this.verifyEqual(c{1}{1}, 'fdgv1r1_op_fdgv1r1_frames1to8_sumt_avgr1_to_op_fdgv1r1_t4');
+            this.verifyEqual(c{1}{2}, 'ocv1r1_sumtr1_op_ocv1r1_avg_sqrtr1_to_op_fdgv1r1_t4');
+            
+            % null results
+            this.verifyTrue(isempty(cross.selectT4s('sourceTracer', 'HO')));    
+            this.verifyTrue(isempty(cross.selectT4s('destTracer',   'OC')));
+            this.verifyTrue(isempty(cross.selectT4s('destTracer',   'HO')));
+        end
         function test_sourceImages(this)
             imgs = this.testObj.sourceImages('FDG', true);
             this.verifyEqual(imgs{1}, fullfile(this.sessd.vallLocation,'fdgv1r1_sumt'));
@@ -122,8 +163,28 @@ classdef Test_SubjectImages < matlab.unittest.TestCase
             %disp(imgs)
         end
         function test_t4imgDynamicImages(this)
+        end        
+        function test_t4mulR(this)
+            p = {[] []};
+            fv = mlfourdfp.FourdfpVisitor;
+            copyfile(fv.transverse_t4, 'testsrc_to_testdest_t4', 'f');
+            copyfile(fv.transverse_t4, 'testdest_to_testdest2_t4', 'f');
+            t{1} = {'testsrc_to_testdest_t4' 'testsrc_to_testdest_t4'};
+            this.testObj = this.testObj.prepare_test_t4mulR(this.testObj, p, t);            
+            mulled = this.testObj.t4mulR('testdest_to_testdest2_t4'); 
+            this.verifyEqual(mulled{1}{1}, 'testsrc_to_testdest2_t4');
+            this.verifyEqual(mulled{1}{2}, 'testsrc_to_testdest2_t4');
+            mlbash(['cat ' mulled{1}{1}], 'echo', true);
         end
-        function test_t4mulR(this)            
+        function test_t4imgc(this) 
+            fv = mlfourdfp.FourdfpVisitor;
+            t4form = 'test_t4imgc_to_test_t4imgc_t4'; % file for identity
+            copyfile(fv.transverse_t4, t4form, 'f');
+            
+            cross = this.testObj.alignCrossModalSubset;
+            prod0 = cross.product;
+            cross = cross.t4imgc(t4form, cross.product);
+            mlfourdfp.Viewer.view([prod0 cross.product]);   
         end
 	end
 
@@ -143,6 +204,7 @@ classdef Test_SubjectImages < matlab.unittest.TestCase
 		function setupSubjectImagesTest(this)
  			this.testObj = this.testObj_;
  			this.addTeardown(@this.cleanFiles);
+            cd(this.sessd.vallLocation);
  		end
     end
 

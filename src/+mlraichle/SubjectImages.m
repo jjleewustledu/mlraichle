@@ -6,6 +6,11 @@ classdef SubjectImages
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.4.0.813654 (R2018a) for MACI64.  Copyright 2018 John Joowon Lee.
  	
+    
+    properties (Constant)
+        DISABLE_FINISHFILE = true % to load t4 files into class instances
+    end
+    
 	properties (Dependent)
  		areAligned
         compositeRB
@@ -14,8 +19,8 @@ classdef SubjectImages
         referenceTracer        
         sessionData
         t4s
- 	end
-
+    end
+    
 	methods 
         
         %% GET, SET
@@ -36,6 +41,10 @@ classdef SubjectImages
         end
         function g = get.referenceTracer(this)
             g = this.referenceTracer_;
+        end
+        function this = set.referenceTracer(this, s)
+            assert(ischar(s));
+            this.referenceTracer_ = s;
         end
         function g = get.product(this)
             g = this.product_;
@@ -61,53 +70,93 @@ classdef SubjectImages
             this.referenceTracer_ = lower(tracer);
             this = this.resolve(imgsSumt, varargin{:});
         end
-        function [this,theFdg,theHo,theOo,theOc] = alignCrossModal(this)
+        function this = alignCrossModal(this) % ,theFdg,theHo,theOo,theOc
+            ensuredir(this.sessionData.vallLocation);
+            pwd0 = pushd(this.sessionData.vallLocation);            
             theHo  = this.alignCommonModal('HO');
-            theHo  = theHo.productAverage;     
-            theHo.saveThis('alignCrossModal_theHo');
-            theHo.save;
+            theHo  = theHo.productAverage;            
             theOo  = this.alignCommonModal('OO');
-            theOo  = theOo.productAverage;  
-            theOo.saveThis('alignCrossModal_theOo');        
-            theOo.save;
-            theOc  = this.alignCommonModal('OC');            
-            theOc  = theOc.productAverage;
-            theOc.saveThis('alignCrossModal_theOc');
-            theOc.save;
+            theOo  = theOo.productAverage; 
             theFdg = this.alignCommonModal('FDG');
             theFdg = theFdg.productAverage;
-            theFdg.saveThis('alignCrossModal_theFdg');
-            theFdg.save;
             this = theFdg;
 
             imgs = {theFdg.product{1}.fqfileprefix ...
                     theHo.product{1}.fqfileprefix ...
-                    theOo.product{1}.fqfileprefix ...
-                    theOc.product{1}.fqfileprefix}; % product averages
-            this = this.resolveVM(imgs, 'compAlignMethod', 'align_crossModal');
+                    theOo.product{1}.fqfileprefix}; % product averages
+            this = this.resolve(imgs, ...
+                'compAlignMethod', 'align_crossModal', ...
+                'NRevisions', 1, ...
+                'maskForImages', 'Msktgen');
             this.saveThis('alignCrossModal_this');
+            this.alignDynamicImages('commonRef', theHo,  'crossRef', this);
+            this.alignDynamicImages('commonRef', theOo,  'crossRef', this);
+            this.alignDynamicImages('commonRef', theFdg, 'crossRef', this);
+            popd(pwd0);    
+            
+            that = this.alignCrossModalSubset;
+            this.product_ = [this.product that.product];
         end
-        function this = alignCrossModal2(this)
-            pwd0 = pushd(this.sessionData.vallLocation);
-            this.buildVisitor_.sqrt_4dfp('oc1v1r1_sumtr1_op_ocv1r1_avg');
-            imgs = {'fdgv1r1_sumtr1_op_fdgv1r1_avg' ...
-                    'ho2v1r1_sumtr1_op_hov1r1_avg' ...
-                    'oo1v1r1_sumtr1_op_oov1r1_avg' ...
-                    'oc1v1r1_sumtr1_op_ocv1r1_avg_sqrt'}; % product averages
-            this = this.resolveVM(imgs, 'compAlignMethod', 'align_crossModal');
-            this.saveThis('alignCrossModal_this');
+        function this = alignCrossModalSubset(this)
+            pwd0   = pushd(this.sessionData.vallLocation);                     
+            theFdg = this.constructFramesSubset('FDG', 1:8);
+            theOc  = this.alignCommonModal('OC');
+            theOc  = theOc.productAverage;
+            theOc  = theOc.sqrt;
+            
+            imgs = {theFdg.product{1}.fqfileprefix ...
+                    theOc.product{1}.fqfileprefix};            
+            this = this.resolve(imgs, ...
+                'compAlignMethod', 'align_crossModal', ...
+                'NRevisions', 1, ...
+                'maskForImages', 'none');
+            this.saveThis('alignCrossModalSubset_this');
+            this.alignDynamicImages('commonRef', theOc,  'crossRef', this);
             popd(pwd0);
         end
-        function varargout = alignDynamicImages(this, varargin)
-            %% ALIGNDYNAMICIMAGES aligns tracer-averages to this.referenceImage.
-            %  this := alignCrossModal tracer-averages
-            %  varargin := tracer-average instances of SubjectImages
+        function this = alignCrossModalVM(this)
+            pwd0 = pushd(this.sessionData.vallLocation);
+            this.buildVisitor_.sqrt_4dfp('ocv1r1_sumtr1_op_ocv1r1_avg');
+            imgs = {'fdgv1r1_sumtr1_op_fdgv1r1_avg' ...
+                    'hov1r1_sumtr1_op_hov1r1_avg' ...
+                    'oov1r1_sumtr1_op_oov1r1_avg' ...
+                    'ocv1r1_sumtr1_op_ocv1r1_avg_sqrt'}; % product averages
+            this = this.resolveVM(imgs, 'compAlignMethod', 'align_crossModal');
+            this.saveThis('alignCrossModalVM_this');
+            popd(pwd0);
+        end
+        function this = alignDynamicImages(this, varargin)
+            %% ALIGNDYNAMICIMAGES aligns commona-modal source dynamic images to a cross-modal reference.
+            %  @param commonRef, or common-modal reference, e.g., any of OC, OO, HO, FDG.
+            %  @param crossRef,  or cross-modal reference, e.g., FDG.
+            %  @return this.product := dynamic images aligned to a cross-modal reference is saved to the filesystem.
             
-            u = 1;
-            for v = 1:length(varargin)
-                intermed = varargin{v}.t4mulR(this.t4s_{u}{v});
-                varargout{v} = intermed.t4imgDynamicImages; %#ok<AGROW>
-            end
+            %  TODO:  manage case of homo-tracer subsets
+            
+            ip = inputParser;
+            addParameter(ip, 'commonRef', [], @(x) isa(x, 'mlraichle.SubjectImages'));
+            addParameter(ip, 'crossRef',  [], @(x) isa(x, 'mlraichle.SubjectImages'));
+            parse(ip, varargin{:});
+            comm  = ip.Results.commonRef;
+            cross = ip.Results.crossRef;
+            
+            pwd0 = pushd(this.sessionData.vallLocation);            
+            comm = comm.t4imgDynamicImages; % comm.product := dynamic aligned to time-summed comm.product{1}
+            t4form = comm.t4mulR( ...
+                cross.selectT4s('sourceTracer', comm.referenceTracer)); % construct t4s{r} for comm.product to cross.product{1}
+            cross = cross.t4imgc(t4form, comm.product);            
+            this.product_ = cross.product;    
+            this.save;
+            popd(pwd0);
+        end
+        function this = alignFrameGroups(this, tracer, frames1, frames2, varargin)
+            assert(ischar(tracer));
+            assert(isnumeric(frames1));
+            assert(isnumeric(frames2));
+            
+            g1 = this.constructFramesSubset(tracer, frames1, varargin{:});
+            g2 = this.constructFramesSubset(tracer, frames2, varargin{:});
+            this = this.resolve({g1.product{1} g2.product{1}}, varargin{:});
         end
         function this = alignOpT1001(this, varargin)
             %  @param this.product.
@@ -116,6 +165,57 @@ classdef SubjectImages
             assert(lexist_4dfp('T1001'));
             imgs = ['T1001' cellfun(@(x) x.fqfileprefix, this.product, 'UniformOutput', false)];
             this = this.resolve(imgs, 'NRevisions', 1);
+        end
+        
+        function errs = collectT4ResolveErrors(this, varargin)
+            %% COLLECTT4RESOLVEERRORS estimates t4_resolve discrepencies from t4 files associated with a tracer.
+            %  Use cases include:  FDG_V1-AC/E1/fdgv1e1r2
+            %  @param implicit this.sessionData.
+            %  @param named imagingContext is an mlfourd.ImagingContext; default is this.product{1}.
+            %  @return errs as a containers.Map which has numeric values.
+            
+            icDefault = this.product_{1};
+            ip = inputParser;
+            addParameter(ip, 'imagingContext', icDefault, @(x) isa(x, 'mlfourd.ImagingContext'));
+            parse(ip, varargin{:});
+            %ic = ip.Results.imagingContext;
+            
+            errs = containers.Map;
+            %errs('') = ;
+        end
+        function this = constructFramesSubset(this, tracer, frames, varargin)
+            assert(ischar(tracer));
+            assert(isnumeric(frames));
+            
+            pwd0 = pushd(this.sessionData.vallLocation);
+            this = this.alignCommonModal(tracer, varargin{:});
+            this = this.t4imgDynamicImages(tracer);
+            for d = 1:length(this.product)
+                nn = this.product_{d}.numericalNiftid;
+                assert(frames(end) <= size(nn, 4));
+                nn.img = nn.img(:,:,:,frames);
+                nn.filepath = this.sessionData.vallLocation;
+                nn.filename = sprintf('%s_frames%ito%i.4dfp.ifh', nn.fileprefix, frames(1), frames(end));
+                nn = nn.timeSummed;
+                nn.save;
+                this.product{d} = mlfourd.ImagingContext(nn);
+            end   
+            this = this.productAverage;
+            popd(pwd0);
+        end
+        function ref  = constructRefFramesSubset(this, frames)
+            %% CONSTRUCTFRAMESSUBSET from this.sessionData_.tracerResolvedFinal.
+            
+            sd2 = this.sessionData_; sd2.rnumber = 2;
+            ref = sd2.tracerResolvedFinal('typ', 'mlfourd.ImagingContext');
+            nn  = ref.numericalNiftid;
+            assert(frames(end) <= size(nn, 4));
+            nn.img = nn.img(:,:,:,frames);
+            nn.filepath = pwd;
+            nn.filename = sprintf('%s_frames%ito%i.4dfp.ifh', nn.fileprefix, frames(1), frames(end));
+            nn = nn.timeSummed;
+            nn.save;
+            ref = nn.fqfileprefix;
         end
         function fqfn = dropSumt(this, fqfn)
             
@@ -175,6 +275,7 @@ classdef SubjectImages
             avgf.img = avgf.img / length(this.product_);
             avgf.fileprefix = [this.scrubSNumber(avgf.fileprefix) '_avg'];
             this.product_ = {mlfourd.ImagingContext(avgf)};
+            this.save;
         end           
         function [sessd,acopy] = refreshTracerResolvedFinal(this, sessd, sessdRef, varargin)
             %  @param sessionData.
@@ -222,6 +323,9 @@ classdef SubjectImages
             parse(ip, imgsSumt, varargin{:});
             
             assert(iscell(imgsSumt));
+            if (isa(imgsSumt{1}, 'mlfourd.ImagingContext'))
+                imgsSumt = cellfun(@(x) x.fqfileprefix, imgsSumt, 'UniformOutput', false);
+            end
             pwd0 = pushd(fileparts(imgsSumt{1}));
             this.sessionData_.compAlignMethod = ip.Results.compAlignMethod;
             cRB = mlfourdfp.CompositeT4ResolveBuilder( ...
@@ -231,8 +335,8 @@ classdef SubjectImages
                 'resolveTag', ip.Results.resolveTag, ...
                 'NRevisions', ip.Results.NRevisions, ...
                 'logPath', ensuredir(fullfile(this.sessionData_.vallLocation, 'Log', '')));
-            cRB.neverTouchFinishfile = true;
-            cRB.ignoreFinishfile = true;
+            cRB.neverTouchFinishfile = this.DISABLE_FINISHFILE;
+            cRB.ignoreFinishfile = this.DISABLE_FINISHFILE;
             this.cRB_ = cRB.resolve; 
             this.t4s_ = this.cRB_.t4s;
             this.product_ = this.cRB_.product;
@@ -254,7 +358,7 @@ classdef SubjectImages
             addParameter(ip, 'maskForImages', 'Msktgen');
             addParameter(ip, 'resolveTag', ...
                 sprintf('op_%sv%ir1', lower(this.referenceTracer), this.sessionData_.vnumber), @ischar);
-            addParameter(ip, 'compAlignMethod', 'align_commonModal7', @ischar);
+            addParameter(ip, 'compAlignMethod', 'align_crossModal', @ischar);
             parse(ip, imgsSumt, varargin{:});
             
             assert(iscell(imgsSumt));
@@ -278,6 +382,7 @@ classdef SubjectImages
         end
         function        save(this)
             for p = 1:length(this.product)
+                this.product{p}.filesuffix = '.4dfp.ifh';
                 this.product{p}.save;
             end
         end
@@ -287,6 +392,40 @@ classdef SubjectImages
             parse(ip, varargin{:});
             fn = sprintf('mlraichle_SubjectImages_%s_this.mat', ip.Results.client);
             save(fn, 'this')
+        end
+        function ts   = selectT4s(this, varargin)
+            %  @param this.NRevision == 1.
+            %  @param named sourceTracer specifies a key for lstrfind on the source term of parseFilenanmeT4(this.t4s),
+            %  for parseFilenanmeT4 in this.buildVisitor_.
+            %  @param named destTracer specifies a key for the dest term, respectively.
+            %  @return subset of this.t4s containing matching keys.  For no matches, return {}, never {{}}.  
+            
+            ip = inputParser;
+            addParameter(ip, 'sourceTracer', '', @ischar);
+            addParameter(ip, 'destTracer',   '', @ischar);
+            parse(ip, varargin{:});
+            srcTr  = lower(ip.Results.sourceTracer);
+            destTr = lower(ip.Results.destTracer);            
+            
+            % trivial case
+            if (isempty(srcTr) && isempty(destTr))
+                ts = {};
+                return
+            end   
+            
+            ts = cell(1,this.compositeRB.NRevisions);
+            r = 1;
+            ts{r} = {};
+            for it = 1:length(this.t4s{r})
+                [s,d] = this.buildVisitor_.parseFilenameT4(this.t4s{r}{it});
+                if (lstrfind(s, srcTr) || lstrfind(d, destTr))
+                    ts{r} = [ts{r} this.t4s{r}{it}];
+                end
+            end            
+            % simplify ts = {{}} to be equivalent to trival case
+            if (1 == length(ts) && isempty(ts{1}))
+                ts = {};
+            end
         end
         function imgs = sourceImages(this, tracer, varargin)
             %  @param tracer is char.
@@ -330,18 +469,60 @@ classdef SubjectImages
                 end
             end
         end
-        function this = t4imgDynamicImages(this)
-            %% T4IMGDYNAMICIMAGES applies accumulated this.t4s_, typically obtained from time-sums,
-            %  to the dynamic sources of the time-sums.  
-            %  @param this.cRB_ and this.t4s_ obtained from an align* method.  
-            %  Any NRevision > 1 is managed by this.cRB_. 
+        function this = sqrt(this)
+            for p = 1:length(this.product)                
+                this.product_{p} = mlfourd.ImagingContext( ...
+                    this.buildVisitor_.sqrt_4dfp(this.product{p}.fqfileprefix));
+            end
+        end
+        function this = t4imgc(this, varargin)
+            %% T4IMGC:  c denotes "cell"
+            %  @param required t4s is char or cell.
+            %  @param required sources is cell.
+            %  @param named ref is char or ImagingContext.
+            %  @return this.product is cell of ImagingContext.
             
+            ip = inputParser;
+            addRequired(ip, 't4s', @(x) ischar(x) || iscell(x));
+            addRequired(ip, 'sources', @iscell);
+            addParameter(ip, 'ref', varargin{2}{1}, @(x) ischar(x) || isa(x, 'mlfourd.ImagingContext'));
+            parse(ip, varargin{:});
+            ts = ip.Results.t4s;
+            if (ischar(ip.Results.t4s))                
+                ts = {repmat({ts}, size(ip.Results.sources))}; % t4{1}{} := 'source_to_dest_t4'
+            end
+            ref = ip.Results.ref;
+            if (isa(ref, 'mlfourd.ImagingContext'))
+                ref = ref.fqfileprefix;
+            end
+            
+            this.product_ = cell(size(ts{1}));
+            r = 1;
+            for i = 1:length(this.product_)
+                this.product_{i} = mlfourd.ImagingContext( ...
+                    this.buildVisitor_.t4img_4dfp( ...
+                        ts{r}{i}, ip.Results.sources{i}.fqfileprefix, 'options', ['-O' ref]));
+            end
+        end
+        function this = t4imgDynamicImages(this, varargin)
+            %% T4IMGDYNAMICIMAGES applies accumulated this.t4s_, typically obtained from time-sums,
+            %  to dynamic sources of the time-sums specified by parameter tracer.  
+            %  @param optional tracer has default := this.referenceTracer.
+            %  @param {this.cRB_ this.t4s_} := align* method.  NRevision >= 1 is managed by this.cRB_. 
+            %  @return this.product_ := {dynamic sources for tracer}
+            
+            ip = inputParser;
+            addOptional(ip, 'tracer', this.referenceTracer, @ischar);
+            parse(ip, varargin{:});
             assert(this.areAligned);  
             assert(~isempty(this.cRB_)); 
-            imgs     = reshape(this.sourceImages(tracer, false), 1, []); % reshape should now be unnecessary
+            assert(~isempty(this.t4s_)); 
             
+            imgs = reshape(this.sourceImages(ip.Results.tracer, false), 1, []); % reshape should now be unnecessary            
             this.product_ = cell(size(imgs));
             for i = 1:length(imgs)
+                %disp(this.t4s_{1}{i})
+                %disp(this.frontOfFileprefixR1(imgs{i}))
                 this.cRB_ = this.cRB_.t4img_4dfp( ...
                     this.t4s_{1}{i}, ...
                     this.frontOfFileprefixR1(imgs{i}), ...
@@ -350,18 +531,30 @@ classdef SubjectImages
                 this.product_{i} = this.cRB_.product;
             end        
         end
-        function this = t4mulR(this, t4R)
-            %% T4MULR updates this.t4s_ by right-multiplication.
+        function [t4form,this] = t4mulR(this, t4R)
+            %% T4MULR updates this.t4s_ with right-multiplication by the first t4 found in t4R.
             %  r := 1
             %  foreach p in this.product
-            %      this.t4s_{p} := this.t4s_{p} * t4R            
+            %      this.t4s_{p} := this.t4s_{p} * t4R    
+            %
+            %  @param t4R is char, cell.
+            %  @return t4form has form of this.t4s_.
+            
+            if (iscell(t4R)) % KLUDGE to extract the t4 filename
+                t4R = t4R{1};
+                if (iscell(t4R))
+                    t4R = t4R{1};
+                    assert(ischar(t4R));
+                end
+            end
             
             r = 1;
-            for p = 1:size(this.product)
+            for p = 1:length(this.product)
                 this.t4s_{r}{p} = this.buildVisitor_.t4_mul( ...
                     this.t4s_{r}{p}, t4R);
             end
-        end
+            t4form = this.t4s_;
+        end        
         function view(this)
             mlfourdfp.Viewer.view(this.product);
         end
@@ -475,6 +668,15 @@ classdef SubjectImages
                 otherwise
                     error('mlraichle:unsupportedSwitchCase', 'SubjectImages.traerAbbrev.tr->%s', tr);
             end
+        end
+    end
+    
+    %% HIDDEN
+
+    methods (Static, Hidden)
+        function this = prepare_test_t4mulR(this, prod, t4s)
+            this.product_ = prod;
+            this.t4s_ = t4s;
         end
     end
 
