@@ -18,7 +18,7 @@ classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2018 John Joowon Lee.
  	
     properties         
-        fqfilenameDefault = fullfile(getenv('HOME'), 'Documents', 'private', 'census 2018may2.xlsx');
+        fqfilenameDefault = mlraichle.SessionData.STUDY_CENSUS_XLSX;
     end
     
 	properties (Dependent)
