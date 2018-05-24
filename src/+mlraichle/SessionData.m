@@ -162,7 +162,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function g = get.rawdataDir(this)
             g = this.studyData_.rawdataDir;
         end 
-        function g = get.studyCensusXlsx(this) %#ok<MANU>
+        function g = get.studyCensusXlsx(this) 
             g = this.STUDY_CENSUS_XLSX;
         end
         function g = get.supEpoch(this)
@@ -186,9 +186,20 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             g = [];
             that = this;
             that.rnumber = 1;
+            if (lexist(that.tracerResolvedFinal))
+                sz = that.size_4dfp(that.tracerResolvedFinal('typ','fqfp'));
+                g = 1:sz(4);
+                return
+            end
+            if (lexist(that.tracerResolved))
+                sz = that.size_4dfp(that.tracerResolved('typ','fqfp'));
+                g = 1:sz(4);
+                return
+            end
             if (lexist(that.tracerRevision))
                 sz = that.size_4dfp(that.tracerRevision('typ','fqfp'));
                 g = 1:sz(4);
+                return
             end
         end
         function g = get.taus(this)
@@ -342,7 +353,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end
         function obj  = T1001(this, varargin)
             fqfn = fullfile(this.vLocation, ['T1001' this.filetypeExt]);
-            if (~lexist(fqfn, 'file'))
+            if (~lexist(fqfn, 'file') && isdir(this.freesurferLocation))
                 mic = T1001@mlpipeline.SessionData(this, 'typ', 'mlmr.MRImagingContext');
                 mic.niftid;
                 mic.saveas(fqfn);
@@ -928,9 +939,9 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         studyCensus_
         supEpoch_
         taus_FDG_NAC_ = [30,30,30,30,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
-        % length -> 65        
+        % length -> 65 <- 30*10 + 55*60      
         taus_FDG_AC_ = [10,10,10,10,10,10,10,10,10,10,10,10,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
-        % length -> 73
+        % length -> 73 <- 12*10 + 30*6 + 55*60
     end
     
     methods (Access = protected)
