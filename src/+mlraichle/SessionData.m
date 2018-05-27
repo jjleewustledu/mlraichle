@@ -184,21 +184,19 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end
         function g = get.tauIndices(this)
             g = [];
-            that = this;
-            that.rnumber = 1;
-            if (lexist(that.tracerResolvedFinal))
-                sz = that.size_4dfp(that.tracerResolvedFinal('typ','fqfp'));
+
+            % tracerResolvedFinal depends on get.tauIndices
+            % tracerResolved is malformed:  2018may25
+            ref = this.tracerPristine('typ','fqfp');
+            if (lexist_4dfp(ref))
+                sz = this.size_4dfp(ref);
                 g = 1:sz(4);
-                return
-            end
-            if (lexist(that.tracerResolved))
-                sz = that.size_4dfp(that.tracerResolved('typ','fqfp'));
-                g = 1:sz(4);
-                return
-            end
-            if (lexist(that.tracerRevision))
-                sz = that.size_4dfp(that.tracerRevision('typ','fqfp'));
-                g = 1:sz(4);
+                
+                %% KLUDGE
+                if (length(g) > 73)
+                    g = 1:73;
+                end
+                
                 return
             end
         end
@@ -206,7 +204,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             if (~this.attenuationCorrected)
                 switch (upper(this.tracer))
                     case 'FDG'
-                        g = this.taus_FDG_NAC_;
+                        g = [30,30,30,30,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
+                        % length -> 65 <- 30*10 + 55*60
                     case {'OC' 'CO'}
                         g = [30,30,30,30,30,30,30,30,30,30,30,30,30,30];
                         % length -> 14
@@ -222,7 +221,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             else            
                 switch (upper(this.tracer))
                     case 'FDG'
-                        g = this.taus_FDG_AC_;
+                        g = [10,10,10,10,10,10,10,10,10,10,10,10,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
+                        % length -> 73 <- 12*10 + 30*6 + 55*60
                     case {'OC' 'CO'}
                         g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
                         % length -> 70
@@ -561,6 +561,15 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 sprintf('%s%s_V%i-LM-00-OP%s', ...
                     ipr.tracer, schar, this.vnumber, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:}, 'frame', this.frame);
+        end        
+        function obj  = tracerPristine(this, varargin)   
+            this.epoch = [];
+            this.rnumber = 1;
+            [ipr,schar] = this.iprLocation(varargin{:});
+            fqfn = fullfile( ...
+                this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
+                sprintf('%s%sv%ir1%s', lower(ipr.tracer), schar, this.vnumber, this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerResolved(this, varargin)
             fqfn = sprintf('%s_%s%s', this.tracerRevision('typ', 'fqfp'), this.resolveTag, this.filetypeExt);
@@ -685,7 +694,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerRevision(this, varargin)
-            %  @param rLabel may be useful for generating files such as '*r1r2_to_resolveTag_t4'.
+            %  @param named rLabel is char and overrides any specifications of r-number;
+            %  it may be useful for generating filenames such as '*r1r2_to_resolveTag_t4'.
             
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -695,7 +705,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             [ipr,schar] = this.iprLocation(varargin{:});
             fqfn = fullfile( ...
                 this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
-                sprintf('%s%sv%i%s%s', lower(ipr.tracer), schar, this.vnumber, this.epochLabel, ip.Results.rLabel, this.filetypeExt));
+                sprintf('%s%sv%i%s%s%s', lower(ipr.tracer), schar, this.vnumber, this.epochLabel, ip.Results.rLabel, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerRevisionSumt(this, varargin)
@@ -938,10 +948,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
     properties (Access = protected)
         studyCensus_
         supEpoch_
-        taus_FDG_NAC_ = [30,30,30,30,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
-        % length -> 65 <- 30*10 + 55*60      
-        taus_FDG_AC_ = [10,10,10,10,10,10,10,10,10,10,10,10,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
-        % length -> 73 <- 12*10 + 30*6 + 55*60
     end
     
     methods (Access = protected)
