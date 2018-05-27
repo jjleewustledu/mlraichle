@@ -68,7 +68,7 @@ classdef SubjectImages
             imgsSumt = reshape(this.sourceImages(tracer, true), 1, []); % reshape should now be unnecessary
             this.sessionData_.tracer = upper(tracer);
             this.referenceTracer_ = lower(tracer);
-            this = this.resolve(imgsSumt, varargin{:});
+            this = this.resolve(imgsSumt, varargin{:}); 
         end
         function this = alignCrossModal(this) % ,theFdg,theHo,theOo,theOc
             ensuredir(this.sessionData.vallLocation);
@@ -100,7 +100,7 @@ classdef SubjectImages
         function this = alignCrossModalSubset(this)
             pwd0   = pushd(this.sessionData.vallLocation);                     
             theFdg = this.constructFramesSubset('FDG', 1:8);
-            theOc  = this.alignCommonModal('OC');
+            theOc  = this.alignCommonModal('OC'); 
             theOc  = theOc.productAverage;
             theOc  = theOc.sqrt;
             
@@ -167,22 +167,6 @@ classdef SubjectImages
             this = this.resolve(imgs, 'NRevisions', 1);
         end
         
-        function errs = collectT4ResolveErrors(this, varargin)
-            %% COLLECTT4RESOLVEERRORS estimates t4_resolve discrepencies from t4 files associated with a tracer.
-            %  Use cases include:  FDG_V1-AC/E1/fdgv1e1r2
-            %  @param implicit this.sessionData.
-            %  @param named imagingContext is an mlfourd.ImagingContext; default is this.product{1}.
-            %  @return errs as a containers.Map which has numeric values.
-            
-            icDefault = this.product_{1};
-            ip = inputParser;
-            addParameter(ip, 'imagingContext', icDefault, @(x) isa(x, 'mlfourd.ImagingContext'));
-            parse(ip, varargin{:});
-            %ic = ip.Results.imagingContext;
-            
-            errs = containers.Map;
-            %errs('') = ;
-        end
         function this = constructFramesSubset(this, tracer, frames, varargin)
             assert(ischar(tracer));
             assert(isnumeric(frames));
@@ -231,6 +215,25 @@ classdef SubjectImages
             end
             fqfn = fullfile(p, [f x]);
         end
+        function c    = extractCharFromNestedCells(this, c)
+            %% EXTRACTCHARFROMNESTEDCELLS
+            %  @param c is a cell or any valid argument for char().
+            %  @return c is char.
+            %  @throws exceptions of char.
+            
+            if (isempty(c))
+                c = '';
+                return
+            end
+            if (iscell(c))
+                % recursion
+                c = this.extractCharFromNestedCells(c{1});
+                return
+            end
+
+            % basecase
+            c = char(c);
+        end
         function front = frontOfFileprefix(this, fps, varargin) 
             %  @param fps is cell (recursive) or char (base-case).
             %  @param optional sumt is boolean.
@@ -264,7 +267,7 @@ classdef SubjectImages
                 this.frontOfFileprefix(fps, varargin{:}), 1);
         end
         function this = productAverage(this)
-            %  @param this.product_ is 1xN cell.
+            %  @param this.product_ is 1xN cell, N >= 1.
             %  @return this.product_ is 1x1 cell.
             
             avgf = this.product_{1}.fourdfp;
@@ -276,7 +279,46 @@ classdef SubjectImages
             avgf.fileprefix = [this.scrubSNumber(avgf.fileprefix) '_avg'];
             this.product_ = {mlfourd.ImagingContext(avgf)};
             this.save;
-        end           
+        end     
+        function ems  = reconstructErrMat(this, varargin)
+            %% RECONSTRUCTERRMAT estimates t4_resolve discrepencies from t4 files associated with a tracer.
+            %  Use cases include:  FDG_V1-AC/E1/fdgv1e1r2
+            %  @param named vReference is determined by mlraichle.StudyCensus and is numeric.
+            %  @param implicit this.sessionData.
+            %  @return ems as a containers.Map of error matrices which have numeric values.            
+            %  TODO:  replace hard-coded image-names with generalized references.
+            
+            ip = inputParser;
+            addParameter(ip, 'vReference', 1, @isnumeric);
+            parse(ip, varargin{:});
+            v = ip.Results.vReference;
+            
+            import mlfourdfp.*;
+            ems  = containers.Map;
+            sd   = this.sessionData;
+            pwd0 = pushd(sd.vallLocation);
+
+            [~,ems('fho')] = T4ResolveError.errorMat( ...
+                'sessionData', sd, ...
+                'theImages', { sprintf('fdgv1r1_sumtr1_op_fdgv1r1_avgr1') ...
+                               sprintf( 'hov1r1_sumtr1_op_hov1r1_avgr1') ...
+                               sprintf( 'oov1r1_sumtr1_op_oov1r1_avgr1') }); 
+            [~,ems('fc')] = T4ResolveError.errorMat( ...
+                'sessionData', sd, ...
+                'theImages', { sprintf('fdgv1r1_op_fdgv1r1_frames1to8_sumt_avgr1') ...
+                               sprintf('ocv1r1_sumtr1_op_ocv1r1_avg_sqrtr1') }); 
+            ems('fhoc') = this.reshapeEM4(ems('fho'), ems('fc'));
+            
+            tracers = {'FDG' 'HO' 'OO' 'OC'};
+            for it = 1:length(tracers)
+                sd.tracer = tracers{it};
+                [~,ems(sprintf('%sall', lower(sd.tracer)))] = T4ResolveError.errorMat( ...
+                    'sessionData', sd, ...
+                    'theImages', this.sourceImages(sd.tracer, true));
+            end
+
+            popd(pwd0);
+        end      
         function [sessd,acopy] = refreshTracerResolvedFinal(this, sessd, sessdRef, varargin)
             %  @param sessionData.
             %  @param sessionData of reference.
@@ -342,7 +384,7 @@ classdef SubjectImages
             this.product_ = this.cRB_.product;
             this.areAligned_ = true;
             this.saveThis('resolve_this');
-            popd(pwd0);            
+            popd(pwd0);
         end
         function this = resolveVM(this, imgsSumt, varargin)
             %  @param imgsSumt = cell(Nvisits, Nscans) of char fqfp.
@@ -520,6 +562,10 @@ classdef SubjectImages
             
             imgs = reshape(this.sourceImages(ip.Results.tracer, false), 1, []); % reshape should now be unnecessary            
             this.product_ = cell(size(imgs));
+            if (length(imgs) < 2)
+                this.product_{1} = mlfourd.ImagingContext([imgs{1} '.4dfp.ifh']);
+                return
+            end
             for i = 1:length(imgs)
                 %disp(this.t4s_{1}{i})
                 %disp(this.frontOfFileprefixR1(imgs{i}))
@@ -527,7 +573,7 @@ classdef SubjectImages
                     this.t4s_{1}{i}, ...
                     this.frontOfFileprefixR1(imgs{i}), ...
                     'ref', this.frontOfFileprefixR1(imgs{1}));
-                % sprintf('%sr0_to_%s_t4',  this.frontOfFileprefix(imgsSumt{i}, true), this.cRB_.resolveTag), ...
+                %sprintf('%sr0_to_%s_t4',  this.frontOfFileprefix(imgsSumt{i}, true), this.cRB_.resolveTag), ...
                 this.product_{i} = this.cRB_.product;
             end        
         end
@@ -535,26 +581,26 @@ classdef SubjectImages
             %% T4MULR updates this.t4s_ with right-multiplication by the first t4 found in t4R.
             %  r := 1
             %  foreach p in this.product
-            %      this.t4s_{p} := this.t4s_{p} * t4R    
+            %      this.t4s{r}{p} := t4_mul(this.t4s{r}{p}, t4R)    
             %
             %  @param t4R is char, cell.
-            %  @return t4form has form of this.t4s_.
+            %  @return t4form has form of this.t4s.  this.t4s{r}{p} or t4R may be the identity.
             
-            if (iscell(t4R)) % KLUDGE to extract the t4 filename
-                t4R = t4R{1};
-                if (iscell(t4R))
-                    t4R = t4R{1};
-                    assert(ischar(t4R));
-                end
-            end
-            
+            t4R = this.extractCharFromNestedCells(t4R);            
             r = 1;
+            bident = basename(this.buildVisitor_.transverse_t4);
             for p = 1:length(this.product)
-                this.t4s_{r}{p} = this.buildVisitor_.t4_mul( ...
-                    this.t4s_{r}{p}, t4R);
+                if (~strcmp(basename(this.t4s_{r}{p}), bident))
+                    this.t4s_{r}{p} = t4R;
+                    continue
+                end                
+                if (~strcmp(basename(t4R), bident))
+                    continue
+                end
+                this.t4s_{r}{p} = this.buildVisitor_.t4_mul(this.t4s_{r}{p}, t4R);
             end
             t4form = this.t4s_;
-        end        
+        end   
         function view(this)
             mlfourdfp.Viewer.view(this.product);
         end
@@ -643,10 +689,16 @@ classdef SubjectImages
                     sessd.(meth));                
             end  
         end
-        function fps = ics2fqfps(~, ics)
+        function fps  = ics2fqfps(~, ics)
             fps = cellfun(@(x) x.fqfileprefix, ics, 'UniformOutput', false);
         end
-        function s = scrubSNumber(~, s)
+        function em   = reshapeEM4(~, em_fho, em_fc)
+            em = nan(4,4);
+            em(1:3,1:3) = em_fho;
+            em(1,4)     = em_fc(1,2);
+            em(4,1)     = em_fc(2,1);
+        end
+        function s    = scrubSNumber(~, s)
             tracers = {'oc' 'oo' 'ho'};
             for t = 1:length(tracers)
                 pos = regexp(s, [tracers{t} '\d']);
@@ -655,7 +707,7 @@ classdef SubjectImages
                 end
             end
         end 
-        function ab = tracerAbbrev(~, tr)
+        function ab   = tracerAbbrev(~, tr)
             switch (upper(tr))
                 case {'OC' 'CO'}
                     ab = 'c';
