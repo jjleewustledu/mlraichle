@@ -21,11 +21,9 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         indicesEpochCells = {} % indicesEpochCells{this.epoch} := numeric, size(numeric) == [1 this.maxLengthEpoch]
         supScanList = 3
         tauMultiplier = 1 % 1,2,4,8,16
-        maskBlurArg = 33
         tracerBlurArg = 7.5
         umapBlurArg = 1.5
         atlVoxelSize = 222
-        motionCorrectCTAndUmapConfig
     end
     
 	properties (Dependent)    
@@ -44,8 +42,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         taus
         times
         timeMidpoints
-        timeWindowDelaySuvr
-        timeWindowDurationSuvr
         vfolder
     end
     
@@ -253,28 +249,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end
         function g = get.timeMidpoints(this)
             g = this.times + this.taus/2;
-        end
-        function g = get.timeWindowDelaySuvr(this)
-            switch (this.tracer)
-                case 'FDG'
-                    g = 40*60;
-                case {'OC' 'CO'}
-                    g = 2*60;
-                case {'OO' 'HO'}
-                    g = 0;
-                otherwise
-                    error('mlraichle:unsupportedSwitchcase', 'SessionData.get.timeWindowDurationSuvr');
-            end
-        end
-        function g = get.timeWindowDurationSuvr(this)
-            switch (this.tracer)
-                case 'FDG'
-                    g = 20*60;
-                case {'OC' 'CO' 'OO' 'HO'}
-                    g = 60;
-                otherwise
-                    error('mlraichle:unsupportedSwitchcase', 'SessionData.get.timeWindowDurationSuvr');
-            end
         end
         
         %% IMRData
