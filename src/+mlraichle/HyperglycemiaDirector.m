@@ -27,6 +27,10 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.alignCrossModal', varargin{:}, 'visitsExpr', 'V1*', 'tracer', 'FDG');
         end
+        function those = alignCrossModalSubset(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.alignCrossModalSubset', varargin{:}, 'visitsExpr', 'V1*', 'tracer', 'FDG');
+        end
         function those = alignCrossModalPar(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsParSess( ...
                 @mlraichle.TracerDirector.alignCrossModal, varargin{:}, 'visitsExpr', 'V1*', 'tracer', 'FDG');
@@ -140,8 +144,16 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.cleanTracerRemotely', varargin{:});
-        end        
+        end
         
+        function those = reconstructErrMat(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.reconstructErrMat', varargin{:}, 'visitsExpr', 'V1*', 'tracer', 'FDG');
+        end
+        function those = reconstructErrMatPar(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsParSess( ...
+                @mlraichle.TracerDirector.reconstructErrMat, varargin{:}, 'visitsExpr', 'V1*', 'tracer', 'FDG');
+        end
         function those = constructAifs(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
             
@@ -569,7 +581,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.pushMinimalToRemote', varargin{:});
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
-                'mlraichle.TracerDirector.constructResolved', 'wallTime', '23:59:59', varargin{:});
+                'mlraichle.TracerDirector.constructResolved', 'wallTime', '47:59:59', varargin{:});
         end
         function         constructResolvedSingle(varargin)
             import mlsystem.* mlraichle.*;
@@ -1112,9 +1124,21 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 those = HyperglycemiaDirector.pullResolvedAC(varargin{:});
             end
         end  
+        function those = pullT4RE(varargin)            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.pullT4RE', 'ac', true, 'visitsExpr', 'V*', varargin{:});
+        end
+        function those = pullVall(varargin)            
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector.pullVall', 'ac', true, 'visitsExpr', 'V1*', varargin{:});
+        end
         function those = pushToRemote(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector.pushToRemote', varargin{:});
+        end
+        function those = pushToRemotePar(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsParSess( ...
+                @mlraichle.TracerDirector.pushToRemote, varargin{:});
         end
         function this  = sortDownloads(downloadPath, sessionFolder, v, varargin)
             %% SORTDOWNLOADS installs data from rawdata into SUBJECTS_DIR; start here after downloading rawdata.  
