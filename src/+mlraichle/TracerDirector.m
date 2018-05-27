@@ -16,10 +16,23 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
             parse(ip, varargin{:});
             
+            mlpet.TracerDirector.assertenv;  
+            mlpet.TracerDirector.prepareFreesurferData(varargin{:});  
             import mlraichle.*;
             census = StudyCensus('sessionData', ip.Results.sessionData);
  			this = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
-            this = this.alignCrossModal2;
+            this = this.alignCrossModal;
+        end 
+        function this  = alignCrossModalSubset(varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
+            parse(ip, varargin{:});
+            
+            import mlraichle.*;
+            census = StudyCensus('sessionData', ip.Results.sessionData);
+ 			this = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
+            this = this.alignCrossModalSubset;
         end 
         function out   = purgeE1E1toN(varargin)
             
@@ -245,7 +258,7 @@ classdef TracerDirector < mlpet.TracerDirector
                 handwarning(ME);
             end
             out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
-        end        
+        end     
         function those = constructAifs(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
@@ -768,11 +781,13 @@ classdef TracerDirector < mlpet.TracerDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'includeListmode', true, @islogical);
+            addParameter(ip, 'exclude', '', @ischar);
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));          
-            this = this.instancePullFromRemote;
+            this = this.instancePullFromRemote('includeListmode', ip.Results.includeListmode);
         end 
         function this  = pullPattern(varargin)
             
@@ -785,6 +800,67 @@ classdef TracerDirector < mlpet.TracerDirector
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));              
             this = this.instancePullPattern('pattern', ip.Results.pattern);
+        end 
+        function this  = pullT4RE(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'pattern', '*T4ResolveErr*.log', @ischar);
+            parse(ip, varargin{:});
+            
+            import mldistcomp.*;
+            sessd  = ip.Results.sessionData;
+            csessd = sessd;
+            csessd.sessionPath = CHPC.repSubjectsDir(sessd.sessionPath);
+            try
+                for e = 1:sessd.supEpoch
+                    Efolder = sprintf('E%i', e);
+                    [s,r] = CHPC.rsync( ...
+                        fullfile(csessd.tracerLocation, Efolder, 'Log', ip.Results.pattern), ...
+                        fullfile( sessd.tracerLocation, Efolder, 'Log'), ...
+                        'chpcIsSource', true);
+                end
+                Efolder = sprintf('E1to%i', sessd.supEpoch);
+                [s,r] = CHPC.rsync( ...
+                    fullfile(csessd.tracerLocation, Efolder, 'Log', ip.Results.pattern), ...
+                    fullfile( sessd.tracerLocation, Efolder, 'Log'), ...
+                    'chpcIsSource', true);
+                if (1 == sessd.vnumber)
+                    [s,r] = CHPC.rsync( ...
+                        fullfile(csessd.vallLocation, 'Log', ip.Results.pattern), ...
+                        fullfile( sessd.vallLocation, 'Log'), ...
+                        'chpcIsSource', true); %#ok<ASGLU>
+                end
+            catch ME
+                fprintf('s->%i, r->%s\n', s, r);
+                handwarning(ME);
+            end
+            this = [];
+        end 
+        function this  = pullVall(varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            parse(ip, varargin{:});
+            
+            import mldistcomp.*;
+            sessd  = ip.Results.sessionData;
+            csessd = sessd;
+            csessd.sessionPath = CHPC.repSubjectsDir(sessd.sessionPath);
+            try
+                if (1 == sessd.vnumber)
+                    [s,r] = CHPC.rsync( ...
+                        [csessd.vallLocation '/'], ...
+                        [ sessd.vallLocation '/'], ...
+                        'chpcIsSource', true); %#ok<ASGLU>
+                end
+            catch ME
+                fprintf('s->%i, r->%s\n', s, r);
+                handwarning(ME);
+            end
+            this = [];
         end 
         function this  = pushMinimalToRemote(varargin)
             
@@ -801,12 +877,14 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'includeListmode', true, @islogical);
+            addParameter(ip, 'exclude', '', @ischar);
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));          
-            this = this.instancePushToRemote;
+            this = this.instancePushToRemote('includeListmode', ip.Results.includeListmode);
         end 
         function this  = reconAll(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
@@ -838,6 +916,18 @@ classdef TracerDirector < mlpet.TracerDirector
             mlraichle.TracerDirector.purgeE1E1toN(varargin{:});
             this = mlraichle.TracerDirector.constructResolved(varargin{:});        
         end
+        function ems   = reconstructErrMat(varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
+            parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;  
+            import mlraichle.*;
+            census = StudyCensus('sessionData', ip.Results.sessionData);
+ 			this = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
+            ems = this.reconstructErrMat;
+        end    
         function this  = reconstructUnresolved(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
