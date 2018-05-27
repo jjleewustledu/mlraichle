@@ -14,9 +14,9 @@ classdef Test_SubjectImages < matlab.unittest.TestCase
         census
  		registry
         sessd
-        sessf = 'HYGLY28'
+        sessf = 'HYGLY26'
  		testObj
-        fast = true
+        fast = false
  	end
 
 	methods (Test)
@@ -78,19 +78,6 @@ classdef Test_SubjectImages < matlab.unittest.TestCase
             this.testObj.view;
         end        
         
-        function test_collectT4ResolveErrors(this)
-            errs = this.testObj_.collectT4ResolveErrors;
-            this.verifyTrue(isa(errs, 'containers.Map'));
-            pcolor(errs('fdge1'));
-            pcolor(errs('fdge2'));
-            pcolor(errs('fdge3'));
-            disp(  errs('fdge1to4'));
-            disp(  errs('fdgall'));
-            disp(  errs('hoall'));
-            disp(  errs('ooall'));
-            disp(  errs('ocall'));
-            disp(  errs('fhoc'));
-        end
         function test_constructFramesSubset(this) % effective tests resolve
             this.testObj = this.testObj.constructFramesSubset('FDG', 1:8);
             this.testObj.view;
@@ -105,6 +92,10 @@ classdef Test_SubjectImages < matlab.unittest.TestCase
             this.verifyEqual(this.testObj.dropSumt({'file_sumt_op_something' 'stuff_sumt_op_or_other'}), ...
                 {'file' 'stuff'});
         end
+        function test_extractCharFromNestedCells(this)
+            c = {{'some_to_other_t4'}};
+            this.verifyEqual(this.testObj.extractCharFromNestedCells(c), c{1}{1});
+        end
         function test_frontOfFileprefix(this)
             fps = {'fdgv1r2_op_fdgv1e1to4r1_frame4_sumt' 'fdgv1r2_op_fdgv1e1to4r1_frame4_sumt_op_somethingv1r1'};
             this.verifyEqual(this.testObj.frontOfFileprefix(fps{1}), 'fdgv1r2');
@@ -115,6 +106,21 @@ classdef Test_SubjectImages < matlab.unittest.TestCase
             this.testObj = this.testObj.alignCommonModal('FDG'); % this.testObj contains necessary tracer information
             this.testObj = this.testObj.productAverage;
             this.testObj.view;
+        end
+        function test_reconstructErrMat(this)
+            errs = this.testObj_.reconstructErrMat;
+            this.verifyTrue(isa(errs, 'containers.Map'));
+            % pcolor(errs('fdge1'));
+            % pcolor(errs('fdge2'));
+            % pcolor(errs('fdge3'));
+            % disp(  errs('fdge1to4'));
+            disp(  errs('fdgall'));
+            disp(  errs('hoall'));
+            disp(  errs('ooall'));
+            disp(  errs('ocall'));
+            disp(  errs('fho'));
+            disp(  errs('fc'));
+            disp(  errs('fhoc'));
         end
         function test_refreshTracerResolvedFinal(this)
             this.sessd.rnumber = 2; % internal state of this.testObj uses this.rnumberOfSource_ := 2
@@ -192,8 +198,9 @@ classdef Test_SubjectImages < matlab.unittest.TestCase
 		function setupSubjectImages(this)
  			import mlraichle.*;
             this.sessd = SessionData( ...
-                'studyData', mlraichle.SynthStudyData, 'sessionFolder', this.sessf, 'tracer', 'FDG', 'ac', true); % referenceTracer
-            assert(strcmp(this.sessd.subjectsDir, fullfile(getenv('PPG'), 'jjleeSynth', '')));
+                'studyData', mlraichle.StudyData, 'sessionFolder', this.sessf, 'tracer', 'FDG', 'ac', true); % referenceTracer
+            assert(strcmp(this.sessd.subjectsDir, fullfile(getenv('PPG'), 'jjlee2', '')));
+            ensuredir(this.sessd.vallLocation);
             this.census = StudyCensus('sessionData', this.sessd);
  			this.testObj_ = SubjectImages('sessionData', this.sessd, 'census', this.census);
  			this.addTeardown(@this.cleanFolders);
