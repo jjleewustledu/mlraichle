@@ -23,19 +23,19 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         tauMultiplier = 1 % 1,2,4,8,16
         tracerBlurArg = 7.5
         umapBlurArg = 1.5
-        atlVoxelSize = 222
+        atlVoxelSize = 333
     end
     
 	properties (Dependent)    
         attenuationTag
         compositeT4ResolveBuilderBlurArg
         convertedTag
-        doseAdminDatetimeLabel
+        doseAdminDatetimeTag
         frameTag    
         indicesLogical
         maxLengthEpoch
         rawdataDir
-        studyCensusXlsx
+        studyCensus
         supEpoch
         t4ResolveBuilderBlurArg
         tauIndices % use to exclude late frames from builders of AC; e.g., HYGLY25 V1; taus := taus(tauIndices)
@@ -100,7 +100,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             end
             g = ['Converted-' this.attenuationTag];
         end
-        function g = get.doseAdminDatetimeLabel(this)
+        function g = get.doseAdminDatetimeTag(this)
             switch (this.tracer)
                 case 'OC'
                     if (1 == this.snumber)
@@ -123,7 +123,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 case 'FDG'
                     g = '[18F]DG';
                 otherwise                    
-                    error('mlraichle:unsupportedSwitchcase', 'SessionData.doseAdminDatetimeLabel');
+                    error('mlraichle:unsupportedSwitchcase', 'SessionData.doseAdminDatetimeTag');
             end
         end
         function g = get.frameTag(this)
@@ -158,7 +158,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function g = get.rawdataDir(this)
             g = this.studyData_.rawdataDir;
         end 
-        function g = get.studyCensusXlsx(this) 
+        function g = get.studyCensus(this) 
             g = this.STUDY_CENSUS_XLSX;
         end
         function g = get.supEpoch(this)
@@ -218,13 +218,13 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 switch (upper(this.tracer))
                     case 'FDG'
                         g = [10,10,10,10,10,10,10,10,10,10,10,10,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
-                        % length -> 73 <- 12*10 + 30*6 + 55*60
+                        % length -> 73 <- 12*10 + 6*30 + 55*60
                     case {'OC' 'CO'}
                         g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
-                        % length -> 70
+                        % length -> 70 <- 40*3 + 30*10
                     case 'OO'
                         g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
-                        % length -> 58
+                        % length -> 58 <- 40*3 + 18*10
                     case 'HO'
                         g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
                         % length -> 58
@@ -452,7 +452,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             loc = locationType(ipr.typ, ...
                   fullfile(this.vLocation, ...
                            sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.attenuationTag), ...
-                           capitalize(this.epochLabel), ...
+                           capitalize(this.epochTag), ...
                            ''));
             %if (~isdir(loc)) % DEBUGGING
             %    warning('mlraichle:unexpectedFilesystemState', 'SessionData.tracerLocation could not find loc->%s\n', loc);
@@ -679,7 +679,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             [ipr,schar] = this.iprLocation(varargin{:});
             fqfn = fullfile( ...
                 this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
-                sprintf('%s%sv%i%s%s%s', lower(ipr.tracer), schar, this.vnumber, this.epochLabel, ip.Results.rLabel, this.filetypeExt));
+                sprintf('%s%sv%i%s%s%s', lower(ipr.tracer), schar, this.vnumber, this.epochTag, ip.Results.rLabel, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerRevisionSumt(this, varargin)
@@ -699,7 +699,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             ipr = this.iprLocation(varargin{:});         
             fqfn = fullfile(this.vLocation, ...
                 sprintf('%sav%i%sr%i_suvr_%i%s', ...
-                lower(ipr.tracer), this.vnumber, this.epochLabel, ipr.rnumber, this.atlVoxelSize, this.filetypeExt));
+                lower(ipr.tracer), this.vnumber, this.epochTag, ipr.rnumber, this.atlVoxelSize, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerSuvrNamed(this, name, varargin)
@@ -753,6 +753,22 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 fullfile(this.vLocation, ...
                          sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.attenuationTag), 'T4', ''));
         end
+        function obj  = umap(this, varargin)
+            %% legacy support
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addOptional(ip, 'tag', '', @ischar);
+            parse(ip, varargin{:});
+            
+            if (isempty(ip.Results.tag))
+                fn = 'umapSynth';
+            else 
+                fn = sprintf('umapSynth_%s%s', ip.Results.tag, this.filetypeExt);
+            end
+            fqfn = fullfile(this.tracerRevision('typ','filepath'), fn);
+            obj  = this.fqfilenameObject(fqfn, varargin{2:end});
+        end 
         function obj  = umapSynth(this, varargin)
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -910,7 +926,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 this.sessionDate_ = this.readDatetime0;
             end
             try
-                this.studyCensus_ = mlraichle.StudyCensus(this.studyCensusXlsx, 'sessionData', this);
+                this.studyCensus_ = mlraichle.StudyCensus(this.studyCensus, 'sessionData', this);
             catch ME
                 dispwarning(ME);
             end
