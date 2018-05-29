@@ -30,9 +30,9 @@ classdef HoBuilder < mlpet.TracerKineticsBuilder
             pushd(pwd0);
             assert(lexist_4dfp(sessd.tracerListmodeMhdr), '%s could not find %s', meth, sessd.tracerListmodeMhdr);            
             if (~lexist_4dfp(sessd.ho))
-                if (~lexist_4dfp(sessd.tracerListmodeSif('typ', 'fqfp')))
+                %if (~lexist_4dfp(sessd.tracerListmodeSif('typ', 'fqfp')))
                     bv.sif_4dfp(sessd.tracerListmodeMhdr, sessd.tracerListmodeSif('typ', 'fqfp'));
-                end
+                %end
                 bv.cropfrac_4dfp(0.5, sessd.tracerListmodeSif('typ', 'fqfp'), sessd.ho);
             end
             if (~lexist_4dfp(sessd.ho('suffix', sessd.petPointSpreadSuffix)))
