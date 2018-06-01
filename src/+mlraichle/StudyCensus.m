@@ -2,7 +2,8 @@ classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
 	%% STUDYCENSUS
     %     c.censusTable
     %     ans =
-    %        date        subjectID     v_     ready    control    hypergly    hyperins    x_15O_TwiliteSamplingComplete    FDGFastArt_SamplingComplete    Var10    Var11                                     missingImaging_KeyData                                        a_K_A_            comments                          t4ResolvedCompleteWithUmap                        t4ResolvedCompleteWithAC                                   computationNotes                                 seriesForFreesurfer    Var19    Var20    CBFDone    CBVDone    OEFDone    CMRO2Done    CMRglcDone    Var26    Var27         x_HO         x_OC    x_FDG    x_CMRO2    x_OEF       x_OGI    
+    %        date        subjectID     v_     ready    control    hypergly    hyperins    x_15O_TwiliteSamplingComplete
+    %        FDGFastArt_SamplingComplete    Var10    Var11                                     missingImaging_KeyData                                        a_K_A_            comments                          t4ResolvedCompleteWithUmap                        t4ResolvedCompleteWithAC                                   computationNotes                                 seriesForFreesurfer    Var19    Var20    CBFDone    CBVDone    OEFDone    CMRO2Done    CMRglcDone    Var26    Var27         x_HO         x_OC    x_FDG    x_CMRO2    x_OEF       x_OGI     
     %     ___________    __________    ___    _____    _______    ________    ________    _____________________________    ___________________________    _____    _____    ________________________________________________________________________________________    _____________    ________________    ______________________________________________________________    _____________________________    _________________________________________________________________________    ___________________    _____    _____    _______    _______    _______    _________    __________    _____    _____    ______________    ____    _____    _______    _____    ____________
     %     05-Sep-2012    'HYGLY09'     NaN    NaN      0.5        NaN         NaN         ''                               ''                             NaN      NaN      ''                                                                                          'p8079, TJ01'    'pilot study'       'n.a.'                                                            'converted to nii'               ''                                                                             4                    NaN      NaN      ''         ''         ''         ''           ''            NaN      NaN      ''                NaN     NaN      NaN        NaN      ''          
     %     07-Sep-2012    'LJ02'        NaN    NaN      NaN        NaN           1         ''                               ''                             NaN      NaN      ''                                                                                          'p8080'          'pilot study'       'n.a.'                                                            'converted to nii'               ''                                                                             2                    NaN      NaN      ''         ''         ''         ''           ''            NaN      NaN      ''                NaN     NaN      NaN        NaN      ''          
@@ -24,7 +25,6 @@ classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
 	properties (Dependent)
  		censusTable
         row % requires assigned sessionData
-        seriesForFreesurfer
         sessionData
  	end
 
@@ -36,16 +36,13 @@ classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
             g = this.censusTable_;
         end  
         function g = get.row(this)
-            assert(~iseempty(this.sessionData), 'please assign sessionData before requesting a row');
+            assert(~isempty(this.sessionData), 'please assign sessionData before requesting a row');
             sdate_ = this.sessionData.sessionDate;
             [~,g] = max(this.censusTable.date == datetime(sdate_.Year, sdate_.Month, sdate_.Day) > 0);
             assert(strcmpi(this.censusTable.subjectID(g), this.sessionData.sessionFolder));
             if (~isempty(this.censusTable.v_(g)))
-                assert(str2double(this.censusTable.v_(g)) == this.sessionData.vnumber);
+                assert(this.censusTable.v_(g) == this.sessionData.vnumber);
             end
-        end
-        function g = get.seriesForFreesurfer(this)
-            g = this.censusTable_.seriesForFreesurfer(this.row);
         end
         function g = get.sessionData(this)
             g = this.sessionData_;
@@ -53,6 +50,19 @@ classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
         
         %%
         
+        function obj  = arterialSamplingCrv(this,varargin)
+            fqfn = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), ...
+               this.censusTable_.humanCrv(this.row)); 
+            obj  = this.fqfilenameObject(fqfn{1}, varargin{:});
+        end
+        function obj  = calibrationCrv(this, varargin)
+            fqfn = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), ...
+               this.censusTable_.phantomCrv(this.row)); 
+            obj  = this.fqfilenameObject(fqfn{1}, varargin{:});
+        end
+        function s = seriesForFreesurfer(this)
+            s = this.censusTable_.seriesForFreesurfer(this.row);
+        end
         function obj  = t1MprageSagSeriesForReconall(this, sessd, varargin)
             assert(isa(sessd, 'mlpipeline.SessionData'));
             fqfn = fullfile(sessd.vLocation, ...

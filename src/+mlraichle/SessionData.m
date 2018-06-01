@@ -10,7 +10,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
     
     properties (Constant)
         HOUR_KLUDGE = -1
-        STUDY_CENSUS_XLSX = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), 'census 2018may2.xlsx')
+        STUDY_CENSUS_XLSX = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), 'census 2018may31.xlsx')
     end
     
     properties
@@ -159,7 +159,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             g = this.studyData_.rawdataDir;
         end 
         function g = get.studyCensus(this) 
-            g = this.STUDY_CENSUS_XLSX;
+            g = this.studyCensus_;
         end
         function g = get.supEpoch(this)
             if (~isempty(this.supEpoch_))
@@ -926,7 +926,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 this.sessionDate_ = this.readDatetime0;
             end
             try
-                this.studyCensus_ = mlraichle.StudyCensus(this.studyCensus, 'sessionData', this);
+                this.studyCensus_ = mlraichle.StudyCensus(this.STUDY_CENSUS_XLSX, 'sessionData', this);
             catch ME
                 dispwarning(ME);
             end
