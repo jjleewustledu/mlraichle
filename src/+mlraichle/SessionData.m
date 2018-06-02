@@ -267,13 +267,13 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function obj  = atlas(this, varargin)
             ip = inputParser;
             addParameter(ip, 'desc', 'TRIO_Y_NDC', @ischar);
-            addParameter(ip, 'suffix', '', @ischar);
+            addParameter(ip, 'tag', '', @ischar);
             addParameter(ip, 'typ', 'mlfourd.ImagingContext', @ischar);
             parse(ip, varargin{:});
             
             obj = imagingType(ip.Results.typ, ...
                 fullfile(getenv('REFDIR'), ...
-                         sprintf('%s%s%s', ip.Results.desc, ip.Results.suffix, this.filetypeExt)));
+                         sprintf('%s%s%s', ip.Results.desc, ip.Results.tag, this.filetypeExt)));
         end
         function obj  = brainmaskBinarized(this, varargin)
             fqfn = fullfile(this.tracerLocation, sprintf('brainmask_%s_binarized%s', this.resolveTag, this.filetypeExt));
@@ -314,13 +314,13 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function obj  = studyAtlas(this, varargin)
             ip = inputParser;
             addParameter(ip, 'desc', 'HYGLY_atlas', @ischar);
-            addParameter(ip, 'suffix', '', @ischar);
+            addParameter(ip, 'tag', '', @ischar);
             addParameter(ip, 'typ', 'mlfourd.ImagingContext', @ischar);
             parse(ip, varargin{:});
             
             obj = imagingType(ip.Results.typ, ...
                 fullfile(this.subjectsDir, 'atlasTest', 'source', ...
-                         sprintf('%s%s%s', ip.Results.desc, ip.Results.suffix, this.filetypeExt)));
+                         sprintf('%s%s%s', ip.Results.desc, ip.Results.tag, this.filetypeExt)));
         end
         function obj  = T1(this, varargin)
             obj = this.T1001(varargin{:});
@@ -856,13 +856,13 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             ip.KeepUnmatched = true;
             addRequired( ip, 'fqfn', @ischar);
             addParameter(ip, 'frame', nan, @isnumeric);
-            addParameter(ip, 'suffix', '', @ischar);
+            addParameter(ip, 'tag', '', @ischar);
             addParameter(ip, 'typ', 'fqfn', @ischar);
             parse(ip, varargin{:});
             this.frame = ip.Results.frame;
             
             [pth,fp,ext] = myfileparts(ip.Results.fqfn);
-            fqfn = fullfile(pth, [fp ip.Results.suffix this.frameTag ext]);
+            fqfn = fullfile(pth, [fp ip.Results.tag this.frameTag ext]);
             obj = imagingType(ip.Results.typ, fqfn);
         end
         function obj  = mrObject(this, varargin)
@@ -872,12 +872,12 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             ip.KeepUnmatched = true;
             addRequired( ip, 'desc', @ischar);
             addParameter(ip, 'orientation', '', @(x) lstrcmp({'sagittal' 'transverse' 'coronal' ''}, x));
-            addParameter(ip, 'suffix', '', @ischar);
+            addParameter(ip, 'tag', '', @ischar);
             addParameter(ip, 'typ', 'fqfp', @ischar);
             parse(ip, varargin{:});
             
             fqfn = fullfile(this.fourdfpLocation, ...
-                            sprintf('%s%s%s', ip.Results.desc, ip.Results.suffix, this.filetypeExt));
+                            sprintf('%s%s%s', ip.Results.desc, ip.Results.tag, this.filetypeExt));
             this.ensureMRFqfilename(fqfn);
             fqfn = this.ensureOrientation(fqfn, ip.Results.orientation);
             obj  = imagingType(ip.Results.typ, fqfn);
@@ -888,10 +888,10 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired( ip, 'tracer', @ischar);
-            addParameter(ip, 'suffix', '', @ischar);
+            addParameter(ip, 'tag', '', @ischar);
             addParameter(ip, 'typ', 'fqfp', @ischar);
             parse(ip, varargin{:});
-            suff = ip.Results.suffix;
+            suff = ip.Results.tag;
             if (~isempty(suff) && ~strcmp(suff(1),'_'))
                 suff = ['_' suff];
             end
