@@ -675,7 +675,7 @@ classdef TracerDirector < mlpet.TracerDirector
                     if (isnan(ct.v_(d)))
                         continue
                     end
-                    dt = mlsystem.DirTool([sd.tracerResolvedFinalSumtOpFdg('typ','fqfp') '*_this_2018*T*.mat']);
+                    dt = mlsystem.DirTool([sd.tracerResolvedFinalSumt('typ','fqfp') '*_this_2018*T*.mat']);
                     if (isempty(dt.fqfns))
                         continue
                     end
@@ -1105,7 +1105,7 @@ classdef TracerDirector < mlpet.TracerDirector
                         if (isdir(sd_.tracerLocation))
                             try
                                 assertExistResolved(sd_);
-                                cella = [cella sd_.tracerResolvedFinalSumtOpFdg('typ','fn.4dfp.img')]; %#ok<AGROW>
+                                cella = [cella sd_.tracerResolvedFinalSumt('typ','fn.4dfp.img')]; %#ok<AGROW>
                             catch ME_                
                                 dispwarning(ME_);
                             end    
@@ -1116,7 +1116,7 @@ classdef TracerDirector < mlpet.TracerDirector
                             if (isdir(sd_.tracerLocation))
                                 try
                                     assertExistResolved(sd_);
-                                    cella = [cella sd_.tracerResolvedFinalSumtOpFdg('typ','fn.4dfp.img')]; %#ok<AGROW>
+                                    cella = [cella sd_.tracerResolvedFinalSumt('typ','fn.4dfp.img')]; %#ok<AGROW>
                                 catch ME_
                                     dispwarning(ME_);
                                 end
@@ -1128,7 +1128,6 @@ classdef TracerDirector < mlpet.TracerDirector
             function assertExistResolved(sd_)
                 assertExistFourdfp(sd_.tracerResolvedFinal('typ','fqfp'));
                 assertExistFourdfp(sd_.tracerResolvedFinalSumt('typ','fqfp'));
-                assertExistFourdfp(sd_.tracerResolvedFinalSumtOpFdg('typ','fqfp'));
             end
             function assertExistFourdfp(fqfp)
                 assert(lexist_4dfp(fqfp, 'file'), ...

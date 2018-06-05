@@ -21,6 +21,52 @@ classdef SubjectImages
         t4s
     end
     
+    methods (Static)        
+        function repairCrossModalDynamic(varargin)
+            %% repairCrossModalDynamic aligns, de novo, source dynamic images to a cross-modal reference.
+            
+            ip = inputParser;
+            addParameter(ip, 'vallLocation', pwd, @isdir);
+            addParameter(ip, 'vref', 1, @isnumeric);
+            parse(ip, varargin{:});
+            vref = ip.Results.vref;
+            
+            pwd0 = pushd(ip.Results.vallLocation);
+            fprintf('mlraichle.SubjectImages.repairCrossModalDynamic is working in %s\n', pwd);
+            outs = {};
+            fv = mlfourdfp.FourdfpVisitor;
+            
+            for v = 1:4
+                if (lexist(sprintf('fdgv%ir1_sumt_op_fdgv%ir1.4dfp.img ', v, vref)))
+                    outs = [outs fdg]; %#ok<AGROW>
+                end
+            end            
+            tr = {'oc' 'oo' 'ho'};
+            for t = 1:length(tr)
+                for v = 1:4
+                    for s = 1:3
+                        try
+                            t4  = sprintf('%s%iv%ir1_sumtr1_to_op_fdgv%ir1_t4', tr{t}, s, v, vref);
+                            src = sprintf('%s%iv%ir1', tr{t}, s, v);
+                            out = sprintf('%s%iv%ir1_op_fdgv%ir1', tr{t}, s, v, vref);
+                            fv.t4img_4dfp(t4, src, 'out', out, 'options', ['-O' src]);
+                            nn = mlfourd.NumericalNIfTId.load([out '.4dfp.ifh']);
+                            nn = nn.timeSummed;
+                            nn.filesuffix = '.4dfp.ifh';
+                            nn.save;
+                            outs = [outs sprintf('%s.4dfp.img ', nn.fqfileprefix)]; %#ok<AGROW>
+                        catch ME
+                            disp(ME.message);
+                            fprintf('mlraichle.SubjectImages.repairCrossModalDynamic did not src->%s\n', src);
+                        end
+                    end
+                end
+            end
+            %mlfourdfp.Viewer.view(outs);
+            popd(pwd0);
+        end
+    end
+    
 	methods 
         
         %% GET, SET
@@ -126,7 +172,7 @@ classdef SubjectImages
             popd(pwd0);
         end
         function this = alignDynamicImages(this, varargin)
-            %% ALIGNDYNAMICIMAGES aligns commona-modal source dynamic images to a cross-modal reference.
+            %% ALIGNDYNAMICIMAGES aligns common-modal source dynamic images to a cross-modal reference.
             %  @param commonRef, or common-modal reference, e.g., any of OC, OO, HO, FDG.
             %  @param crossRef,  or cross-modal reference, e.g., FDG.
             %  @return this.product := dynamic images aligned to a cross-modal reference is saved to the filesystem.

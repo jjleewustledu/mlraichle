@@ -35,10 +35,10 @@ classdef HoBuilder < mlpet.TracerKineticsBuilder
                 %end
                 bv.cropfrac_4dfp(0.5, sessd.tracerListmodeSif('typ', 'fqfp'), sessd.ho);
             end
-            if (~lexist_4dfp(sessd.ho('suffix', sessd.petPointSpreadSuffix)))
+            if (~lexist_4dfp(sessd.ho('tag', sessd.petPointSpreadSuffix)))
                 bv.imgblur_4dfp(sessd.ho, mean(sessd.petPointSpread));
             end
-            if (~lexist_4dfp(sessd.ho('suffix', '_sumt')))
+            if (~lexist_4dfp(sessd.ho('tag', '_sumt')))
                 m =  bv.ifhMatrixSize(sessd.ho('typ', 'fqfn'));
                 bv.actmapf_4dfp(sprintf('"%i+"', m(4)), sessd.ho, 'options', '-asumt');
             end

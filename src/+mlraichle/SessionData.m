@@ -546,7 +546,9 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerResolved(this, varargin)
-            fqfn = sprintf('%s_%s%s', this.tracerRevision('typ', 'fqfp'), this.resolveTag, this.filetypeExt);
+            fqfn = fullfile( ...
+                this.vLocation, ...
+                sprintf('%s_%s%s', this.tracerRevision('typ', 'fp'), this.resolveTag, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end        
         function obj  = tracerResolvedFinal(this, varargin)
@@ -799,7 +801,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj = this.visitMapOpFdg('oef', varargin{:});
         end
         function obj  = cmro2OpFdg(this, varargin)
-            obj = this.visitMapOpFdg('cmro2', varargin{:});
+            obj = this.visitMapOpFdg('cmro', varargin{:});
         end
         function obj  = cmrglcOpFdg(this, varargin)
             obj = this.visitMapOpFdg('cmrglc', varargin{:});
@@ -822,7 +824,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj = this.visitMapOnAtl('oef', varargin{:});
         end
         function obj  = cmro2OnAtl(this, varargin)
-            obj = this.visitMapOnAtl('cmro2', varargin{:});
+            obj = this.visitMapOnAtl('cmro', varargin{:});
         end
         function obj  = cmrglcOnAtl(this, varargin)
             obj = this.visitMapOnAtl('cmrglc', varargin{:});

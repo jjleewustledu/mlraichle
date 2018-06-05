@@ -97,7 +97,7 @@ classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
 
  			ip = inputParser;
             addOptional( ip, 'fqfilename', this.fqfilenameDefault, @(x) lexist(x, 'file'));
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', []);
             parse(ip, varargin{:});              
             
             this.sessionData_ = ip.Results.sessionData;

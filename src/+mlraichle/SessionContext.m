@@ -1,4 +1,4 @@
-classdef SessionContext < mlpipeline.ISessionContext
+classdef SessionContext < mlpipeline.SessionContext
 	%% SESSIONCONTEXT  
 
 	%  $Revision$
@@ -7,6 +7,8 @@ classdef SessionContext < mlpipeline.ISessionContext
  	%% It was developed on Matlab 9.4.0.813654 (R2018a) for MACI64.  Copyright 2018 John Joowon Lee.
  	
 	properties (Dependent)
+        filesuffix
+        freesurfersDir
         sessionDate
         sessionFolder
         sessionPath
@@ -19,6 +21,12 @@ classdef SessionContext < mlpipeline.ISessionContext
         
         %% GET/SET
         
+        function g    = get.filesuffix(~)
+            g = '.4dfp.ifh';
+        end
+        function g    = get.freesurfersDir(~)
+           g = fullfile(getenv('PPG'), 'freesurfer', '');
+        end
         function g    = get.sessionDate(this)
            g = this.sessionDate_;
         end
@@ -40,9 +48,29 @@ classdef SessionContext < mlpipeline.ISessionContext
         
         %%
         
-        function loc = vallLocation(this)
-           loc = fullfile(this.subjectsDir, this.sessionFolder, 'Vall', '');
+        function loc  = sessionLocation(this, varargin)
+            ip = inputParser;
+            addParameter(ip, 'typ', 'path', @ischar);
+            parse(ip, varargin{:});
+            
+            loc = locationType(ip.Results.typ, this.sessionPath);
         end
+        function loc  = vLocation(this, varargin)
+            ip = inputParser;
+            addParameter(ip, 'typ', 'path', @ischar);
+            parse(ip, varargin{:});
+            
+            loc = locationType(ip.Results.typ, ...
+                fullfile(this.sessionPath, sprintf('V%i', this.vnumber), ''));
+        end
+        function loc  = vallLocation(this, varargin)
+            ip = inputParser;
+            addParameter(ip, 'typ', 'path', @ischar);
+            parse(ip, varargin{:});
+            
+            loc = locationType(ip.Results.typ, ...
+                fullfile(this.sessionPath, 'Vall'));
+        end 
 		  
  		function this = SessionContext(varargin)
  			%% SESSIONCONTEXT
@@ -51,6 +79,9 @@ classdef SessionContext < mlpipeline.ISessionContext
             %         'sessionFolder' contains the session data
             %         'sessionPath'   is a path to the session data
             %         'vnumber'       is numeric
+            %         'vnumberRef'    is numeric
+            
+            this = this@mlpipeline.SessionContext(varargin{:});
             
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -72,12 +103,18 @@ classdef SessionContext < mlpipeline.ISessionContext
             end                           
             this.vnumber_ = ip.Results.vnumber;
             this.vnumberRef_ = ip.Results.vnumberRef;
+ 			this.legacy_ = mlraichle.SessionData( ...
+                'sessionDate', ip.Results.sessionDate, ...
+                'sessionFolder', ip.Results.sessionFolder, ...
+                'vnumber', ip.Results.vnumber, ...
+                'ac', true);
  		end
     end 
     
     %% PROTECTED
     
     properties (Access = protected)
+        legacy_
         sessionDate_
         sessionFolder_
         vnumber_
