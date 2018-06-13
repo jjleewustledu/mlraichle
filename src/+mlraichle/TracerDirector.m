@@ -13,7 +13,7 @@ classdef TracerDirector < mlpet.TracerDirector
         function this  = alignCrossModal(varargin)
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             
             mlpet.TracerDirector.assertenv;  
@@ -26,7 +26,7 @@ classdef TracerDirector < mlpet.TracerDirector
         function this  = alignCrossModalSubset(varargin)
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             
             import mlraichle.*;
@@ -38,7 +38,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             sd = ip.Results.sessionData;
             sd1 = sd;
@@ -66,7 +66,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             sd = ip.Results.sessionData;
             sd1toN = sd;
@@ -104,7 +104,7 @@ classdef TracerDirector < mlpet.TracerDirector
                       
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             sessd = ip.Results.sessionData;
             sessd1 = sessd; sessd1.rnumber = 1;
@@ -183,7 +183,7 @@ classdef TracerDirector < mlpet.TracerDirector
                       
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             sessd = ip.Results.sessionData;
                     
@@ -220,7 +220,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             
             suffs = {'.4dfp.hdr' '.4dfp.ifh' '.4dfp.img' '.4dfp.img.rec'};
@@ -244,7 +244,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'distcompHost', 'chpc_remote_r2016b', @ischar);
             parse(ip, varargin{:});
             
@@ -267,7 +267,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             mlpet.TracerDirector.assertenv;
@@ -279,7 +279,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'anatomy', 'brainmask', @ischar);
             addParameter(ip, 'noclobber', false, @islogical);
             addParameter(ip, 'target', '', @ischar);
@@ -304,7 +304,7 @@ classdef TracerDirector < mlpet.TracerDirector
             import mlraichle.*;
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'anatomy', 'T1001', @ischar);
             addParameter(ip, 'noclobber', true, @islogical);
             addParameter(ip, 'target', '', @ischar);
@@ -328,7 +328,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
@@ -341,7 +341,7 @@ classdef TracerDirector < mlpet.TracerDirector
             import mlraichle.*;
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'noclobber', true, @islogical);
             parse(ip, varargin{:});
             
@@ -358,7 +358,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
@@ -372,7 +372,7 @@ classdef TracerDirector < mlpet.TracerDirector
             import mlraichle.*;
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'noclobber', true, @islogical);
             parse(ip, varargin{:});
             
@@ -398,7 +398,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
@@ -413,7 +413,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             mlpet.TracerDirector.assertenv;
@@ -430,7 +430,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             mlpet.TracerDirector.assertenv;
@@ -448,7 +448,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             mlpet.TracerDirector.assertenv;
@@ -475,7 +475,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
@@ -488,7 +488,7 @@ classdef TracerDirector < mlpet.TracerDirector
             import mlraichle.*;
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'anatomy', 'T1001', @ischar);
             addParameter(ip, 'noclobber', true, @islogical);
             addParameter(ip, 'target', '', @ischar);
@@ -522,7 +522,7 @@ classdef TracerDirector < mlpet.TracerDirector
             import mlraichle.*;
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'anatomy', 'T1001', @ischar);
             addParameter(ip, 'noclobber', true, @islogical);
             addParameter(ip, 'target', '', @ischar);
@@ -554,7 +554,7 @@ classdef TracerDirector < mlpet.TracerDirector
             import mlraichle.*;
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'anatomy', 'T1001', @ischar);
             addParameter(ip, 'noclobber', true, @islogical);
             addParameter(ip, 'target', '', @ischar);
@@ -576,7 +576,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             mlpet.TracerDirector.assertenv;
@@ -590,7 +590,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             sd = ip.Results.sessionData;            
                        
@@ -610,7 +610,7 @@ classdef TracerDirector < mlpet.TracerDirector
             out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
         end
         function         deleteTracerFolderContents(sd)
-            assert(isa(sd, 'mlpipeline.SessionData'));
+            assert(isa(sd, 'mlpipeline.ISessionData'));
             
             sd1 = sd; sd1.rnumber = 1;
             sd2 = sd; sd2.rnumber = 2;
@@ -633,7 +633,7 @@ classdef TracerDirector < mlpet.TracerDirector
         function list  = listRawdataAndConverted(varargin)
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             sessd = ip.Results.sessionData;
             sessd.attenuationCorrected = false;
@@ -722,7 +722,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
 
             this = mlraichle.TracerDirector( ...
@@ -733,7 +733,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
 
             this = mlraichle.TracerDirector( ...
@@ -744,7 +744,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             sessd = ip.Results.sessionData;
             
@@ -780,7 +780,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             addParameter(ip, 'includeListmode', true, @islogical);
             addParameter(ip, 'exclude', '', @ischar);
             parse(ip, varargin{:});
@@ -793,7 +793,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             addParameter(ip, 'pattern', '', @ischar);
             parse(ip, varargin{:});
             
@@ -805,7 +805,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             addParameter(ip, 'pattern', '*T4ResolveErr*.log', @ischar);
             parse(ip, varargin{:});
             
@@ -842,7 +842,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             import mldistcomp.*;
@@ -866,7 +866,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
@@ -877,7 +877,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'includeListmode', true, @islogical);
             addParameter(ip, 'exclude', '', @ischar);
             parse(ip, varargin{:});
@@ -893,7 +893,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
@@ -919,7 +919,7 @@ classdef TracerDirector < mlpet.TracerDirector
         function ems   = reconstructErrMat(varargin)
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             
             mlpet.TracerDirector.assertenv;  
@@ -938,7 +938,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             mlpet.TracerDirector.assertenv;  
@@ -954,7 +954,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             sessd = ip.Results.sessionData;            
             
@@ -996,7 +996,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             import mlraichle.*;
@@ -1012,7 +1012,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
@@ -1079,7 +1079,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});            
             import mlraichle.*;
                 
@@ -1139,7 +1139,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
@@ -1160,7 +1160,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
@@ -1182,7 +1182,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
@@ -1193,7 +1193,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             sd = ip.Results.sessionData;
             sd.tracer = 'FDG';
@@ -1214,7 +1214,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
             this = mlraichle.TracerDirector( ...
@@ -1312,7 +1312,7 @@ classdef TracerDirector < mlpet.TracerDirector
             m = mean(mat(~isnan(mat)));
         end 
         function obj  = replaceEmptyWithSessionDataImagingContext(sessd, obj, whichIC)
-            assert(isa(sessd, 'mlpipeline.SessionData'));
+            assert(isa(sessd, 'mlpipeline.ISessionData'));
             assert(ischar(whichIC))
             if (isempty(obj))   
                 obj = sessd.(whichIC)('typ', 'mlfourd.ImagingContext');
@@ -1323,7 +1323,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});            
             
             try
@@ -1345,7 +1345,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});            
             
             try

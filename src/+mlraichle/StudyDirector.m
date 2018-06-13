@@ -41,6 +41,7 @@ classdef StudyDirector
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
+            addParameter(ip, 'index0Forced', [], @isnumeric);
             parse(ip, varargin{:});
             ipr = ip.Results;
             sessExpr = ipr.sessionsExpr;
@@ -61,7 +62,86 @@ classdef StudyDirector
                             end
                             try
                                 sessd = StudyDirector.constructSessionData( ...
-                                    ipr, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac}); 
+                                    ipr, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac});
+                                if (isprop(sessd, 'index0Forced'))
+                                    sessd.index0Forced = ipr.index0Forced;
+                                end
+                                if (isdir(sessd.tracerRawdataLocation)) %#ok<*ISDIR>
+                                    % there exist spurious tracerLocations; select those with corresponding raw data
+                                    
+                                    evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', factoryMethod);
+                                    fprintf('mlraichle.StudyDirector.constructCellArrayOfObjects:\n');
+                                    fprintf(['\t' evalee '\n']);
+                                    fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
+                                    warning('off', 'MATLAB:subsassigndimmismatch');
+                                    those{idtsess,idtv,itrac,iscan} = eval(evalee); 
+                                    warning('on', 'MATLAB:subsassigndimmismatch');
+                                end
+                            catch ME
+                                dispwarning(ME);
+                            end
+                        end
+                    end
+                end                        
+                popd(pwdsess);
+            end
+        end
+        function [those,dtsess] = constructCellArrayOfObjects2(varargin)
+            %% CONSTRUCTCELLARRAYOFOBJECTS2 iterates over session and visit directories, 
+            %  tracers and scan-instances, evaluating factoryMethod for each.
+            %  @param  factoryMethod     is char, specifying static methods for:  those := factoryMethod('sessionData', sessionData).
+            %  @param  named sessionsExp is char, specifying session directories to match by DirTool.
+            %  @param  named visitsExp   is char, specifying visit   directories to match by DirTool.
+            %  @param  named scanList    is numeric := trace scan indices.
+            %  @param  named tracer      is char    and passed to SessionData.
+            %  @param  named ac          is logical and passed to SessionData.
+            %  @param  named supEpoch    is numeric; KLUDGE to pass parameter to mlraichle.SessionData.tracerResolvedFinal.
+            %  @return those             is a cell-array of objects specified by factoryMethod.
+            %  @return dtsess            is an mlsystem.DirTool for sessions.
+            
+            import mlsystem.* mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired( ip, 'factoryMethod', @ischar);
+            addParameter(ip, 'sessionsExpr', 'HYGLY*');
+            addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'scanList', StudyDirector.SCANS);
+            addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
+            addParameter(ip, 'ac', StudyDirector.AC);
+            addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
+            addParameter(ip, 'frameAlignMethod', '', @ischar); % align_10243
+            addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
+            addParameter(ip, 'tauIndices', [], @isnumeric);
+            addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
+            addParameter(ip, 'index0Forced', [], @isnumeric);
+            addParameter(ip, 'hoursOffsetForced', [], @isnumeric); 
+            parse(ip, varargin{:});
+            ipr = ip.Results;
+            sessExpr = ipr.sessionsExpr;
+            tracers = ensureCell(ipr.tracer);
+            factoryMethod = ipr.factoryMethod;
+            
+            dtsess = DirTools(fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
+            for idtsess = 1:length(dtsess.fqdns)
+                sessp = dtsess.fqdns{idtsess};
+                pwdsess = pushd(sessp);
+                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
+                for idtv = 1:length(dtv.fqdns)
+                    
+                    for itrac = 1:length(tracers)
+                        for iscan = ipr.scanList
+                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
+                                continue
+                            end
+                            try
+                                sessd = StudyDirector.constructSessionData2( ...
+                                    ipr, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac});
+                                if (isprop(sessd, 'index0Forced'))
+                                    sessd.index0Forced = ipr.index0Forced;
+                                end
+                                if (isprop(sessd, 'hoursOffsetForced'))
+                                    sessd.hoursOffsetForced = ipr.hoursOffsetForced;
+                                end
                                 if (isdir(sessd.tracerRawdataLocation)) %#ok<*ISDIR>
                                     % there exist spurious tracerLocations; select those with corresponding raw data
                                     
@@ -353,6 +433,29 @@ classdef StudyDirector
         function sessd = constructSessionData(ipr, sessp, v, sc, tracer)
             import mlraichle.*;
             sessd = SessionData( ...
+                'studyData', StudyData, ...
+                'sessionPath', sessp, ...
+                'vnumber', v, ...
+                'snumber', sc, ...
+                'tracer', tracer, ...
+                'ac', ipr.ac, ...
+                'supEpoch', ipr.supEpoch);
+            if (~isempty(ipr.tauIndices))
+                sessd.tauIndices = ipr.tauIndices;
+            end
+            if (~isempty(ipr.fractionalImageFrameThresh))
+                sessd.fractionalImageFrameThresh = ipr.fractionalImageFrameThresh;
+            end
+            if (~isempty(ipr.frameAlignMethod))
+                sessd.frameAlignMethod = ipr.frameAlignMethod;
+            end
+            if (~isempty(ipr.compAlignMethod))
+                sessd.compAlignMethod = ipr.compAlignMethod;
+            end
+        end
+        function sessd = constructSessionData2(ipr, sessp, v, sc, tracer)
+            import mlraichle.*;
+            sessd = HerscovitchContext( ...
                 'studyData', StudyData, ...
                 'sessionPath', sessp, ...
                 'vnumber', v, ...

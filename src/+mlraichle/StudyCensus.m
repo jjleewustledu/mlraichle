@@ -60,11 +60,14 @@ classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
                this.censusTable_.phantomCrv(this.row)); 
             obj  = this.fqfilenameObject(fqfn{1}, varargin{:});
         end
+        function s = invEffTwilite(this)
+            s = this.censusTable_.invEffTwilite(this.row);
+        end
         function s = seriesForFreesurfer(this)
             s = this.censusTable_.seriesForFreesurfer(this.row);
         end
         function obj  = t1MprageSagSeriesForReconall(this, sessd, varargin)
-            assert(isa(sessd, 'mlpipeline.SessionData'));
+            assert(isa(sessd, 'mlpipeline.ISessionData'));
             fqfn = fullfile(sessd.vLocation, ...
                 sprintf('t1_mprage_sag_series%i.4dfp.ifh', this.seriesForFreesurfer));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
@@ -93,7 +96,7 @@ classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
  		function this = StudyCensus(varargin)
             %% STUDYCENSUS
             %  @param fqfilename.
-            %  @param named sessionData is an mlpipeline.SessionData.
+            %  @param named sessionData is an mlpipeline.ISessionData.
 
  			ip = inputParser;
             addOptional( ip, 'fqfilename', this.fqfilenameDefault, @(x) lexist(x, 'file'));

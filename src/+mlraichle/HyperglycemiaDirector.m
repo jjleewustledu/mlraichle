@@ -469,12 +469,24 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 popd(pwds);
             end
         end
+        function those = constructPhysiologicalSingle(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects2( ...
+                'mlraichle.HyperglycemiaDirector.constructPhysiologicalSingle__', 'tracer', 'HO', varargin{:}); 
+        end
+        function those = constructPhysiologicalSingle__(varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
+            parse(ip, varargin{:});
+            those = mlraichle.Herscovitch1985.constructSingle(ip.Results.sessionData);
+        end
         function those = constructPhysiologicals(varargin)
             import mlsystem.* mlraichle.*;
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
             addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'index0Forced', []);
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -495,7 +507,80 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                             'studyData', StudyData, ...
                             'sessionPath', sessp, ...
                             'vnumber', str2double(dtv.dns{idtv}(2:end)));
+                        sessd.index0Forced = ipr.index0Forced;
                         mlraichle.Herscovitch1985.constructPhysiologicals(sessd);
+                    catch ME
+                        handwarning(ME);
+                    end
+                end                        
+                popd(pwds);
+            end
+        end
+        function those = constructPhysiologicals1(varargin)
+            import mlsystem.* mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionsExpr', 'HYGLY*');
+            addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'index0Forced', []);
+            parse(ip, varargin{:});
+            ipr = ip.Results;
+            
+            those = {};
+            dtsess = DirTools( ...
+                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+            disp(dtsess);
+            for idtsess = 1:length(dtsess.fqdns)
+                sessp = dtsess.fqdns{idtsess};
+                pwds = pushd(sessp);
+                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
+                for idtv = 1:length(dtv.fqdns)
+                    if (strcmp(dtv.dns{idtv}, 'Vall'))
+                        continue
+                    end
+                    try
+                        sessd = mlraichle.HerscovitchContext( ...
+                            'studyData', StudyData, ...
+                            'sessionPath', sessp, ...
+                            'vnumber', str2double(dtv.dns{idtv}(2:end)));
+                        sessd.index0Forced = ipr.index0Forced;
+                        mlraichle.Herscovitch1985.constructPhysiologicals1(sessd);
+                    catch ME
+                        handwarning(ME);
+                    end
+                end                        
+                popd(pwds);
+            end
+        end
+        function those = constructPhysiologicals2(varargin)
+            import mlsystem.* mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionsExpr', 'HYGLY*');
+            addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'index0Forced', []);
+            parse(ip, varargin{:});
+            ipr = ip.Results;
+            
+            those = {};
+            dtsess = DirTools( ...
+                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+            disp(dtsess);
+            for idtsess = 1:length(dtsess.fqdns)
+                sessp = dtsess.fqdns{idtsess};
+                pwds = pushd(sessp);
+                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
+                for idtv = 1:length(dtv.fqdns)
+                    if (strcmp(dtv.dns{idtv}, 'Vall'))
+                        continue
+                    end
+                    try
+                        sessd = mlraichle.HerscovitchContext( ...
+                            'studyData', StudyData, ...
+                            'sessionPath', sessp, ...
+                            'vnumber', str2double(dtv.dns{idtv}(2:end)));
+                        sessd.index0Forced = ipr.index0Forced;
+                        mlraichle.Herscovitch1985.constructPhysiologicals2(sessd);
                     catch ME
                         handwarning(ME);
                     end
@@ -509,6 +594,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
             addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'index0Forced', []);
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -529,6 +615,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                             'studyData', StudyData, ...
                             'sessionPath', sessp, ...
                             'vnumber', str2double(dtv.dns{idtv}(2:end)));
+                        sessd.index0Forced = ipr.index0Forced;
                         mlraichle.Herscovitch1985.constructPhysiologicals(sessd);
                     catch ME
                         handwarning(ME);
@@ -537,29 +624,71 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 popd(pwds);
             end
         end
-        function those = constructCbfAndCbvPar(varargin)
+        function those = constructPhysiologicals1Par(varargin)
             import mlsystem.* mlraichle.*;
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
             addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'index0Forced', []);
             parse(ip, varargin{:});
             ipr = ip.Results;
             
             those = {};
             dtsess = DirTools( ...
                 fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+            disp(dtsess);
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
                 dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
                 for idtv = 1:length(dtv.fqdns)
+                    if (strcmp(dtv.dns{idtv}, 'Vall'))
+                        continue
+                    end
                     try
                         sessd = mlraichle.HerscovitchContext( ...
                             'studyData', StudyData, ...
                             'sessionPath', sessp, ...
                             'vnumber', str2double(dtv.dns{idtv}(2:end)));
-                        mlraichle.Herscovitch1985.constructCbfAndCbv(sessd);
+                        sessd.index0Forced = ipr.index0Forced;
+                        mlraichle.Herscovitch1985.constructPhysiologicals1(sessd);
+                    catch ME
+                        handwarning(ME);
+                    end
+                end                        
+                popd(pwds);
+            end
+        end
+        function those = constructPhysiologicals2Par(varargin)
+            import mlsystem.* mlraichle.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionsExpr', 'HYGLY*');
+            addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'index0Forced', []);
+            parse(ip, varargin{:});
+            ipr = ip.Results;
+            
+            those = {};
+            dtsess = DirTools( ...
+                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+            disp(dtsess);
+            parfor idtsess = 1:length(dtsess.fqdns)
+                sessp = dtsess.fqdns{idtsess};
+                pwds = pushd(sessp);
+                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
+                for idtv = 1:length(dtv.fqdns)
+                    if (strcmp(dtv.dns{idtv}, 'Vall'))
+                        continue
+                    end
+                    try
+                        sessd = mlraichle.HerscovitchContext( ...
+                            'studyData', StudyData, ...
+                            'sessionPath', sessp, ...
+                            'vnumber', str2double(dtv.dns{idtv}(2:end)));
+                        sessd.index0Forced = ipr.index0Forced;
+                        mlraichle.Herscovitch1985.constructPhysiologicals2(sessd);
                     catch ME
                         handwarning(ME);
                     end

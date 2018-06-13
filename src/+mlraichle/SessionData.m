@@ -9,7 +9,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
  	%% It was developed on Matlab 9.0.0.307022 (R2016a) Prerelease for MACI64.
     
     properties (Constant)
-        HOUR_KLUDGE = -1
         STUDY_CENSUS_XLSX = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), 'census 2018may31.xlsx')
     end
     
@@ -422,11 +421,11 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 Y  = str2double(dateNames.Y);
                 M  = str2double(dateNames.M);
                 D  = str2double(dateNames.D);
-                H  = str2double(timeNames.H) + this.HOUR_KLUDGE;
+                H  = str2double(timeNames.H);
                 MI = str2double(timeNames.MI);
                 S  = str2double(timeNames.S);
 
-                dt0_ = datetime(Y,M,D,H,MI,S,'TimeZone','UTC');
+                dt0_ = datetime(Y,M,D,H,MI,S,'TimeZone','Etc/GMT');
                 dt0_.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
                 date_ = datetime(Y,M,D);
             catch ME %#ok<NASGU>

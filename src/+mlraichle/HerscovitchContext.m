@@ -11,24 +11,41 @@ classdef HerscovitchContext < mlraichle.SessionData
         INV_EFF_TWILITE
         o2Content
         vnumberRef
- 	end
+    end
+    
+    properties 
+        hoursOffsetForced % numeric
+        index0Forced
+        sForced
+    end
 
 	methods 
         
         %% GET
 		  
         function g = get.INV_EFF_MMR(~)
-            g = 1.1551 * 1.5;
+            %% GET.INV_EFF_MMR
+            %  From HYGLY28 V2 Calibrations:
+            %  dose calibrator -> 215200   Bq/mL but residual dose was faulty
+            %  Caprac          -> 225617.7 Bq/mL
+            %  mMR on bottle   -> 186307.7 Bq/mL with CT mu-map, manually checked mask, volume average
+            
+            g = 1.2109950;
         end
         function g = get.INV_EFF_TWILITE(this)
-            if (this.sessionDate < datetime(2017,4,1,'TimeZone', 'America/Chicago'))
-                g = 409; % [invEffTwilite] = (Bq s)/(mL counts); 
-                         % estimated using TwiliteBuilder.counts2specificActivity;
-                         % pre-3/2016:  mean := 409, covar := 0.0336;
-                         % post-3/2016: mean := 216, covar := 0.0862.
-            else
-                g = 216; % [invEffMMR] = 1.
-            end
+            %% GET.INV_EFF_TWILITE
+            %  [invEffTwilite] = (Bq s)/(mL counts); 
+            %  estimated using TwiliteBuilder.counts2specificActivity;
+            %  pre-3/2016:  mean := 409, covar := 0.0336;
+            %  post-3/2016: mean := 216, covar := 0.0862.            
+            
+            % if (this.sessionDate < datetime(2017,4,1,'TimeZone', 'America/Chicago'))
+            %     g = 409; 
+            % else
+            %     g = 216; % [invEffMMR] = 1.
+            % end
+            
+            g = this.studyCensus_.invEffTwilite;
         end
         function g = get.o2Content(~)
             g = 18.55; % mean := 18.55, std := 1.57, N := 38
@@ -39,15 +56,15 @@ classdef HerscovitchContext < mlraichle.SessionData
         
         %%
         
-        function obj  = T1001OpFdg(this)
-            obj = mlfourd.ImagingContext( ...
-                fullfile(this.vallLocation, ...
-                         sprintf('T1001r1_op_fdgv%ir1.4dfp.ifh', this.vnumberRef)));
-        end
         function obj  = MaskBrainOpFdg(this)
             obj = mlfourd.ImagingContext( ...
                 fullfile(this.vallLocation, ...
                          sprintf('aparcAseg_op_fdgv%ir1_mskb.4dfp.ifh', this.vnumberRef)));
+        end
+        function obj  = T1001OpFdg(this)
+            obj = mlfourd.ImagingContext( ...
+                fullfile(this.vallLocation, ...
+                         sprintf('T1001r1_op_fdgv%ir1.4dfp.ifh', this.vnumberRef)));
         end
         
         function obj  = tracerResolvedFinal(this, varargin)            
@@ -156,12 +173,17 @@ classdef HerscovitchContext < mlraichle.SessionData
             addParameter(ip, 'avg', false, @islogical);
             parse(ip, varargin{:});
             
+            if (strncmpi(map, 'ogi', 3) || strncmpi(map, 'agi', 3) || strncmpi(map, 'cmrglc', 6))
+                sstr = '';
+            else
+                sstr = num2str(this.snumber);
+            end
             if (ip.Results.avg)
                 fqfn = fullfile(this.vallLocation, ...
                     sprintf('%sv%i_op_%s_avg%s', map, this.vnumber, this.fdgRefRevision('typ', 'fp'), this.filetypeExt));
             else
                 fqfn = fullfile(this.vallLocation, ...
-                    sprintf('%s%iv%i_op_%s%s', map, this.snumber, this.vnumber, this.fdgRefRevision('typ', 'fp'), this.filetypeExt));
+                    sprintf('%s%sv%i_op_%s%s', map, sstr, this.vnumber, this.fdgRefRevision('typ', 'fp'), this.filetypeExt));
             end
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
