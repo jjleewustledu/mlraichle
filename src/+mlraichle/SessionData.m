@@ -34,6 +34,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         indicesLogical
         maxLengthEpoch
         rawdataDir
+        regionTag
         studyCensus
         supEpoch
         t4ResolveBuilderBlurArg
@@ -157,6 +158,22 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function g = get.rawdataDir(this)
             g = this.studyData_.rawdataDir;
         end 
+        function g = get.regionTag(this)
+            if (isempty(this.region))
+                g = '';
+                return
+            end
+            if (isnumeric(this.region))                
+                g = sprintf('_%i', this.region);
+                return
+            end
+            if (ischar(this.region))
+                g = sprintf('_%s', this.region);
+                return
+            end
+            error('mlraichle:unsupportedParamTypeclass', ...
+                'SessionData.get.regionTag');
+        end
         function g = get.studyCensus(this) 
             g = this.studyCensus_;
         end
@@ -680,7 +697,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             [ipr,schar] = this.iprLocation(varargin{:});
             fqfn = fullfile( ...
                 this.tracerLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
-                sprintf('%s%sv%i%s%s%s', lower(ipr.tracer), schar, this.vnumber, this.epochTag, ip.Results.rLabel, this.filetypeExt));
+                sprintf('%s%sv%i%s%s%s%s', ...
+                lower(ipr.tracer), schar, this.vnumber, this.epochTag, ip.Results.rLabel, this.regionTag, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerRevisionSumt(this, varargin)
@@ -805,6 +823,9 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function obj  = cmrglcOpFdg(this, varargin)
             obj = this.visitMapOpFdg('cmrglc', varargin{:});
         end
+        function obj  = ksOpFdg(this, varargin)
+            obj = this.visitMapOpFdg('sokoloffKs', varargin{:});
+        end
         function obj  = ogiOpFdg(this, varargin)
             obj = this.visitMapOpFdg('ogi', varargin{:});
         end
@@ -827,6 +848,9 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end
         function obj  = cmrglcOnAtl(this, varargin)
             obj = this.visitMapOnAtl('cmrglc', varargin{:});
+        end
+        function obj  = ksOnAtl(this, varargin)
+            obj = this.visitMapOnAtl('sokoloffKs', varargin{:});
         end
         function obj  = ogiOnAtl(this, varargin)
             obj = this.visitMapOnAtl('ogi', varargin{:});
