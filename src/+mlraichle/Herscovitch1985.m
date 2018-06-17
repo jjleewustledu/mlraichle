@@ -17,16 +17,16 @@ classdef Herscovitch1985 < mlsiemens.Herscovitch1985
             %  @param named scanData is an mlpipeline.IScanData
             %  @param named roisBuild is an mlrois.IRoisBuilder
 
-            ip = inputParser;
-            addParameter(ip, 'scanData',  [], @(x) isa(x, 'mlpipeline.IScanData'));
-            addParameter(ip, 'roisBuild', [], @(x) isa(x, 'mlrois.IRoisBuilder'));
-            parse(ip, varargin{:});
+%             ip = inputParser;
+%             addParameter(ip, 'scanData',  [], @(x) isa(x, 'mlpipeline.IScanData'));
+%             addParameter(ip, 'roisBuild', [], @(x) isa(x, 'mlrois.IRoisBuilder'));
+%             parse(ip, varargin{:});
             
- 			this = this@mlsiemens.Herscovitch1985( ...
-                'scanner',      ip.Results.scanData.scannerData, ...
-                'aif',          ip.Results.scanData.aifData, ...
-                'timeDuration', ip.Results.scanData.scannerData.timeDuration, ...
-                'mask',         ip.Results.roisBuild.product);
+ 			this = this@mlsiemens.Herscovitch1985(varargin{:});
+%                 'scanner',      ip.Results.scanData.scannerData, ...
+%                 'aif',          ip.Results.scanData.aifData, ...
+%                 'timeDuration', ip.Results.scanData.scannerData.timeDuration, ...
+%                 'mask',         ip.Results.roisBuild.product);
  		end
  	end 
 
