@@ -56,7 +56,7 @@ classdef HerscovitchContext < mlraichle.SessionData
         
         %%
         
-        function obj  = MaskBrainOpFdg(this)
+        function obj  = MaskOpFdg(this)
             obj = mlfourd.ImagingContext( ...
                 fullfile(this.vallLocation, ...
                          sprintf('aparcAseg_op_fdgv%ir1_mskb.4dfp.ifh', this.vnumberRef)));
