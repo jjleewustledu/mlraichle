@@ -20,7 +20,7 @@ classdef TracerDirector < mlpet.TracerDirector
             mlpet.TracerDirector.prepareFreesurferData(varargin{:});  
             import mlraichle.*;
             census = StudyCensus('sessionData', ip.Results.sessionData);
- 			this = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
+ 			this = SubjectImages1('sessionData', ip.Results.sessionData, 'census', census);
             this = this.alignCrossModal;
         end 
         function this  = alignCrossModalSubset(varargin)
@@ -31,7 +31,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             import mlraichle.*;
             census = StudyCensus('sessionData', ip.Results.sessionData);
- 			this = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
+ 			this = SubjectImages1('sessionData', ip.Results.sessionData, 'census', census);
             this = this.alignCrossModalSubset;
         end 
         function out   = purgeE1E1toN(varargin)
@@ -455,6 +455,18 @@ classdef TracerDirector < mlpet.TracerDirector
             
             those = mlsiemens.Herscovitch1985.constructPhysiologicals(ip.Results.sessionData);
         end 
+        function this  = constructReferenceTracerToT1001T4(varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
+            parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;  
+            import mlraichle.*;
+            census = StudyCensus('sessionData', ip.Results.sessionData);
+ 			this = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
+            this.constructReferenceTracerToT1001T4;            
+        end
         function this  = constructResolved(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
@@ -571,6 +583,21 @@ classdef TracerDirector < mlpet.TracerDirector
             
             this = this.instanceConstructAtlas;
             this = this.instanceConstructSuvr;
+        end
+        function this  = constructSuvr2018jun17(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            
+            import mlsiemens.*;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
+            parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;
+            Herscovitch1985.configT1001(ip.Results.sessionData);
+            Herscovitch1985.configMask( ip.Results.sessionData);
+            
+            this = [];
         end
         function this  = constructUmapSynthForDynamicFrames(varargin)
             

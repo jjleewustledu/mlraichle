@@ -470,9 +470,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                            sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.attenuationTag), ...
                            capitalize(this.epochTag), ...
                            ''));
-            %if (~isdir(loc)) % DEBUGGING
-            %    warning('mlraichle:unexpectedFilesystemState', 'SessionData.tracerLocation could not find loc->%s\n', loc);
-            %end
         end
         function loc  = tracerRawdataLocation(this, varargin)
             [ipr,schar] = this.iprLocation(varargin{:});
