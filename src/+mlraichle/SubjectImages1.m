@@ -850,11 +850,7 @@ classdef SubjectImages1
             end        
         end
         function [t4form,this] = t4mulR(this, t4R)
-            %% T4MULR updates this.t4s_ with right-multiplication by the first t4 found in t4R.
-            %  r := 1
-            %  foreach p in this.product
-            %      this.t4s{r}{p} := t4_mul(this.t4s{r}{p}, t4R)    
-            %
+            %% T4MULR updates this.t4s_.  Needs refactoring to make better procedural sense. 
             %  @param t4R is char, cell.
             %  @return t4form has form of this.t4s.  this.t4s{r}{p} or t4R may be the identity.
             
@@ -863,13 +859,13 @@ classdef SubjectImages1
             bident = basename(this.buildVisitor_.transverse_t4);
             for p = 1:length(this.product)
                 if (~strcmp(basename(this.t4s_{r}{p}), bident))
-                    this.t4s_{r}{p} = t4R; % t4s_ is identity so merely assign t4R
+                    this.t4s_{r}{p} = t4R;
                     continue
                 end                
                 if (~strcmp(basename(t4R), bident))
-                    continue % t4R is identity so trivially retain t4s_
+                    continue 
                 end
-                this.t4s_{r}{p} = this.buildVisitor_.t4_mul(this.t4s_{r}{p}, t4R); % create t4-composition
+                this.t4s_{r}{p} = this.buildVisitor_.t4_mul(this.t4s_{r}{p}, t4R);
             end
             t4form = this.t4s_;
         end   
