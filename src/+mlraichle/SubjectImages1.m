@@ -1,4 +1,4 @@
-classdef SubjectImages 
+classdef SubjectImages1 
 	%% SUBJECTIMAGES provides detailed access to subject-specific images.
 
 	%  $Revision$
@@ -33,7 +33,7 @@ classdef SubjectImages
             vref = ip.Results.vref;
             
             pwd0 = pushd(ip.Results.vallLocation);
-            fprintf('mlraichle.SubjectImages.repairCrossModalDynamic is working in %s\n', pwd);
+            fprintf('mlraichle.SubjectImages1.repairCrossModalDynamic is working in %s\n', pwd);
             outs = {};
             fv = mlfourdfp.FourdfpVisitor;
             
@@ -58,7 +58,7 @@ classdef SubjectImages
                             outs = [outs sprintf('%s.4dfp.img ', nn.fqfileprefix)]; %#ok<AGROW>
                         catch ME
                             disp(ME.message);
-                            fprintf('mlraichle.SubjectImages.repairCrossModalDynamic did not src->%s\n', src);
+                            fprintf('mlraichle.SubjectImages1.repairCrossModalDynamic did not src->%s\n', src);
                         end
                     end
                 end
@@ -246,8 +246,8 @@ classdef SubjectImages
             %  TODO:  manage case of homo-tracer subsets
             
             ip = inputParser;
-            addParameter(ip, 'commonRef', [], @(x) isa(x, 'mlraichle.SubjectImages'));
-            addParameter(ip, 'crossRef',  [], @(x) isa(x, 'mlraichle.SubjectImages'));
+            addParameter(ip, 'commonRef', [], @(x) isa(x, 'mlraichle.SubjectImages1'));
+            addParameter(ip, 'crossRef',  [], @(x) isa(x, 'mlraichle.SubjectImages1'));
             parse(ip, varargin{:});
             comm  = ip.Results.commonRef;
             cross = ip.Results.crossRef;
@@ -380,7 +380,7 @@ classdef SubjectImages
             %  @return t4 ~ ho[1-9]v[1-9]r1_to_fdg_t4
             
             ip = inputParser;
-            addRequired(ip, 'comm', @(x) isa(x, 'mlraichle.SubjectImages'));
+            addRequired(ip, 'comm', @(x) isa(x, 'mlraichle.SubjectImages1'));
             addRequired(ip, 'tracerToCommonT4', @(x) ischar(x) || iscell(x));
             addRequired(ip, 'commonToCrossT4',  @(x) ischar(x) || iscell(x));
             addParameter(ip, 'reference', this.referenceTracer, @ischar);
@@ -648,7 +648,7 @@ classdef SubjectImages
             if (isempty(toks))
                 toks = regexp(fp, sprintf('^(?<tracRev>\\w+v\\dr\\d)_\\w*%s\\w*$', this.referenceTracer), 'names');
                 assert(~isempty(toks), ...
-                    'mlraichle:emptyRegexpTokens', 'SubjectImages.saveStandardized');
+                    'mlraichle:emptyRegexpTokens', 'SubjectImages1.saveStandardized');
             end
             fp = sprintf('%s_on_%s', toks.tracRev, this.referenceTracer);
         end 
@@ -667,7 +667,7 @@ classdef SubjectImages
             if (isempty(toks))
                 toks = regexp(fp, sprintf('^(?<tracRev>\\w+v\\dr\\d)_\\w*%s\\w*_sumt$', this.referenceTracer), 'names');
                 assert(~isempty(toks), ...
-                    'mlraichle:emptyRegexpTokens', 'SubjectImages.saveSumtStandardized');
+                    'mlraichle:emptyRegexpTokens', 'SubjectImages1.saveSumtStandardized');
             end
             fp = sprintf('%s_sumt_on_%s', toks.tracRev, this.referenceTracer);
         end  
@@ -862,11 +862,11 @@ classdef SubjectImages
             r = 1;
             bident = basename(this.buildVisitor_.transverse_t4);
             for p = 1:length(this.product)
-                if (strcmp(basename(this.t4s_{r}{p}), bident))
+                if (~strcmp(basename(this.t4s_{r}{p}), bident))
                     this.t4s_{r}{p} = t4R; % t4s_ is identity so merely assign t4R
                     continue
                 end                
-                if (strcmp(basename(t4R), bident))
+                if (~strcmp(basename(t4R), bident))
                     continue % t4R is identity so trivially retain t4s_
                 end
                 this.t4s_{r}{p} = this.buildVisitor_.t4_mul(this.t4s_{r}{p}, t4R); % create t4-composition
@@ -877,7 +877,7 @@ classdef SubjectImages
             mlfourdfp.Viewer.view(this.product);
         end
 		  
- 		function this = SubjectImages(varargin)
+ 		function this = SubjectImages1(varargin)
  			%% SUBJECTIMAGES
  			%  @param sessionData identifies the subject and provides utility methods.
             %  @param census is an mlpipeline.IStudyCensus.
@@ -952,12 +952,12 @@ classdef SubjectImages
             if (sessd.supEpoch == 0)
                 error( ...
                     'mlraichle:invalidParamValue', ...
-                    'SubjectImages.refreshTracerResolvedFinal.sessd.supEpoch->%i', sessd.supEpoch);
+                    'SubjectImages1.refreshTracerResolvedFinal.sessd.supEpoch->%i', sessd.supEpoch);
             end
             if (~lexist(sessd.(meth)('typ','fqfn')))
                 error( ...
                     'mlraichle:missingPrerequisiteFile', ...
-                    'SubjectImages.refreshTracerResolvedFinal.sessd.tracerResolvedFinal->%i', ...
+                    'SubjectImages1.refreshTracerResolvedFinal.sessd.tracerResolvedFinal->%i', ...
                     sessd.(meth));                
             end  
         end
@@ -990,7 +990,7 @@ classdef SubjectImages
                 case 'FDG'
                     ab = 'f';
                 otherwise
-                    error('mlraichle:unsupportedSwitchCase', 'SubjectImages.traerAbbrev.tr->%s', tr);
+                    error('mlraichle:unsupportedSwitchCase', 'SubjectImages1.traerAbbrev.tr->%s', tr);
             end
         end
     end
