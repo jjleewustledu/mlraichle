@@ -10,11 +10,11 @@ classdef HerscovitchContext < mlraichle.SessionData
         INV_EFF_MMR
         INV_EFF_TWILITE
         o2Content
+        resamplerType
         vnumberRef
     end
     
     properties 
-        hoursOffsetForced % numeric
         index0Forced
         sForced
     end
@@ -49,6 +49,9 @@ classdef HerscovitchContext < mlraichle.SessionData
         end
         function g = get.o2Content(~)
             g = 18.55; % mean := 18.55, std := 1.57, N := 38
+        end
+        function g = get.resamplerType(this)
+            g = this.resamplerType_;
         end
         function g = get.vnumberRef(this)
             g = this.vnumberRef_;
@@ -147,8 +150,10 @@ classdef HerscovitchContext < mlraichle.SessionData
             ip = inputParser;
             ip.KeepUnmatched = true;
             ip.PartialMatching = false;
+            addParameter(ip, 'resamplerType', 'VoxelResampler', @ischar);
             addParameter(ip, 'vnumberRef', 1, @isnumeric);
             parse(ip, varargin{:});
+            this.resamplerType_ = ip.Results.resamplerType;
             this.vnumberRef_ = ip.Results.vnumberRef;
             
             this.attenuationCorrected = true;
@@ -158,6 +163,7 @@ classdef HerscovitchContext < mlraichle.SessionData
     %% PROTECTED
     
     properties (Access = protected)
+        resamplerType_
         vnumberRef_
     end
     
@@ -171,19 +177,22 @@ classdef HerscovitchContext < mlraichle.SessionData
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'avg', false, @islogical);
+            addParameter(ip, 'tag', '', @ischar);
             parse(ip, varargin{:});
             
-            if (strncmpi(map, 'ogi', 3) || strncmpi(map, 'agi', 3) || strncmpi(map, 'cmrglc', 6))
+            if (strncmpi(map, 'ogi', 3) || strncmpi(map, 'agi', 3) || strncmpi(map, 'cmrglc', 6) || strncmpi(map, 'sokoloff', 8))
                 sstr = '';
             else
                 sstr = num2str(this.snumber);
             end
             if (ip.Results.avg)
                 fqfn = fullfile(this.vallLocation, ...
-                    sprintf('%sv%i_op_%s_avg%s', map, this.vnumber, this.fdgRefRevision('typ', 'fp'), this.filetypeExt));
+                    sprintf('%sv%i_op_%s_avg%s', map, this.vnumber, this.fdgRefRevision('typ', 'fp'), ...
+                    this.filetypeExt));
             else
                 fqfn = fullfile(this.vallLocation, ...
-                    sprintf('%s%sv%i_op_%s%s', map, sstr, this.vnumber, this.fdgRefRevision('typ', 'fp'), this.filetypeExt));
+                    sprintf('%s%sv%i_op_%s%s', map, sstr, this.vnumber, this.fdgRefRevision('typ', 'fp'), ...
+                    this.filetypeExt));
             end
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end

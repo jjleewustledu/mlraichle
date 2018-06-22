@@ -559,7 +559,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
             addParameter(ip, 'visitsExpr', 'V*');
-            addParameter(ip, 'index0Forced', []);
+            addParameter(ip, 'resamplerType', 'VoxelResampler');
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -579,8 +579,8 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                         sessd = mlraichle.HerscovitchContext( ...
                             'studyData', StudyData, ...
                             'sessionPath', sessp, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)));
-                        sessd.index0Forced = ipr.index0Forced;
+                            'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
+                            'resamplerType', ipr.resamplerType);
                         mlsiemens.Herscovitch1985_FDG.constructPhysiologicals2(sessd);
                     catch ME
                         handwarning(ME);
@@ -668,7 +668,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
             addParameter(ip, 'visitsExpr', 'V*');
-            addParameter(ip, 'index0Forced', []);
+            addParameter(ip, 'resamplerType', 'VoxelResampler');
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -688,8 +688,8 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                         sessd = mlraichle.HerscovitchContext( ...
                             'studyData', StudyData, ...
                             'sessionPath', sessp, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)));
-                        sessd.index0Forced = ipr.index0Forced;
+                            'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
+                            'resamplerType', ipr.resamplerType);
                         mlsiemens.Herscovitch1985_FDG.constructPhysiologicals2(sessd);
                     catch ME
                         handwarning(ME);
