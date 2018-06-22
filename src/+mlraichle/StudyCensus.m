@@ -17,13 +17,10 @@ classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
  	%  was created 29-Mar-2018 14:45:29 by jjlee,
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2018 John Joowon Lee.
- 	
-    properties         
-        fqfilenameDefault = mlraichle.SessionData.STUDY_CENSUS_XLSX;
-    end
     
 	properties (Dependent)
  		censusTable
+        fqfilenameDefault
         row % requires assigned sessionData
         sessionData
  	end
@@ -35,6 +32,9 @@ classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
         function g = get.censusTable(this)
             g = this.censusTable_;
         end  
+        function g = get.fqfilenameDefault(~)
+            g =  fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), mlraichle.SessionData.STUDY_CENSUS_XLSX_FN);
+        end
         function g = get.row(this)
             assert(~isempty(this.sessionData), 'please assign sessionData before requesting a row');
             sdate_ = this.sessionData.sessionDate;

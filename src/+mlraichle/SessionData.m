@@ -9,7 +9,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
  	%% It was developed on Matlab 9.0.0.307022 (R2016a) Prerelease for MACI64.
     
     properties (Constant)
-        STUDY_CENSUS_XLSX = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), 'census 2018may31.xlsx')
+        STUDY_CENSUS_XLSX_FN = 'census 2018may31.xlsx'
     end
     
     properties
@@ -26,6 +26,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
     end
     
 	properties (Dependent)    
+        STUDY_CENSUS_XLSX
+        
         attenuationTag
         compositeT4ResolveBuilderBlurArg
         convertedTag
@@ -74,6 +76,10 @@ classdef SessionData < mlpipeline.ResolvingSessionData
     methods
         
         %% GET
+        
+        function g = get.STUDY_CENSUS_XLSX(this)
+            g = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), this.STUDY_CENSUS_XLSX_FN);
+        end
         
         function g = get.attenuationTag(this)
             if (this.attenuationCorrected)
