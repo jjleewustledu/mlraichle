@@ -20,7 +20,7 @@ classdef TracerDirector < mlpet.TracerDirector
             mlpet.TracerDirector.prepareFreesurferData(varargin{:});  
             import mlraichle.*;
             census = StudyCensus('sessionData', ip.Results.sessionData);
- 			this = SubjectImages1('sessionData', ip.Results.sessionData, 'census', census);
+ 			this = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
             this = this.alignCrossModal;
         end 
         function this  = alignCrossModalSubset(varargin)
@@ -31,7 +31,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             import mlraichle.*;
             census = StudyCensus('sessionData', ip.Results.sessionData);
- 			this = SubjectImages1('sessionData', ip.Results.sessionData, 'census', census);
+ 			this = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
             this = this.alignCrossModalSubset;
         end 
         function out   = purgeE1E1toN(varargin)

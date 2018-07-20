@@ -478,7 +478,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
-            those = mlsiemens.Herscovitch1985.constructSingle(ip.Results.sessionData);
+            those = mlraichle.Herscovitch1985.constructSingle(ip.Results.sessionData);
         end
         function those = constructPhysiologicals(varargin)
             import mlsystem.* mlraichle.*;

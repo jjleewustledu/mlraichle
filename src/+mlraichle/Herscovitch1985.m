@@ -1,4 +1,4 @@
-classdef Herscovitch1985 < mlsiemens.Herscovitch1985
+classdef Herscovitch1985 < mlsiemens.Herscovitch1985_FDG
 	%% HERSCOVITCH1985  
 
 	%  $Revision$
@@ -22,7 +22,7 @@ classdef Herscovitch1985 < mlsiemens.Herscovitch1985
 %             addParameter(ip, 'roisBuild', [], @(x) isa(x, 'mlrois.IRoisBuilder'));
 %             parse(ip, varargin{:});
             
- 			this = this@mlsiemens.Herscovitch1985(varargin{:});
+ 			this = this@mlsiemens.Herscovitch1985_FDG(varargin{:});
 %                 'scanner',      ip.Results.scanData.scannerData, ...
 %                 'aif',          ip.Results.scanData.aifData, ...
 %                 'timeDuration', ip.Results.scanData.scannerData.timeDuration, ...

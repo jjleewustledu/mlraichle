@@ -19,6 +19,7 @@ classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2018 John Joowon Lee.
     
 	properties (Dependent)
+        censusSubtable
  		censusTable
         fqfilenameDefault
         row % requires assigned sessionData
@@ -29,6 +30,11 @@ classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
         
         %% GET
         
+        function g = get.censusSubtable(this)
+            ctbl = this.censusTable;
+            ctbl = ctbl(1 == ctbl.ready, :);
+            g    = ctbl(strcmpi(ctbl.subjectID, this.sessionData_.sessionFolder), :);
+        end
         function g = get.censusTable(this)
             g = this.censusTable_;
         end  

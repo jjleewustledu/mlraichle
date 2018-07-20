@@ -948,15 +948,14 @@ classdef SessionData < mlpipeline.ResolvingSessionData
  		function this = SessionData(varargin)
  			this = this@mlpipeline.ResolvingSessionData(varargin{:});
             
-            setenv('CCIR_RAD_MEASUREMENTS_DIR', fullfile(getenv('HOME'), 'Documents', 'private', ''));
-            
+            setenv('CCIR_RAD_MEASUREMENTS_DIR', fullfile(getenv('HOME'), 'Documents', 'private', ''));            
             if (isnat(this.sessionDate_))
                 this.sessionDate_ = this.readDatetime0;
             end
             try
                 this.studyCensus_ = mlraichle.StudyCensus(this.STUDY_CENSUS_XLSX, 'sessionData', this);
             catch ME
-                dispwarning(ME);
+                handexcept(ME);
             end
         end
     end

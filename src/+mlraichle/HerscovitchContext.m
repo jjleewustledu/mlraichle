@@ -104,21 +104,6 @@ classdef HerscovitchContext < mlraichle.SessionData
                 sprintf('%s%sv%i%s%s%s', lower(ipr.tracer), schar, this.vnumber, this.epochTag, ip.Results.rLabel, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
-        function obj  = tracerRefRevision(this, varargin)
-            %  @param named rLabel is char and overrides any specifications of r-number;
-            %  it may be useful for generating filenames such as '*r1r2_to_resolveTag_t4'.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'rLabel', sprintf('r%i', this.rnumber), @ischar);
-            parse(ip, varargin{:});
-            
-            [ipr,schar] = this.iprLocation(varargin{:});
-            fqfn = fullfile( ...
-                this.vallLocation, ...
-                sprintf('%s%sv%i%s%s%s', lower(ipr.tracer), schar, this.vnumberRef, this.epochTag, ip.Results.rLabel, this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
-        end
         function obj  = tracerRevisionSumt(this, varargin)
             fqfn = sprintf('%s_sumt%s', this.tracerRevision('typ', 'fqfp'), this.filetypeExt);
             obj  = this.fqfilenameObject(fqfn, varargin{:});

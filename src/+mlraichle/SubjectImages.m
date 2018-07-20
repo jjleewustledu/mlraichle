@@ -89,12 +89,12 @@ classdef SubjectImages
         function g = get.ReferenceTracer(this)
             g = upper(this.referenceTracer_);
         end
-        function g = get.referenceTracer(this)
-            g = lower(this.referenceTracer_);
-        end
         function this = set.ReferenceTracer(this, s)
             assert(ischar(s));
             this.referenceTracer_ = s;
+        end
+        function g = get.referenceTracer(this)
+            g = lower(this.referenceTracer_);
         end
         function this = set.referenceTracer(this, s)
             assert(ischar(s));
@@ -116,11 +116,18 @@ classdef SubjectImages
         %%
         
         function this = alignCommonModal(this, tracer, varargin)
+            %% ALIGNCOMMONMODAL
             %  @param tracer, ctor.census & ctor.sessionData select images.
             %  @return t4 in this.t4s:             e.g., {ho[1-9]v[1-9]r1_sumtr1_to_op_hov1r1_t4}.
             %  @return resolved in this.product:   e.g., {ho[1-9]v[1-9]r1_sumtr1_op_hov1r1.4dfp.ifh}.
+            % 
+            %  e.g., HYGLY24/Vall obtains:
+            %  fdgv3r1.4dfp % the reference
+            %  fdgv1r1_sumtr1_op_fdgv3r1.4dfp ... fdgv4r1_sumtr1_op_fdgv3r1.4dfp
+            %  fdgv1r1_sumt_on_fdg.4dfp ... fdgv4r1_sumt_on_fdg.4dfp
+            %  fdgv1r1_sumt.4dfp ... fdgv4r1_sumt.4dfp
             
-            imgsSumt = reshape(this.sourceImages(tracer, true), 1, []); % reshape should now be unnecessary
+            imgsSumt = this.sourceImages(tracer, true);
             this.sessionData_.tracer = upper(tracer);
             this.referenceTracer = lower(tracer);
             this = this.resolve(imgsSumt, varargin{:}); 
@@ -147,6 +154,7 @@ classdef SubjectImages
             
         end
         function this = alignCrossModal(this) 
+            %% ALIGNCROSSMODAL
             %  theFdg,theHo,theOo,theOc
             %  @return t4 in this.t4s:            e.g., {hov[1-9]r1_sumtr1_op_hov[1-9]r1_avgr1_to_op_fdgv1r1_t4}.
             %  @return resolved in this.product:  e.g., {hov[1-9]r1_sumtr1_op_hov[1-9]r1_avgr1_op_fdgv1r1.4dfp.ifh}.            
@@ -254,8 +262,7 @@ classdef SubjectImages
             
             pwd0 = pushd(this.sessionData.vallLocation);            
             comm = comm.t4imgDynamicImages; % comm.product := dynamic aligned to time-summed comm.product{1}
-            t4form = comm.t4mulR( ...
-                cross.selectT4s('sourceTracer', comm.referenceTracer)); % construct t4s{r} for comm.product to cross.product{1}
+            t4form = comm.reshapeT4s(cross.selectT4s('sourceTracer', comm.referenceTracer)); % construct t4s{r} for comm.product to cross.product{1}
             % tmp = cross.selectT4s(); tmp{1} => 'hov1r1_sumtr1_op_hov1r1_avgr1_to_op_fdgv1r1_t4'
             % t4form{1}' =>
             % 'hov1r1_sumtr1_op_hov1r1_avgr1_to_op_fdgv1r1_t4'
@@ -266,8 +273,7 @@ classdef SubjectImages
             % 'ho1v1r1_op_hov1r1.nii'
             % 'ho2v1r1_op_hov1r1.4dfp.ifh'
             % 'ho1v2r1_op_hov1r1.4dfp.ifh'
-            % 'ho2v2r1_op_hov1r1.4dfp.ifh'     
-            
+            % 'ho2v2r1_op_hov1r1.4dfp.ifh'            
             % tmp = cross.selectT4s(); tmp{1} => 'ocv1r1_sumtr1_op_ocv1r1_avg_sqrtr1_to_op_fdgv1r1_t4'
             % t4form{1}' =>
             % 'ocv1r1_sumtr1_op_ocv1r1_avg_sqrtr1_to_op_fdgv1r1_t4'
@@ -280,25 +286,39 @@ classdef SubjectImages
             % 'oc1v2r1_op_ocv1r1.4dfp.ifh'
             % 'oc2v2r1_op_ocv1r1.4dfp.ifh'            
             
-            this.constructTracerRevisionToReferenceT4(comm, comm.t4s_{1}, t4form{1});
-            comm.save;
+            this.constructTracerRevisionToReferenceT4(comm, comm.t4s_, t4form);
+            % comm.t4s_{1}'
+            % 'fdgv2r1_sumtr1_to_op_fdgv2r1_t4'
+            % 'fdgv3r1_sumtr1_to_op_fdgv2r1_t4'
+            % 'fdgv1r1_sumtr1_to_op_fdgv2r1_t4'
+            % ans =>
+            % 'fdgv2r1_to_fdg_t4'
+            % 'fdgv3r1_to_fdg_t4'
+            % 'fdgv1r1_to_fdg_t4'            
+    
+            comm.saveStandardized;
+            comm.saveSumtStandardized;
+            % cellfun(@(x) x.filename, comm.product, 'UniformOutput', false)' =>
+            % 'fdgv2r1_op_fdgv2r1.4dfp.ifh'
+            % 'fdgv3r1_op_fdgv2r1.4dfp.ifh'
+            % 'fdgv1r1_op_fdgv2r1.4dfp.ifh'
+    
             cross = cross.t4imgc(t4form, comm.product);            
-            this.product_ = cross.product;            
-            this.save;
+            this.product_ = cross.product;
             this.saveStandardized;
             this.saveSumtStandardized;
             % cellfun(@(x) x.filename, this.product_, 'UniformOutput', false)' =>             
             % 'ho1v1r1_op_hov1r1_on_op_fdgv1r1.4dfp.ifh'
             % 'ho2v1r1_op_hov1r1_on_op_fdgv1r1.4dfp.ifh'
             % 'ho1v2r1_op_hov1r1_on_op_fdgv1r1.4dfp.ifh'
-            % 'ho2v2r1_op_hov1r1_on_op_fdgv1r1.4dfp.ifh'
-            
+            % 'ho2v2r1_op_hov1r1_on_op_fdgv1r1.4dfp.ifh'            
             % cellfun(@(x) x.filename, this.product_, 'UniformOutput', false)' => 
             % 'oc1v1r1_op_ocv1r1_on_op_fdgv1r1.4dfp.ifh'
             % 'oc2v1r1_op_ocv1r1_on_op_fdgv1r1.4dfp.ifh'
             % 'oc1v2r1_op_ocv1r1_on_op_fdgv1r1.4dfp.ifh'
             % 'oc2v2r1_op_ocv1r1_on_op_fdgv1r1.4dfp.ifh'            
             
+            this.teardownIntermediates;
             popd(pwd0);
         end
         function this = alignFrameGroups(this, tracer, frames1, frames2, varargin)
@@ -374,8 +394,9 @@ classdef SubjectImages
             ref = nn.fqfileprefix;
         end
         function t4   = constructTracerRevisionToReferenceT4(this, varargin)
-            %  @param  required tracerToCommonT4 is char.
-            %  @param  required commonToCrossT4 is char.
+            %  @param  required comm is mlraichle.SubjectImages.
+            %  @param  required tracerToCommonT4 is char or {{}}.
+            %  @param  required commonToCrossT4 is char or {{}}.
             %  @param  named reference is char.
             %  @return t4 ~ ho[1-9]v[1-9]r1_to_fdg_t4
             
@@ -388,11 +409,13 @@ classdef SubjectImages
             comm             = ip.Results.comm;
             tracerToCommonT4 = ip.Results.tracerToCommonT4;
             commonToCrossT4  = ip.Results.commonToCrossT4;
-            
-            if (iscell(tracerToCommonT4)) % recursion
+
+            % recursion for cells
+            if (iscell(tracerToCommonT4) && iscell(commonToCrossT4)) 
                 assert(length(tracerToCommonT4) == length(commonToCrossT4));
+                assert(length(tracerToCommonT4{1}) == length(commonToCrossT4{1}));
                 t4 = cellfun(@(x,y) this.constructTracerRevisionToReferenceT4(comm, x,y), ...
-                    tracerToCommonT4, commonToCrossT4, 'UniformOutput', false);
+                    tracerToCommonT4{1}, commonToCrossT4{1}, 'UniformOutput', false);
                 return
             end
             
@@ -439,6 +462,24 @@ classdef SubjectImages
             % basecase
             c = char(c);
         end
+        function fp   = fileprefixStandardized(this, fp)
+            toks = regexp(fp, sprintf('^(?<tracRev>\\w+v\\dr\\d)_op_\\w+_on_op_%s\\w+$', this.referenceTracer), 'names');
+            if (isempty(toks))
+                toks = regexp(fp, sprintf('^(?<tracRev>\\w+v\\dr\\d)_\\w*%s\\w*$', this.referenceTracer), 'names');
+                assert(~isempty(toks), ...
+                    'mlraichle:emptyRegexpTokens', 'SubjectImages.saveStandardized');
+            end
+            fp = sprintf('%s_op_%s', toks.tracRev, this.referenceTracer);
+        end 
+        function fp   = fileprefixSumtStandardized(this, fp)
+            toks = regexp(fp, sprintf('^(?<tracRev>\\w+v\\dr\\d)_op_\\w+_on_op_%s\\w+_sumt$', this.referenceTracer), 'names');
+            if (isempty(toks))
+                toks = regexp(fp, sprintf('^(?<tracRev>\\w+v\\dr\\d)_\\w*%s\\w*_sumt$', this.referenceTracer), 'names');
+                assert(~isempty(toks), ...
+                    'mlraichle:emptyRegexpTokens', 'SubjectImages.saveSumtStandardized');
+            end
+            fp = sprintf('%s_sumt_op_%s', toks.tracRev, this.referenceTracer);
+        end  
         function front = frontOfFileprefix(this, fps, varargin) 
             %  @param fps is cell (recursive) or char (base-case).
             %  @param optional sumt is boolean.
@@ -552,6 +593,40 @@ classdef SubjectImages
             
             acopy = fullfile(sessdRef.vallLocation, acopy);
         end
+        function [t4form,this] = reshapeT4s(this, t4R)
+            %% RESHAPET4S should be placed inline with constructTracerRevisionToReferenceT4
+            %  @param this.t4s_{1} is cell containing t4s:  comm_src -> comm_dest
+            %  @param t4R is char, cell.
+            %  @return t4form has form of this.t4s:  comm_src -> cross_dest.  
+            %  this.t4s{r}{p} or t4R may be the identity.
+            
+            t4R = this.extractCharFromNestedCells(t4R);
+            r = 1;
+            bident = basename(this.buildVisitor_.transverse_t4);
+            for p = 1:length(this.t4s_{r})
+                % this.t4s_{r} =>
+                % 'fdgv2r1_sumtr1_to_op_fdgv2r1_t4'
+                % 'fdgv3r1_sumtr1_to_op_fdgv2r1_t4'
+                % 'fdgv1r1_sumtr1_to_op_fdgv2r1_t4'       
+                % t4R => fdgv2r1_sumtr1_op_fdgv2r1_avgr1_to_op_fdgv2r1_t4
+                
+                % working KLUDGE:
+                if (~strcmp(basename(this.t4s_{r}{p}), bident))
+                    this.t4s_{r}{p} = t4R;
+                    continue
+                end                
+                if (~strcmp(basename(t4R), bident))
+                    continue 
+                end
+                this.t4s_{r}{p} = this.buildVisitor_.transverse_t4; % this.buildVisitor_.t4_mul(this.t4s_{r}{p}, t4R);  
+            end
+            t4form = this.t4s_;
+            % t4form{1}' =>
+            % 'fdgv2r1_sumtr1_op_fdgv2r1_avgr1_to_op_fdgv2r1_t4'
+            % 'fdgv2r1_sumtr1_op_fdgv2r1_avgr1_to_op_fdgv2r1_t4'
+            % 'fdgv2r1_sumtr1_op_fdgv2r1_avgr1_to_op_fdgv2r1_t4'    
+            
+        end  
         function this = resolve(this, imgsSumt, varargin)
             %  @param imgsSumt = cell(Nvisits, Nscans) of char fqfp.
             %  @return this.cRB_ := compositeT4ResolveBuilder.resolved.
@@ -565,7 +640,7 @@ classdef SubjectImages
             addParameter(ip, 'NRevisions', 1, @isnumeric);
             addParameter(ip, 'maskForImages', 'Msktgen');
             addParameter(ip, 'resolveTag', ...
-                sprintf('op_%sv%ir1', lower(this.referenceTracer), this.sessionData_.vnumber), @ischar);
+                sprintf('op_%sv%ir1', lower(this.referenceTracer), this.sessionData_.reference.vnumber), @ischar);
             addParameter(ip, 'compAlignMethod', 'align_commonModal7', @ischar);
             parse(ip, imgsSumt, varargin{:});
             
@@ -641,16 +716,8 @@ classdef SubjectImages
                 pp.fileprefix = this.fileprefixStandardized(pp.fileprefix);
                 pp.filesuffix = '.4dfp.ifh';
                 pp.save;
-            end          
-        end 
-        function fp   = fileprefixStandardized(this, fp)
-            toks = regexp(fp, sprintf('^(?<tracRev>\\w+v\\dr\\d)_op_\\w+_on_op_%s\\w+$', this.referenceTracer), 'names');
-            if (isempty(toks))
-                toks = regexp(fp, sprintf('^(?<tracRev>\\w+v\\dr\\d)_\\w*%s\\w*$', this.referenceTracer), 'names');
-                assert(~isempty(toks), ...
-                    'mlraichle:emptyRegexpTokens', 'SubjectImages.saveStandardized');
-            end
-            fp = sprintf('%s_on_%s', toks.tracRev, this.referenceTracer);
+                this.lnsLegacies(pp.fileprefix);
+            end     
         end 
         function        saveSumtStandardized(this)
             for p = 1:length(this.product)
@@ -659,18 +726,10 @@ classdef SubjectImages
                 nn = nn.timeSummed;
                 nn.fileprefix = this.fileprefixSumtStandardized(nn.fileprefix);
                 nn.filesuffix = '.4dfp.ifh';
-                nn.save;
+                nn.save;                
+                this.lnsLegacies(nn.fileprefix);
             end          
         end
-        function fp   = fileprefixSumtStandardized(this, fp)
-            toks = regexp(fp, sprintf('^(?<tracRev>\\w+v\\dr\\d)_op_\\w+_on_op_%s\\w+_sumt$', this.referenceTracer), 'names');
-            if (isempty(toks))
-                toks = regexp(fp, sprintf('^(?<tracRev>\\w+v\\dr\\d)_\\w*%s\\w*_sumt$', this.referenceTracer), 'names');
-                assert(~isempty(toks), ...
-                    'mlraichle:emptyRegexpTokens', 'SubjectImages.saveSumtStandardized');
-            end
-            fp = sprintf('%s_sumt_on_%s', toks.tracRev, this.referenceTracer);
-        end  
         function fn   = saveThis(this, varargin) %#ok<INUSL>
             ip = inputParser;
             addOptional(ip, 'client', '', @ischar);
@@ -679,9 +738,9 @@ classdef SubjectImages
             save(fn, 'this')
         end
         function ts   = selectT4s(this, varargin)
-            %  @param this.NRevision == 1.
-            %  @param named sourceTracer specifies a key for lstrfind on the source term of parseFilenanmeT4(this.t4s),
-            %  for parseFilenanmeT4 in this.buildVisitor_.
+            %  @param this.rnumber == 1 even if this.NRevisions > 1.
+            %  @param named sourceTracer specifies a key for lstrfind on the source term of 
+            %  this.buildVisitor_.parseFilenanmeT4(this.t4s).
             %  @param named destTracer specifies a key for the dest term, respectively.
             %  @return subset of this.t4s containing matching keys.  For no matches, return {}, never {{}}.  
             
@@ -690,7 +749,7 @@ classdef SubjectImages
             addParameter(ip, 'destTracer',   '', @ischar);
             parse(ip, varargin{:});
             srcTr  = lower(ip.Results.sourceTracer);
-            destTr = lower(ip.Results.destTracer);            
+            destTr = lower(ip.Results.destTracer);
             
             % trivial case
             if (isempty(srcTr) && isempty(destTr))
@@ -707,7 +766,7 @@ classdef SubjectImages
                     ts{r} = [ts{r} this.t4s{r}{it}];
                 end
             end            
-            % simplify ts = {{}} to be equivalent to trival case
+            % simplify ts = {{}} to be isomorphic to trival case
             if (1 == length(ts) && isempty(ts{1}))
                 ts = {};
             end
@@ -742,10 +801,7 @@ classdef SubjectImages
                             sessd.snumber = ...
                                 str2double(this.census_.t4ResolvedCompleteWithAC{i}(found{i}(j)+1));
                         end
-                        if (1 == i && 1 == j)
-                            sessdRef = sessd;
-                        end
-                        [sessd,acopy] = this.refreshTracerResolvedFinal(sessd, sessdRef, ip.Results.sumt);
+                        [sessd,acopy] = this.refreshTracerResolvedFinal(sessd, sessd.reference, ip.Results.sumt);
                         imgs{k} = acopy; %#ok<AGROW>
                         k = k + 1;
                     catch ME
@@ -784,9 +840,10 @@ classdef SubjectImages
             this.product_ = cell(size(ts{1}));
             r = 1;
             for i = 1:length(this.product_)
-                this.product_{i} = mlfourd.ImagingContext( ...
-                    [this.buildVisitor_.t4img_4dfp( ...
-                        ts{r}{i}, ip.Results.sources{i}.fqfileprefix, 'options', ['-O' ref]) '.4dfp.ifh']);
+                fqfn = [this.buildVisitor_.t4img_4dfp( ...
+                        ts{r}{i}, ip.Results.sources{i}.fqfileprefix, ...
+                        'options', ['-O' ref]) '.4dfp.ifh'];
+                this.product_{i} = mlfourd.ImagingContext(fqfn);
                 this.product_{i}.fourdfp;
                 this.product_{i}.numericalNiftid;
             end
@@ -796,7 +853,7 @@ classdef SubjectImages
             %  to dynamic sources of the time-sums specified by parameter tracer.  
             %  @param optional tracer has default := this.referenceTracer.
             %  @param {this.cRB_ this.t4s_} := align* method.  NRevision >= 1 is managed by this.cRB_. 
-            %  @return this.product_ := {dynamic sources for tracer}
+            %  @return this.product_ := {dynamic sources for tracer} will have a messy, but unambiguous, name.
             
             ip = inputParser;
             addOptional(ip, 'tracer', this.referenceTracer, @ischar);
@@ -804,12 +861,19 @@ classdef SubjectImages
             assert(this.areAligned);  
             assert(~isempty(this.cRB_)); 
             assert(~isempty(this.t4s_)); 
+            % this.cRB_.theImages' =>
+            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv2r1_sumt'
+            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv3r1_sumt'
+            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv1r1_sumt'
+            % this.t4s_{1}' =>
+            % 'fdgv2r1_sumtr1_to_op_fdgv2r1_t4'
+            % 'fdgv3r1_sumtr1_to_op_fdgv2r1_t4'
+            % 'fdgv1r1_sumtr1_to_op_fdgv2r1_t4'
             
-            imgs = reshape(this.sourceImages(ip.Results.tracer, false), 1, []); % reshape should now be unnecessary  
-            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/ho1v1r1'
-            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/ho2v1r1'
-            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/ho1v2r1'
-            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/ho2v2r1'  
+            imgs = this.sourceImages(ip.Results.tracer, false); 
+            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv2r1'
+            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv3r1'
+            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv1r1' 
             
             this.product_ = cell(size(imgs));
             if (length(imgs) < 2)
@@ -834,45 +898,31 @@ classdef SubjectImages
                 this.cRB_ = this.cRB_.t4img_4dfp( ...
                     this.t4s_{1}{i}, ...
                     this.frontOfFileprefixR1(imgs{i}), ...
-                    'ref', this.frontOfFileprefixR1(imgs{1}));
+                    'ref', this.frontOfFileprefixR1(imgs{1})); % 'out', [this.frontOfFileprefixR1(imgs{i}) '_op_' lower(ip.Results.tracer)], ...
                 % this.t4s_{1}' =>                
-                % 'ho1v1r1_sumtr1_to_op_hov1r1_t4'
-                % 'ho2v1r1_sumtr1_to_op_hov1r1_t4'
-                % 'ho1v2r1_sumtr1_to_op_hov1r1_t4'
-                % 'ho2v2r1_sumtr1_to_op_hov1r1_t4'
-                % this.frontOfFileprefixR1(imgs{i})) => ho1v1r1
+                % 'fdgv2r1_sumtr1_to_op_fdgv2r1_t4'
+                % 'fdgv3r1_sumtr1_to_op_fdgv2r1_t4'
+                % 'fdgv1r1_sumtr1_to_op_fdgv2r1_t4'
+                % this.frontOfFileprefixR1(imgs{1})) => fdgv2r1
                 
                 % fprintf('%sr0_to_%s_t4\n',  this.frontOfFileprefix(imgs{i}, true), this.cRB_.resolveTag) =>
-                % ho1v1r1r0_to_op_hov1r1_t4
+                % fdgv2r1r0_to_op_fdgv2r1_t4
                 this.product_{i} = this.cRB_.product;
-                % this.product_{i}.fqfilename =>
-                % /data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/ho1v1r1_op_hov1r1.nii
+                % cellfun(@(x) x.fqfilename, this.product_, 'UniformOutput', false)' =>
+                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv2r1_op_fdgv2r1.4dfp.ifh'
+                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv3r1_op_fdgv2r1.4dfp.ifh'
+                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv1r1_op_fdgv2r1.4dfp.ifh'
+                % cellfun(@(x) x.fqfilename, this.product_, 'UniformOutput', false)' =>
+                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv2r1_sumtr1_op_fdgv2r1_avgr1_op_fdgv2r1.4dfp.ifh'
+                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/hov2r1_sumtr1_op_hov2r1_avgr1_op_fdgv2r1.4dfp.ifh'
+                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/oov2r1_sumtr1_op_oov2r1_avgr1_op_fdgv2r1.4dfp.ifh'
             end        
+        end 
+        function        teardownIntermediates(this)
+            %deleteExisting('*_op_*_on_op_fdg*.4dfp.*');
+            deleteExisting('*_b75.4dfp*');
+            deleteExisting('*_mskt.4dfp*');
         end
-        function [t4form,this] = t4mulR(this, t4R)
-            %% T4MULR updates this.t4s_ with right-multiplication by the first t4 found in t4R.
-            %  r := 1
-            %  foreach p in this.product
-            %      this.t4s{r}{p} := t4_mul(this.t4s{r}{p}, t4R)    
-            %
-            %  @param t4R is char, cell.
-            %  @return t4form has form of this.t4s.  this.t4s{r}{p} or t4R may be the identity.
-            
-            t4R = this.extractCharFromNestedCells(t4R);            
-            r = 1;
-            bident = basename(this.buildVisitor_.transverse_t4);
-            for p = 1:length(this.product)
-                if (strcmp(basename(this.t4s_{r}{p}), bident))
-                    this.t4s_{r}{p} = t4R; % t4s_ is identity so merely assign t4R
-                    continue
-                end                
-                if (strcmp(basename(t4R), bident))
-                    continue % t4R is identity so trivially retain t4s_
-                end
-                this.t4s_{r}{p} = this.buildVisitor_.t4_mul(this.t4s_{r}{p}, t4R); % create t4-composition
-            end
-            t4form = this.t4s_;
-        end   
         function view(this)
             mlfourdfp.Viewer.view(this.product);
         end
@@ -894,7 +944,7 @@ classdef SubjectImages
             this.sessionData_ = ip.Results.sessionData;
             this.sessionData_.attenuationCorrected = true;
             this.rnumberOfSource_ = ip.Results.rnumberOfSource;
-            this.census_ = this.censusSubtable(ip.Results.census);
+            this.census_ = ip.Results.census.censusSubtable;
             this.referenceTracer_ = ip.Results.referenceTracer;
             this.buildVisitor_ = mlfourdfp.FourdfpVisitor;
  		end
@@ -915,12 +965,6 @@ classdef SubjectImages
     end
     
     methods (Access = private)
-        function stbl = censusSubtable(this, census)
-            assert(isa(census, 'mlpipeline.IStudyCensus'));
-            ctbl = census.censusTable;
-            ctbl = ctbl(1 == ctbl.ready, :);
-            stbl = ctbl(strcmpi(ctbl.subjectID, this.sessionData_.sessionFolder), :);
-        end
         function fqfp = ensureLastRnumber(this, fqfp, r)
             %% ENSURELASTRNUMBER
             %  @param fqfp
@@ -963,6 +1007,15 @@ classdef SubjectImages
         end
         function fps  = ics2fqfps(~, ics)
             fps = cellfun(@(x) x.fqfileprefix, ics, 'UniformOutput', false);
+        end
+        function        lns_4dfp(~, src, dest)
+            exts = {'.4dfp.ifh' '.4dfp.hdr' '.4dfp.img' '.4dfp.img.rec'};
+            for e = 1:length(exts)
+                mlbash(sprintf('ln -s %s%s %s%s', src, exts{e}, dest, exts{e}));
+            end
+        end
+        function        lnsLegacies(this, fp)
+            this.lns_4dfp(fp, strrep(fp, '_op_', '_on_'));
         end
         function em   = reshapeEM4(~, em_fho, em_fc)
             em = nan(4,4);
