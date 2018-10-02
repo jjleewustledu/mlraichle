@@ -1,4 +1,4 @@
-classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
+classdef StudyDataSingleton < handle & mlpipeline.StudyDataSingleton
 	%% STUDYDATASINGLETON  
 
 	%  $Revision$
@@ -7,14 +7,13 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.0.0.307022 (R2016a) Prerelease for MACI64.
-    
-
-    properties
-        subjectsFolder = mlraichle.RaichleRegistry.instance.subjectsFolder
-    end
-
-    properties (SetAccess = protected)
-        dicomExtension = 'dcm'
+        
+    properties (Dependent)
+        dicomExtension
+        freesurfersDir
+        rawdataDir
+        subjectsDir
+        subjectsFolder
     end
 
     methods (Static)
@@ -31,27 +30,27 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
     end
     
     methods
-        function d    = freesurfersDir(~)
+        
+        %% GET
+        
+        function g = get.dicomExtension(~)
+            g = '.dcm';
+        end
+        function d = get.freesurfersDir(~)
             d = fullfile(getenv('PPG'), 'freesurfer', '');
         end
-        function d    = RawDataDir(this, sessFold)
-            %% RAWDATADIR
-            %  @param sessFold is the name of the folder in rawdataDir that contains session data.
-            %  @returns a path to the session data ending in 'RawData' or the empty string on failures.
-            
-            import mlraichle.*;
-            assert(ischar(sessFold));
-            d = fullfile(this.rawdataDir, sessFold, 'RESOURCES', 'RawData', '');
-            if (~isdir(d))
-                d = fullfile(this.rawdataDir, sessFold, 'resources', 'RawData', '');
-            end
-            if (~isdir(d))
-                d = '';
-            end
-        end
-        function d    = rawdataDir(~)
+        function d = get.rawdataDir(~)
             d = fullfile(getenv('PPG'), 'rawdata', '');
         end
+        function g = get.subjectsDir(~)
+            g = mlraichle.RaichleRegistry.instance.subjectsDir;
+        end
+        function g = get.subjectsFolder(this)
+            g = basename(this.subjectsDir);
+        end
+        
+        %%
+        
         function        register(this, varargin)
             %% REGISTER this class' persistent instance with mlpipeline.StudyDataSingletons
             %  using the latter class' register methods.
@@ -74,34 +73,18 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
         function a    = seriesDicomAsterisk(this, fqdn)
             assert(isdir(fqdn));
             assert(isdir(fullfile(fqdn, 'DICOM')));
-            a = fullfile(fqdn, 'DICOM', ['*.' this.dicomExtension]);
-        end
-        function sess = sessionData(this, varargin)
-            %% SESSIONDATA
-            %  @param [parameter name,  parameter value, ...] as expected by mlraichle.SessionData are optional;
-            %  'studyData' and this are always internally supplied.
-            %  @returns for empty param:  mlpatterns.CellComposite object or it's first element when singleton, 
-            %  which are instances of mlraichle.SessionData.
-            %  @returns for non-empty param:  instance of mlraichle.SessionData corresponding to supplied params.
-            
-            if (isempty(varargin))
-                sess = this.sessionDataComposite_;
-                if (1 == length(sess))
-                    sess = sess.get(1);
-                end
-                return
-            end
-            sess = mlraichle.SessionData('studyData', this, varargin{:});
-        end  
-        function d    = subjectsDir(~)
-            d = fullfile(getenv('PPG'), mlraichle.RaichleRegistry.instance.subjectsFolder, '');
+            a = fullfile(fqdn, 'DICOM', ['*' this.dicomExtension]);
         end
         function f    = subjectsDirFqdns(this)
+            if (isempty(this.subjectsDir))
+                f = {};
+                return
+            end
+            
             dt = mlsystem.DirTools(this.subjectsDir);
             f = {};
             for di = 1:length(dt.dns)
-                if (strcmp(dt.dns{di}(1:2), 'NP') || ...
-                    strcmp(dt.dns{di}(1:2), 'HY'))
+                if (strncmp(dt.dns{di}, 'NP', 2) || strncmp(dt.dns{di}, 'HY', 2))
                     f = [f dt.fqdns(di)]; %#ok<AGROW>
                 end
             end
@@ -125,6 +108,11 @@ classdef StudyDataSingleton < mlpipeline.StudyDataSingleton
                             mlraichle.SessionData('studyData', this, 'sessionPath', varargin{v}));
                 end
             end
+        end
+        function that = copyElement(this)
+            that = mlraichle.StudyData;
+            that.comments = this.comments;
+            that.sessionDataComposite_ = this.sessionDataComposite_;
         end
     end   
 

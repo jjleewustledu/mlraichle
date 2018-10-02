@@ -185,7 +185,7 @@ classdef HerscovitchContext < mlraichle.SessionData
             obj = this.tracerRevision('tracer', 'FDG', varargin{:});
         end
         function obj  = fdgRefRevision(this, varargin)
-            obj = this.tracerRefRevision('tracer', 'FDG', varargin{:});
+            obj = this.tracerRevision('tracer', 'FDG', varargin{:});
         end
     end
 

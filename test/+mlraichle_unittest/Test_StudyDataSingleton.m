@@ -20,7 +20,7 @@ classdef Test_StudyDataSingleton < matlab.unittest.TestCase
 	methods (Test)
         function test_instance(this)
             this.verifyClass(this.testObj, 'mlraichle.StudyDataSingleton');
-            this.verifyEqual(this.testObj.dicomExtension, 'dcm');            
+            this.verifyEqual(this.testObj.dicomExtension, '.dcm');            
         end
         function test_freesurfersDir(this)
             this.verifyEqual(this.testObj.freesurfersDir, ...

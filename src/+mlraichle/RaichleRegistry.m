@@ -30,11 +30,11 @@ classdef RaichleRegistry < mlpatterns.Singleton
             x = this.subjectsDir;
         end
         
-        function this = set.subjectsDir(this, x)
+        function set.subjectsDir(this, x)
             assert(ischar(x));
             this.subjectsDir_ = x;
         end
-        function this = set.subjectsFolder(this, x)
+        function set.subjectsFolder(this, x)
             assert(ischar(x));
             this.subjectsDir_ = fullfile(fileparts(this.subjectsDir_), x, '');
         end

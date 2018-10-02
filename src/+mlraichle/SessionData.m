@@ -18,6 +18,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         % cf. mlfourdfp.ImageFrames.nonEmptyImageIndices, mlpet.TracerResolveBuilder; valid for [0..1]
         filetypeExt = '.4dfp.hdr'
         indicesEpochCells = {} % indicesEpochCells{this.epoch} := numeric, size(numeric) == [1 this.maxLengthEpoch]
+        modality
         supScanList = 3
         tauMultiplier = 1 % 1,2,4,8,16
         tracerBlurArg = 7.5
@@ -36,6 +37,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         indicesLogical
         maxLengthEpoch
         rawdataDir
+        rawdataFolder
         regionTag
         studyCensus
         supEpoch
@@ -164,6 +166,9 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function g = get.rawdataDir(this)
             g = this.studyData_.rawdataDir;
         end 
+        function g = get.rawdataFolder(this)
+            g = basename(this.rawdataDir);
+        end
         function g = get.regionTag(this)
             if (isempty(this.region))
                 g = '';
@@ -957,6 +962,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             catch ME
                 handexcept(ME);
             end
+            this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct( ...
+                fullfile(this.subjectsDir, this.bloodGlucoseAndHctXlsx));
         end
     end
     
@@ -1027,7 +1034,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                     import mlfourdfp.*;
                     srcPath = DicomSorter.findRawdataSession(this);
                     destPath = this.fourdfpLocation;
-                    DicomSorter.session_to_4dfp( ...
+                    ds = DicomSorter.Create('sessionData', this);
+                    ds.sessionDcmConvert( ...
                         srcPath, destPath, ...
                         'studyData', this.studyData_, 'seriesFilter', mybasename(fqfn), 'preferredName', mybasename(fqfn));
                 catch ME
