@@ -188,7 +188,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                 [~,msktn] = FDGKineticsWholebrain.mskt(sessd);
                 [~,ct4rb] = FDGKineticsWholebrain.brainmaskBinarized(sessd, msktn);                
                 m = FDGKineticsWholebrain.aparcAsegBinarized(sessd, ct4rb);
-                sessd.selectedMask = [m.fqfp '.4dfp.ifh'];
+                sessd.selectedMask = [m.fqfp '.4dfp.hdr'];
                 fprintf('mlraichle.FDGKineticsWholebrain.godoMasks:  completed work in %s\n', pwd);
                 popd(pwd0);
             catch ME
@@ -216,9 +216,9 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             import mlfourdfp.*;
             f = [sessd.tracerResolved1('typ','fqfp') '_sumt'];
             f1 = mybasename(FourdfpVisitor.ensureSafeFileprefix(f));
-            if (lexist([f1 '_mskt.4dfp.ifh'], 'file') && lexist([f1 '_msktNorm.4dfp.ifh'], 'file'))
-                m = mlfourd.ImagingContext([f1 '_mskt.4dfp.ifh']);
-                n = mlfourd.ImagingContext([f1 '_msktNorm.4dfp.ifh']);
+            if (lexist([f1 '_mskt.4dfp.hdr'], 'file') && lexist([f1 '_msktNorm.4dfp.hdr'], 'file'))
+                m = mlfourd.ImagingContext([f1 '_mskt.4dfp.hdr']);
+                n = mlfourd.ImagingContext([f1 '_msktNorm.4dfp.hdr']);
                 return
             end
             
@@ -226,17 +226,17 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             
             ct4rb = CompositeT4ResolveBuilder('sessionData', sessd);
             ct4rb.msktgenImg(f1);          
-            m = mlfourd.ImagingContext([f1 '_mskt.4dfp.ifh']);
+            m = mlfourd.ImagingContext([f1 '_mskt.4dfp.hdr']);
             n = m.numericalNiftid;
             n.img = n.img/n.dipmax;
             n.fileprefix = [f1 '_msktNorm'];
-            n.filesuffix = '.4dfp.ifh';
+            n.filesuffix = '.4dfp.hdr';
             n.save;
             n = mlfourd.ImagingContext(n);
         end
         function [b,ct4rb] = brainmaskBinarized(sessd, msktNorm)
             fdgSumt = mlpet.PETImagingContext(sessd.tracerResolvedSumt1('typ','fqfn'));
-            if (~lexist([sessd.tracerResolvedSumt1('typ','fp') '_brain.4dfp.ifh'], 'file'))
+            if (~lexist([sessd.tracerResolvedSumt1('typ','fp') '_brain.4dfp.hdr'], 'file'))
                 fnii = fdgSumt.numericalNiftid;
                 msktNorm = mlfourd.ImagingContext(msktNorm);
                 mnii = msktNorm.numericalNiftid;
@@ -244,12 +244,12 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                 fdgSumt = mlpet.PETImagingContext(fnii);
                 fdgSumt.filepath = pwd;
                 fdgSumt.fileprefix = [sessd.tracerResolvedSumt1('typ','fp') '_brain'];
-                fdgSumt.filesuffix = '.4dfp.ifh';
+                fdgSumt.filesuffix = '.4dfp.hdr';
                 fdgSumt.save;
             end
             
             brainmask = mlfourd.ImagingContext(sessd.brainmask);
-            if (~lexist('brainmask.4dfp.ifh', 'file'))
+            if (~lexist('brainmask.4dfp.hdr', 'file'))
                 brainmask.fourdfp;
                 brainmask.filepath = pwd;
                 brainmask.save;
@@ -260,25 +260,25 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
                 'sessionData', sessd, ...
                 'theImages', {fdgSumt.fileprefix brainmask.fileprefix});
             if (mlraichle.FDGKineticsWholebrain.REUSE_BRAINMASK && ...
-                lexist(['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh'], 'file'))
-                b = mlpet.PETImagingContext(['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh']);
+                lexist(['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.hdr'], 'file'))
+                b = mlpet.PETImagingContext(['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.hdr']);
                 return
             end
-            if (lexist(fullfile(sessd.tracerLocation, ['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh']), 'file'))
-                b = mlfourd.ImagingContext(fullfile(sessd.tracerLocation, ['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh']));
+            if (lexist(fullfile(sessd.tracerLocation, ['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.hdr']), 'file'))
+                b = mlfourd.ImagingContext(fullfile(sessd.tracerLocation, ['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.hdr']));
                 return
             end
             ct4rb = ct4rb.resolve;
             b = ct4rb.product{2};
             b.numericalNiftid;
-            b.saveas(['brainmask_' ct4rb.resolveTag '.4dfp.ifh']);
+            b.saveas(['brainmask_' ct4rb.resolveTag '.4dfp.hdr']);
             b = b.binarizeBlended;
-            b.saveas(['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh']);
+            b.saveas(['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.hdr']);
         end
         function aa = aparcAsegBinarized(sessd, ct4rb)
             if (mlraichle.FDGKineticsWholebrain.REUSE_APARCASEG && ...
-                lexist(fullfile(sessd.tracerLocation, ['aparcAsegBinarized_' ct4rb.resolveTag '.4dfp.ifh']), 'file'))
-                aa = mlfourd.ImagingContext(fullfile(sessd.tracerLocation, ['aparcAsegBinarized_' ct4rb.resolveTag '.4dfp.ifh']));
+                lexist(fullfile(sessd.tracerLocation, ['aparcAsegBinarized_' ct4rb.resolveTag '.4dfp.hdr']), 'file'))
+                aa = mlfourd.ImagingContext(fullfile(sessd.tracerLocation, ['aparcAsegBinarized_' ct4rb.resolveTag '.4dfp.hdr']));
                 return
             end
             
@@ -288,11 +288,11 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             sessd.nifti_4dfp_4(aa);
             aa = ct4rb.t4img_4dfp_0( ...
                 sessd.brainmask('typ','fp'), aa, 'options', '-n');
-            aa = mlfourd.ImagingContext([aa '.4dfp.ifh']);
+            aa = mlfourd.ImagingContext([aa '.4dfp.hdr']);
             nn = aa.numericalNiftid;
-            nn.saveas(['aparcAseg_' ct4rb.resolveTag '.4dfp.ifh']);
+            nn.saveas(['aparcAseg_' ct4rb.resolveTag '.4dfp.hdr']);
             nn = nn.binarized; % set threshold to intensity floor
-            nn.saveas(['aparcAsegBinarized_' ct4rb.resolveTag '.4dfp.ifh']);
+            nn.saveas(['aparcAsegBinarized_' ct4rb.resolveTag '.4dfp.hdr']);
             aa = mlfourd.ImagingContext(nn);
         end        
         

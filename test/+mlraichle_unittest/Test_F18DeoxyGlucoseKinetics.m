@@ -35,14 +35,14 @@ classdef Test_F18DeoxyGlucoseKinetics < matlab.unittest.TestCase
         function test_factory(this)
             import mlraichle.*;
             msk = mlfourd.ImagingContext( ...
-                fullfile(this.workPath, 'aparcAsegBinarized_op_fdgv2r1.4dfp.ifh'));
+                fullfile(this.workPath, 'aparcAsegBinarized_op_fdgv2r1.4dfp.hdr'));
             testobj = FDGKineticsWholebrain.factory(this.sessd, 'mask', msk);
             disp(testobj);
         end
         function test_plot(this)            
             import mlraichle.*;
             msk = mlfourd.ImagingContext( ...
-                fullfile(this.workPath, 'aparcAsegBinarized_op_fdgv2r1.4dfp.ifh'));
+                fullfile(this.workPath, 'aparcAsegBinarized_op_fdgv2r1.4dfp.hdr'));
             testobj = FDGKineticsWholebrain.factory(this.sessd, 'mask', msk);
             plot(testobj);
         end

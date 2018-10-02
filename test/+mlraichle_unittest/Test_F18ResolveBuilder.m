@@ -40,9 +40,9 @@ classdef Test_F18ResolveBuilder < matlab.unittest.TestCase
                 'dest', 'fdgv1r1', ...
                 'source', 'fdgv1r1', ...
                 'indicesLogical', [0 0 0 1 1 1]);
-            this.verifyTrue(lexist('fdgv1r1.4dfp.ifh', 'file'));
-            this.verifyTrue(lexist('fdgv1r1_resolved.4dfp.ifh', 'file'));
-            this.verifyTrue(lexist('fdgv1r2_resolved.4dfp.ifh', 'file'));
+            this.verifyTrue(lexist('fdgv1r1.4dfp.hdr', 'file'));
+            this.verifyTrue(lexist('fdgv1r1_resolved.4dfp.hdr', 'file'));
+            this.verifyTrue(lexist('fdgv1r2_resolved.4dfp.hdr', 'file'));
             mlbash('fslview fdgv1r1.4dfp.hdr fdgv1r1_resolved.4dfp.hdr fdgv1r2_resolved.4dfp.hdr');
             popd(pwd0);
         end

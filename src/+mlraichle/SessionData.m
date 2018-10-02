@@ -16,7 +16,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         ensureFqfilename = false
         fractionalImageFrameThresh = 0.1 % of median
         % cf. mlfourdfp.ImageFrames.nonEmptyImageIndices, mlpet.TracerResolveBuilder; valid for [0..1]
-        filetypeExt = '.4dfp.ifh'
+        filetypeExt = '.4dfp.hdr'
         indicesEpochCells = {} % indicesEpochCells{this.epoch} := numeric, size(numeric) == [1 this.maxLengthEpoch]
         supScanList = 3
         tauMultiplier = 1 % 1,2,4,8,16

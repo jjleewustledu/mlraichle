@@ -245,17 +245,17 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
         end
         
         function aa = aparcAseg(sessd, ct4rb, parc)
-            if (~lexist('aparcAseg_op_fdg.4dfp.ifh', 'file'))
+            if (~lexist('aparcAseg_op_fdg.4dfp.hdr', 'file'))
                 aa = sessd.aparcAseg('typ', 'mgz');
                 aa = sessd.mri_convert(aa, 'aparcAseg.nii.gz');
                 aa = mybasename(aa);
                 sessd.nifti_4dfp_4(aa);
                 aa = ct4rb.t4img_4dfp_0(sessd.brainmask('typ','fp'), aa, 'options', '-n');
-                aa = mlfourd.ImagingContext([aa '.4dfp.ifh']);
+                aa = mlfourd.ImagingContext([aa '.4dfp.hdr']);
                 nn = aa.numericalNiftid;
-                aa.saveas(['aparcAseg_' ct4rb.resolveTag '.4dfp.ifh']);
+                aa.saveas(['aparcAseg_' ct4rb.resolveTag '.4dfp.hdr']);
             else                
-                aa = mlfourd.ImagingContext('aparcAseg_op_fdg.4dfp.ifh');
+                aa = mlfourd.ImagingContext('aparcAseg_op_fdg.4dfp.hdr');
                 nn = aa.numericalNiftid;
             end
             
@@ -319,7 +319,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
         function y = resolveYeo7(~, mat, ~, bmr2Nii)
             ymni = fullfile(mlraichle.RaichleRegistry.instance.YeoDir,'Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz');
             yNii = 'Yeo7_op_fdg.nii.gz';            
-            if (~lexist('Yeo7_op_fdg.4dfp.ifh', 'file'))
+            if (~lexist('Yeo7_op_fdg.4dfp.hdr', 'file'))
                 mlbash(sprintf('flirt -in %s -ref %s -applyxfm -init %s -out %s -interp nearestneighbour', ymni, bmr2Nii, mat, yNii));
                 y = mlfourd.ImagingContext(yNii);
                 y.fourdfp;
@@ -327,7 +327,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                 return
             end
             
-            y = mlfourd.ImagingContext('Yeo7_op_fdg.4dfp.ifh');
+            y = mlfourd.ImagingContext('Yeo7_op_fdg.4dfp.hdr');
         end
         function this = factory(varargin)
             fn = sprintf('mlraichle_FDGKineticsParc_this.mat');

@@ -27,7 +27,7 @@ classdef Test_StudyCensus < matlab.unittest.TestCase
         function test_t1MprageSagSeriesForReconall(this)
             this.verifyEqual( ...
                 this.testObj.t1MprageSagSeriesForReconall(this.sessd), ...
-                fullfile(this.sessd.vLocation, 't1_mprage_sag_series8.4dfp.ifh'));
+                fullfile(this.sessd.vLocation, 't1_mprage_sag_series8.4dfp.hdr'));
         end
 	end
 

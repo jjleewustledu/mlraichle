@@ -83,10 +83,10 @@ classdef Test_SubjectImages < matlab.unittest.TestCase
             this.testObj.view;
         end
         function test_dropSumt(this)
-            this.verifyEqual(this.testObj.dropSumt('/path/to/file_sumt_op_something_sumt.4dfp.ifh'), ...
-                '/path/to/file.4dfp.ifh');
-            this.verifyEqual(this.testObj.dropSumt('/path/to/file_sumt_op_something.4dfp.ifh'), ...
-                '/path/to/file.4dfp.ifh');
+            this.verifyEqual(this.testObj.dropSumt('/path/to/file_sumt_op_something_sumt.4dfp.hdr'), ...
+                '/path/to/file.4dfp.hdr');
+            this.verifyEqual(this.testObj.dropSumt('/path/to/file_sumt_op_something.4dfp.hdr'), ...
+                '/path/to/file.4dfp.hdr');
             this.verifyEqual(this.testObj.dropSumt('/path/to/file_sumt_op_something'), ...
                 '/path/to/file');
             this.verifyEqual(this.testObj.dropSumt({'file_sumt_op_something' 'stuff_sumt_op_or_other'}), ...
@@ -126,7 +126,7 @@ classdef Test_SubjectImages < matlab.unittest.TestCase
             this.sessd.rnumber = 2; % internal state of this.testObj uses this.rnumberOfSource_ := 2
             [sd,acopy] = this.testObj.refreshTracerResolvedFinal(this.sessd, this.sessd, true); % sumt := true
             
-            refFqfn = fullfile(sd.tracerLocation, 'fdgv1r2_op_fdgv1e1to4r1_frame4_sumt.4dfp.ifh');
+            refFqfn = fullfile(sd.tracerLocation, 'fdgv1r2_op_fdgv1e1to4r1_frame4_sumt.4dfp.hdr');
             this.verifyEqual(sd.supEpoch, 4);
             this.verifyTrue(isdir(sd.vallLocation));
             this.verifyEqual(sd.tracerResolvedFinalSumt, refFqfn);

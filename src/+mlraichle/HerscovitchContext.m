@@ -62,12 +62,12 @@ classdef HerscovitchContext < mlraichle.SessionData
         function obj  = MaskOpFdg(this)
             obj = mlfourd.ImagingContext( ...
                 fullfile(this.vallLocation, ...
-                         sprintf('aparcAseg_op_fdgv%ir1_mskb.4dfp.ifh', this.vnumberRef)));
+                         sprintf('aparcAseg_op_fdgv%ir1_mskb.4dfp.hdr', this.vnumberRef)));
         end
         function obj  = T1001OpFdg(this)
             obj = mlfourd.ImagingContext( ...
                 fullfile(this.vallLocation, ...
-                         sprintf('T1001r1_op_fdgv%ir1.4dfp.ifh', this.vnumberRef)));
+                         sprintf('T1001r1_op_fdgv%ir1.4dfp.hdr', this.vnumberRef)));
         end
         
         function obj  = tracerResolvedFinal(this, varargin)            

@@ -22,7 +22,7 @@ classdef SessionContext < mlpipeline.SessionContext
         %% GET/SET
         
         function g    = get.filesuffix(~)
-            g = '.4dfp.ifh';
+            g = '.4dfp.hdr';
         end
         function g    = get.freesurfersDir(~)
            g = fullfile(getenv('PPG'), 'freesurfer', '');

@@ -75,7 +75,7 @@ classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
         function obj  = t1MprageSagSeriesForReconall(this, sessd, varargin)
             assert(isa(sessd, 'mlpipeline.ISessionData'));
             fqfn = fullfile(sessd.vLocation, ...
-                sprintf('t1_mprage_sag_series%i.4dfp.ifh', this.seriesForFreesurfer));
+                sprintf('t1_mprage_sag_series%i.4dfp.hdr', this.seriesForFreesurfer));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function this = readtable(this, varargin)

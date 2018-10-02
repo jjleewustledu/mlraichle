@@ -40,9 +40,9 @@ classdef Test_O15ResolveBuilder < matlab.unittest.TestCase
                 'dest', 'oc1v1r1', ...
                 'source', 'oc1v1r1', ...
                 'indicesLogical', [1 1 1]);
-            this.verifyTrue(lexist('oc1v1r1.4dfp.ifh', 'file'));
-            this.verifyTrue(lexist('oc1v1r1_resolved.4dfp.ifh', 'file'));
-            this.verifyTrue(lexist('oc1v1r2_resolved.4dfp.ifh', 'file'));
+            this.verifyTrue(lexist('oc1v1r1.4dfp.hdr', 'file'));
+            this.verifyTrue(lexist('oc1v1r1_resolved.4dfp.hdr', 'file'));
+            this.verifyTrue(lexist('oc1v1r2_resolved.4dfp.hdr', 'file'));
             mlbash('fslview oc1v1r1.4dfp.hdr oc1v1r1_resolved.4dfp.hdr oc1v1r2_resolved.4dfp.hdr');
             popd(pwd0);
         end

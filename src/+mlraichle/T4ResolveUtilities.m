@@ -24,7 +24,7 @@ classdef T4ResolveUtilities < mlfourdfp.T4ResolveUtilities
             [~,visit] = fileparts(visitPth);
             tf = lexist(fullfile(visitPth, ...
                                  ['FDG_' visit '-NAC'],...
-                                 sprintf('FDG_%s-LM-00-OP.4dfp.ifh', visit)), 'file');
+                                 sprintf('FDG_%s-LM-00-OP.4dfp.hdr', visit)), 'file');
         end  
         function tf = hasOPV(pth, lastFrame)
             lastFrame = lastFrame - 1; % Siemens tags indicesLogical starting with 00

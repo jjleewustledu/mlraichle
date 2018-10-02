@@ -51,9 +51,9 @@ classdef SubjectImages
                             src = sprintf('%s%iv%ir1', tr{t}, s, v);
                             out = sprintf('%s%iv%ir1_op_fdgv%ir1', tr{t}, s, v, vref);
                             fv.t4img_4dfp(t4, src, 'out', out, 'options', ['-O' src]);
-                            nn = mlfourd.NumericalNIfTId.load([out '.4dfp.ifh']);
+                            nn = mlfourd.NumericalNIfTId.load([out '.4dfp.hdr']);
                             nn = nn.timeSummed;
-                            nn.filesuffix = '.4dfp.ifh';
+                            nn.filesuffix = '.4dfp.hdr';
                             nn.save;
                             outs = [outs sprintf('%s.4dfp.img ', nn.fqfileprefix)]; %#ok<AGROW>
                         catch ME
@@ -119,7 +119,7 @@ classdef SubjectImages
             %% ALIGNCOMMONMODAL
             %  @param tracer, ctor.census & ctor.sessionData select images.
             %  @return t4 in this.t4s:             e.g., {ho[1-9]v[1-9]r1_sumtr1_to_op_hov1r1_t4}.
-            %  @return resolved in this.product:   e.g., {ho[1-9]v[1-9]r1_sumtr1_op_hov1r1.4dfp.ifh}.
+            %  @return resolved in this.product:   e.g., {ho[1-9]v[1-9]r1_sumtr1_op_hov1r1.4dfp.hdr}.
             % 
             %  e.g., HYGLY24/Vall obtains:
             %  fdgv3r1.4dfp % the reference
@@ -137,27 +137,27 @@ classdef SubjectImages
             % ho1v2r1_sumtr1_to_op_hov1r1_t4
             % ho2v2r1_sumtr1_to_op_hov1r1_t4            
             % cellfun(@(x) ls(x.filename), this.product_, 'UniformOutput', false) =>
-            % ho1v1r1_sumtr1_op_hov1r1.4dfp.ifh
-            % ho2v1r1_sumtr1_op_hov1r1.4dfp.ifh
-            % ho1v2r1_sumtr1_op_hov1r1.4dfp.ifh
-            % ho2v2r1_sumtr1_op_hov1r1.4dfp.ifh
+            % ho1v1r1_sumtr1_op_hov1r1.4dfp.hdr
+            % ho2v1r1_sumtr1_op_hov1r1.4dfp.hdr
+            % ho1v2r1_sumtr1_op_hov1r1.4dfp.hdr
+            % ho2v2r1_sumtr1_op_hov1r1.4dfp.hdr
             % this.t4s_{1}' =>
             % 'oc1v1r1_sumtr1_to_op_ocv1r1_t4'
             % 'oc2v1r1_sumtr1_to_op_ocv1r1_t4'
             % 'oc1v2r1_sumtr1_to_op_ocv1r1_t4'
             % 'oc2v2r1_sumtr1_to_op_ocv1r1_t4'
             % cellfun(@(x) x.fqfilename, this.product_, 'UniformOutput', false)'
-            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/oc1v1r1_sumtr1_op_ocv1r1.4dfp.ifh'
-            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/oc2v1r1_sumtr1_op_ocv1r1.4dfp.ifh'
-            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/oc1v2r1_sumtr1_op_ocv1r1.4dfp.ifh'
-            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/oc2v2r1_sumtr1_op_ocv1r1.4dfp.ifh'
+            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/oc1v1r1_sumtr1_op_ocv1r1.4dfp.hdr'
+            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/oc2v1r1_sumtr1_op_ocv1r1.4dfp.hdr'
+            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/oc1v2r1_sumtr1_op_ocv1r1.4dfp.hdr'
+            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/oc2v2r1_sumtr1_op_ocv1r1.4dfp.hdr'
             
         end
         function this = alignCrossModal(this) 
             %% ALIGNCROSSMODAL
             %  theFdg,theHo,theOo,theOc
             %  @return t4 in this.t4s:            e.g., {hov[1-9]r1_sumtr1_op_hov[1-9]r1_avgr1_to_op_fdgv1r1_t4}.
-            %  @return resolved in this.product:  e.g., {hov[1-9]r1_sumtr1_op_hov[1-9]r1_avgr1_op_fdgv1r1.4dfp.ifh}.            
+            %  @return resolved in this.product:  e.g., {hov[1-9]r1_sumtr1_op_hov[1-9]r1_avgr1_op_fdgv1r1.4dfp.hdr}.            
             
             try
 
@@ -187,9 +187,9 @@ classdef SubjectImages
                 % hov1r1_sumtr1_op_hov1r1_avgr1_to_op_fdgv1r1_t4
                 % oov1r1_sumtr1_op_oov1r1_avgr1_to_op_fdgv1r1_t4
                 % cellfun(@(x) ls(x.filename), this.product_, 'UniformOutput', false) =>
-                % fdgv1r1_sumtr1_op_fdgv1r1_avgr1_op_fdgv1r1.4dfp.ifh
-                % hov1r1_sumtr1_op_hov1r1_avgr1_op_fdgv1r1.4dfp.ifh
-                % oov1r1_sumtr1_op_oov1r1_avgr1_op_fdgv1r1.4dfp.ifh
+                % fdgv1r1_sumtr1_op_fdgv1r1_avgr1_op_fdgv1r1.4dfp.hdr
+                % hov1r1_sumtr1_op_hov1r1_avgr1_op_fdgv1r1.4dfp.hdr
+                % oov1r1_sumtr1_op_oov1r1_avgr1_op_fdgv1r1.4dfp.hdr
 
                 this.saveThis('alignCrossModal_this');
 
@@ -227,8 +227,8 @@ classdef SubjectImages
             % fdgv1r1_op_fdgv1r1_frames1to8_sumt_avgr1_to_op_fdgv1r1_t4
             % ocv1r1_sumtr1_op_ocv1r1_avg_sqrtr1_to_op_fdgv1r1_t4
             % cellfun(@(x) ls(x.filename), this.product_, 'UniformOutput', false) =>    
-            % fdgv1r1_op_fdgv1r1_frames1to8_sumt_avgr1_op_fdgv1r1.4dfp.ifh
-            % ocv1r1_sumtr1_op_ocv1r1_avg_sqrtr1_op_fdgv1r1.4dfp.ifh
+            % fdgv1r1_op_fdgv1r1_frames1to8_sumt_avgr1_op_fdgv1r1.4dfp.hdr
+            % ocv1r1_sumtr1_op_ocv1r1_avg_sqrtr1_op_fdgv1r1.4dfp.hdr
 
             this.saveThis('alignCrossModalSubset_this');
             this.alignDynamicImages('commonRef', theOc,  'crossRef', this);
@@ -271,9 +271,9 @@ classdef SubjectImages
             % 'hov1r1_sumtr1_op_hov1r1_avgr1_to_op_fdgv1r1_t4'
             % cellfun(@(x) x.filename, comm.product, 'UniformOutput', false)' =>
             % 'ho1v1r1_op_hov1r1.nii'
-            % 'ho2v1r1_op_hov1r1.4dfp.ifh'
-            % 'ho1v2r1_op_hov1r1.4dfp.ifh'
-            % 'ho2v2r1_op_hov1r1.4dfp.ifh'            
+            % 'ho2v1r1_op_hov1r1.4dfp.hdr'
+            % 'ho1v2r1_op_hov1r1.4dfp.hdr'
+            % 'ho2v2r1_op_hov1r1.4dfp.hdr'            
             % tmp = cross.selectT4s(); tmp{1} => 'ocv1r1_sumtr1_op_ocv1r1_avg_sqrtr1_to_op_fdgv1r1_t4'
             % t4form{1}' =>
             % 'ocv1r1_sumtr1_op_ocv1r1_avg_sqrtr1_to_op_fdgv1r1_t4'
@@ -281,10 +281,10 @@ classdef SubjectImages
             % 'ocv1r1_sumtr1_op_ocv1r1_avg_sqrtr1_to_op_fdgv1r1_t4'
             % 'ocv1r1_sumtr1_op_ocv1r1_avg_sqrtr1_to_op_fdgv1r1_t4'
             % cellfun(@(x) x.filename, comm.product, 'UniformOutput', false)' =>
-            % 'oc1v1r1_op_ocv1r1.4dfp.ifh'
-            % 'oc2v1r1_op_ocv1r1.4dfp.ifh'
-            % 'oc1v2r1_op_ocv1r1.4dfp.ifh'
-            % 'oc2v2r1_op_ocv1r1.4dfp.ifh'            
+            % 'oc1v1r1_op_ocv1r1.4dfp.hdr'
+            % 'oc2v1r1_op_ocv1r1.4dfp.hdr'
+            % 'oc1v2r1_op_ocv1r1.4dfp.hdr'
+            % 'oc2v2r1_op_ocv1r1.4dfp.hdr'            
             
             this.constructTracerRevisionToReferenceT4(comm, comm.t4s_, t4form);
             % comm.t4s_{1}'
@@ -299,24 +299,24 @@ classdef SubjectImages
             comm.saveStandardized;
             comm.saveSumtStandardized;
             % cellfun(@(x) x.filename, comm.product, 'UniformOutput', false)' =>
-            % 'fdgv2r1_op_fdgv2r1.4dfp.ifh'
-            % 'fdgv3r1_op_fdgv2r1.4dfp.ifh'
-            % 'fdgv1r1_op_fdgv2r1.4dfp.ifh'
+            % 'fdgv2r1_op_fdgv2r1.4dfp.hdr'
+            % 'fdgv3r1_op_fdgv2r1.4dfp.hdr'
+            % 'fdgv1r1_op_fdgv2r1.4dfp.hdr'
     
             cross = cross.t4imgc(t4form, comm.product);            
             this.product_ = cross.product;
             this.saveStandardized;
             this.saveSumtStandardized;
             % cellfun(@(x) x.filename, this.product_, 'UniformOutput', false)' =>             
-            % 'ho1v1r1_op_hov1r1_on_op_fdgv1r1.4dfp.ifh'
-            % 'ho2v1r1_op_hov1r1_on_op_fdgv1r1.4dfp.ifh'
-            % 'ho1v2r1_op_hov1r1_on_op_fdgv1r1.4dfp.ifh'
-            % 'ho2v2r1_op_hov1r1_on_op_fdgv1r1.4dfp.ifh'            
+            % 'ho1v1r1_op_hov1r1_on_op_fdgv1r1.4dfp.hdr'
+            % 'ho2v1r1_op_hov1r1_on_op_fdgv1r1.4dfp.hdr'
+            % 'ho1v2r1_op_hov1r1_on_op_fdgv1r1.4dfp.hdr'
+            % 'ho2v2r1_op_hov1r1_on_op_fdgv1r1.4dfp.hdr'            
             % cellfun(@(x) x.filename, this.product_, 'UniformOutput', false)' => 
-            % 'oc1v1r1_op_ocv1r1_on_op_fdgv1r1.4dfp.ifh'
-            % 'oc2v1r1_op_ocv1r1_on_op_fdgv1r1.4dfp.ifh'
-            % 'oc1v2r1_op_ocv1r1_on_op_fdgv1r1.4dfp.ifh'
-            % 'oc2v2r1_op_ocv1r1_on_op_fdgv1r1.4dfp.ifh'            
+            % 'oc1v1r1_op_ocv1r1_on_op_fdgv1r1.4dfp.hdr'
+            % 'oc2v1r1_op_ocv1r1_on_op_fdgv1r1.4dfp.hdr'
+            % 'oc1v2r1_op_ocv1r1_on_op_fdgv1r1.4dfp.hdr'
+            % 'oc2v2r1_op_ocv1r1_on_op_fdgv1r1.4dfp.hdr'            
             
             this.teardownIntermediates;
             popd(pwd0);
@@ -349,8 +349,8 @@ classdef SubjectImages
             % 'fdgv1r1_sumtr1_to_op_fdgv1r1_t4'
             % 'fdgv2r1_sumtr1_to_op_fdgv1r1_t4'
             %  cellfun(@(x) x.fqfilename, this.product_, 'UniformOutput', false)' =>
-            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/fdgv1r1_sumtr1_op_fdgv1r1.4dfp.ifh'
-            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/fdgv2r1_sumtr1_op_fdgv1r1.4dfp.ifh'
+            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/fdgv1r1_sumtr1_op_fdgv1r1.4dfp.hdr'
+            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/fdgv2r1_sumtr1_op_fdgv1r1.4dfp.hdr'
             
             this = this.t4imgDynamicImages(tracer);
             for d = 1:length(this.product)
@@ -358,12 +358,12 @@ classdef SubjectImages
                 assert(frames(end) <= size(nn, 4));
                 nn.img = nn.img(:,:,:,frames);
                 nn.filepath = this.sessionData.vallLocation;
-                nn.filename = sprintf('%s_frames%ito%i.4dfp.ifh', nn.fileprefix, frames(1), frames(end));
+                nn.filename = sprintf('%s_frames%ito%i.4dfp.hdr', nn.fileprefix, frames(1), frames(end));
                 nn = nn.timeSummed;
                 nn.save;
                 this.product{d} = mlfourd.ImagingContext(nn);
                 % this.product{d}.fqfilename => 
-                % /data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/fdgv1r1_op_fdgv1r1_frames1to8_sumt.4dfp.ifh                
+                % /data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/fdgv1r1_op_fdgv1r1_frames1to8_sumt.4dfp.hdr                
 
             end   
             this = this.productAverage;
@@ -388,7 +388,7 @@ classdef SubjectImages
             assert(frames(end) <= size(nn, 4));
             nn.img = nn.img(:,:,:,frames);
             nn.filepath = pwd;
-            nn.filename = sprintf('%s_frames%ito%i.4dfp.ifh', nn.fileprefix, frames(1), frames(end));
+            nn.filename = sprintf('%s_frames%ito%i.4dfp.hdr', nn.fileprefix, frames(1), frames(end));
             nn = nn.timeSummed;
             nn.save;
             ref = nn.fqfileprefix;
@@ -706,7 +706,7 @@ classdef SubjectImages
         function        save(this)
             for p = 1:length(this.product)
                 pp = this.product{p};
-                pp.filesuffix = '.4dfp.ifh';
+                pp.filesuffix = '.4dfp.hdr';
                 pp.save;
             end
         end
@@ -714,7 +714,7 @@ classdef SubjectImages
             for p = 1:length(this.product)
                 pp = this.product{p};
                 pp.fileprefix = this.fileprefixStandardized(pp.fileprefix);
-                pp.filesuffix = '.4dfp.ifh';
+                pp.filesuffix = '.4dfp.hdr';
                 pp.save;
                 this.lnsLegacies(pp.fileprefix);
             end     
@@ -725,7 +725,7 @@ classdef SubjectImages
                 nn = pp.numericalNiftid;
                 nn = nn.timeSummed;
                 nn.fileprefix = this.fileprefixSumtStandardized(nn.fileprefix);
-                nn.filesuffix = '.4dfp.ifh';
+                nn.filesuffix = '.4dfp.hdr';
                 nn.save;                
                 this.lnsLegacies(nn.fileprefix);
             end          
@@ -842,7 +842,7 @@ classdef SubjectImages
             for i = 1:length(this.product_)
                 fqfn = [this.buildVisitor_.t4img_4dfp( ...
                         ts{r}{i}, ip.Results.sources{i}.fqfileprefix, ...
-                        'options', ['-O' ref]) '.4dfp.ifh'];
+                        'options', ['-O' ref]) '.4dfp.hdr'];
                 this.product_{i} = mlfourd.ImagingContext(fqfn);
                 this.product_{i}.fourdfp;
                 this.product_{i}.numericalNiftid;
@@ -877,7 +877,7 @@ classdef SubjectImages
             
             this.product_ = cell(size(imgs));
             if (length(imgs) < 2)
-                this.product_{1} = mlfourd.ImagingContext([imgs{1} '.4dfp.ifh']);
+                this.product_{1} = mlfourd.ImagingContext([imgs{1} '.4dfp.hdr']);
                 this.product_{1}.fourdfp;
                 % this.product_{i}.fileprefix => ho1v1r1_op_hov1r1
                 
@@ -909,13 +909,13 @@ classdef SubjectImages
                 % fdgv2r1r0_to_op_fdgv2r1_t4
                 this.product_{i} = this.cRB_.product;
                 % cellfun(@(x) x.fqfilename, this.product_, 'UniformOutput', false)' =>
-                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv2r1_op_fdgv2r1.4dfp.ifh'
-                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv3r1_op_fdgv2r1.4dfp.ifh'
-                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv1r1_op_fdgv2r1.4dfp.ifh'
+                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv2r1_op_fdgv2r1.4dfp.hdr'
+                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv3r1_op_fdgv2r1.4dfp.hdr'
+                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv1r1_op_fdgv2r1.4dfp.hdr'
                 % cellfun(@(x) x.fqfilename, this.product_, 'UniformOutput', false)' =>
-                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv2r1_sumtr1_op_fdgv2r1_avgr1_op_fdgv2r1.4dfp.ifh'
-                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/hov2r1_sumtr1_op_hov2r1_avgr1_op_fdgv2r1.4dfp.ifh'
-                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/oov2r1_sumtr1_op_oov2r1_avgr1_op_fdgv2r1.4dfp.ifh'
+                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/fdgv2r1_sumtr1_op_fdgv2r1_avgr1_op_fdgv2r1.4dfp.hdr'
+                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/hov2r1_sumtr1_op_hov2r1_avgr1_op_fdgv2r1.4dfp.hdr'
+                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY37/Vall/oov2r1_sumtr1_op_oov2r1_avgr1_op_fdgv2r1.4dfp.hdr'
             end        
         end 
         function        teardownIntermediates(this)
@@ -965,6 +965,11 @@ classdef SubjectImages
     end
     
     methods (Access = private)
+        function fn   = ensureFourdfpIfh(~, fn)
+            if (~lstrfind(fn, '.4dfp.hdr'))
+                fn = [myfileprefix(fn) '.4dfp.hdr'];
+            end
+        end
         function fqfp = ensureLastRnumber(this, fqfp, r)
             %% ENSURELASTRNUMBER
             %  @param fqfp

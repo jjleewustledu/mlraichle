@@ -66,7 +66,7 @@ classdef StudyDirector
                                 if (isprop(sessd, 'index0Forced'))
                                     sessd.index0Forced = ipr.index0Forced;
                                 end
-                                if (isdir(sessd.tracerRawdataLocation)) %#ok<*ISDIR>
+                                if (isdir(sessd.tracerLocation)) %#ok<*ISDIR>
                                     % there exist spurious tracerLocations; select those with corresponding raw data
                                     
                                     evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', factoryMethod);
@@ -142,7 +142,7 @@ classdef StudyDirector
                                 if (isprop(sessd, 'hoursOffsetForced'))
                                     sessd.hoursOffsetForced = ipr.hoursOffsetForced;
                                 end
-                                if (isdir(sessd.tracerRawdataLocation)) %#ok<*ISDIR>
+                                if (isdir(sessd.tracerLocation)) %#ok<*ISDIR>
                                     % there exist spurious tracerLocations; select those with corresponding raw data
                                     
                                     evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', factoryMethod);
@@ -210,7 +210,7 @@ classdef StudyDirector
                             try                                
                                 sessd = StudyDirector.constructSessionData( ...
                                     ipr, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac});                                
-                                if (isdir(sessd.tracerRawdataLocation))
+                                if (isdir(sessd.tracerLocation))
                                     % there exist spurious tracerLocations; select those with corresponding raw data
                                     
                                     fprintf('mlraichle.StudyDirector.constructCellArrayOfObjects:\n');
@@ -277,7 +277,7 @@ classdef StudyDirector
                             try                                
                                 sessd = StudyDirector.constructSessionData( ...
                                     ipr, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac}); %#ok<PFBNS>
-                                if (isdir(sessd.tracerRawdataLocation))
+                                if (isdir(sessd.tracerLocation))
                                     % there exist spurious tracerLocations; select those with corresponding raw data
                                     
                                     fprintf('mlraichle.StudyDirector.constructCellArrayOfObjects:\n');
@@ -359,7 +359,7 @@ classdef StudyDirector
                             try
                                 sessd = StudyDirector.constructSessionData( ...
                                     ip.Results, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac});  
-                                if (isdir(sessd.tracerRawdataLocation))
+                                if (isdir(sessd.tracerLocation))
                                     % there exist spurious tracerLocations; select those with corresponding raw data
                                     
                                     csessd = sessd;

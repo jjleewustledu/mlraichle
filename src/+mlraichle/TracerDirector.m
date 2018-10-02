@@ -10,7 +10,7 @@ classdef TracerDirector < mlpet.TracerDirector
         
         %% factory methods        
         
-        function this  = alignCrossModal(varargin)
+        function obj   = alignCrossModal(varargin)
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
@@ -20,10 +20,10 @@ classdef TracerDirector < mlpet.TracerDirector
             mlpet.TracerDirector.prepareFreesurferData(varargin{:});  
             import mlraichle.*;
             census = StudyCensus('sessionData', ip.Results.sessionData);
- 			this = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
-            this = this.alignCrossModal;
+ 			obj  = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
+            obj  = obj.alignCrossModal;
         end 
-        function this  = alignCrossModalSubset(varargin)
+        function obj   = alignCrossModalSubset(varargin)
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
@@ -31,9 +31,10 @@ classdef TracerDirector < mlpet.TracerDirector
             
             import mlraichle.*;
             census = StudyCensus('sessionData', ip.Results.sessionData);
- 			this = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
-            this = this.alignCrossModalSubset;
+ 			obj  = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
+            obj  = obj.alignCrossModalSubset;
         end 
+        
         function out   = purgeE1E1toN(varargin)
             
             ip = inputParser;
@@ -258,7 +259,8 @@ classdef TracerDirector < mlpet.TracerDirector
                 handwarning(ME);
             end
             out = []; % for use with mlraichle.StudyDirector.constructCellArrayOfObjects
-        end     
+        end    
+        
         function those = constructAifs(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
@@ -404,41 +406,6 @@ classdef TracerDirector < mlpet.TracerDirector
             this = mlraichle.TracerDirector( ...
                 mlpet.NiftyPETyBuilder(varargin{:}));              
             this = this.instanceConstructNiftyPETy;
-        end 
-        function those = constructGlcOnly(varargin)
-            %  @param varargin for mlpet.TracerResolveBuilder.
-            %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
-            %  @return umap files generated per motionUncorrectedUmap ready for use by TriggeringTracers.js.
-            %  @return this.sessionData.attenuationCorrection == false.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
-            parse(ip, varargin{:});
-            
-            mlpet.TracerDirector.assertenv;
-            
-            labs.glc = 308;
-            labs.hct = 37.55;
-            those = mlsiemens.Herscovitch1985.constructGlcOnly(ip.Results.sessionData, labs);
-        end 
-        function those = constructOxygenOnly(varargin)
-            %  @param varargin for mlpet.TracerResolveBuilder.
-            %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
-            %  @return umap files generated per motionUncorrectedUmap ready for use by TriggeringTracers.js.
-            %  @return this.sessionData.attenuationCorrection == false.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
-            parse(ip, varargin{:});
-            
-            mlpet.TracerDirector.assertenv;
-            
-            [thisHO,thisOC,thisOO] = mlsiemens.Herscovitch1985.constructOxygenOnly(ip.Results.sessionData);
-            those.thisHO = thisHO;
-            those.thisOC = thisOC;
-            those.thisOO = thisOO;
         end 
         function those = constructPhysiologicals(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
@@ -803,6 +770,7 @@ classdef TracerDirector < mlpet.TracerDirector
                 end
             end
         end
+        
         function this  = pullFromRemote(varargin)
             
             ip = inputParser;
@@ -934,48 +902,6 @@ classdef TracerDirector < mlpet.TracerDirector
             end
             this.builder.linkRawdataMPR;
             this.builder.reconAllSurferObjects;
-        end 
-        function this  = reconstructE1toN(varargin)
-            mlraichle.TracerDirector.cleanE1toN(varargin{:});
-            this = mlraichle.TracerDirector.constructResolved(varargin{:});        
-        end
-        function this  = reconstructE1E1toN(varargin)
-            mlraichle.TracerDirector.purgeE1E1toN(varargin{:});
-            this = mlraichle.TracerDirector.constructResolved(varargin{:});        
-        end
-        function ems   = reconstructErrMat(varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
-            parse(ip, varargin{:});
-            
-            mlpet.TracerDirector.assertenv;  
-            import mlraichle.*;
-            census = StudyCensus('sessionData', ip.Results.sessionData);
- 			this = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
-            ems = this.reconstructErrMat;
-        end    
-        function this  = reconstructUnresolved(varargin)
-            %  @param varargin for mlpet.TracerResolveBuilder.
-            %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
-            %  @return umap files generated per motionUncorrectedUmap ready
-            %  for use by TriggeringTracers.js; 
-            %  sequentially run FDG NAC, 15O NAC, then all tracers AC.
-            %  @return this.sessionData.attenuationCorrection == false.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
-            parse(ip, varargin{:});
-            
-            mlpet.TracerDirector.assertenv;  
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:})          
-            
-            mlraichle.UmapDirector.constructUmaps('sessionData', ip.Results.sessionData);
-            
-            this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));   
-            this = this.instanceReconstructUnresolved;
         end 
         function list  = repairUmapDefects(varargin)
             
@@ -1418,5 +1344,52 @@ classdef TracerDirector < mlpet.TracerDirector
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
+    
+    %% HIDDEN, DEPRECATED
+    
+    methods (Hidden, Static)
+        function this = reconstructE1toN(varargin)
+            mlraichle.TracerDirector.cleanE1toN(varargin{:});
+            this = mlraichle.TracerDirector.constructResolved(varargin{:});        
+        end
+        function this = reconstructE1E1toN(varargin)
+            mlraichle.TracerDirector.purgeE1E1toN(varargin{:});
+            this = mlraichle.TracerDirector.constructResolved(varargin{:});        
+        end
+        function ems  = reconstructErrMat(varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
+            parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;  
+            import mlraichle.*;
+            census = StudyCensus('sessionData', ip.Results.sessionData);
+ 			this = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
+            ems = this.reconstructErrMat;
+        end    
+        function this = reconstructUnresolved(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
+            %  @return umap files generated per motionUncorrectedUmap ready
+            %  for use by TriggeringTracers.js; 
+            %  sequentially run FDG NAC, 15O NAC, then all tracers AC.
+            %  @return this.sessionData.attenuationCorrection == false.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
+            parse(ip, varargin{:});
+            
+            mlpet.TracerDirector.assertenv;  
+            mlpet.TracerDirector.prepareFreesurferData(varargin{:})          
+            
+            mlraichle.UmapDirector.constructUmaps('sessionData', ip.Results.sessionData);
+            
+            this = mlraichle.TracerDirector( ...
+                mlpet.TracerResolveBuilder(varargin{:}));   
+            this = this.instanceReconstructUnresolved;
+        end 
+    end
  end
 

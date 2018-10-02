@@ -105,7 +105,7 @@ classdef UmapDirector < mlpipeline.AbstractDataDirector
             mskNN = mskNN.blurred(16);
             mskNN = mskNN.thresh(0.75*mskNN.dipmax);
             mskNN = mskNN.binarized;
-            mskNN.filesuffix = '.4dfp.ifh';
+            mskNN.filesuffix = '.4dfp.hdr';
             mskNN.save;
             
             tracerNN = NumericalNIfTId.load(this.sessionData.tracerRevision);
