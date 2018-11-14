@@ -16,7 +16,6 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.assertenv;  
             mlpet.TracerDirector.prepareFreesurferData(varargin{:});  
             import mlraichle.*;
             census = StudyCensus('sessionData', ip.Results.sessionData);
@@ -272,8 +271,6 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.assertenv;
-            
             those = mlsiemens.Herscovitch1985.constructAifs(ip.Results.sessionData);
         end 
         function this  = constructAnatomy(varargin)
@@ -287,7 +284,6 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'target', '', @ischar);
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.assertenv;
             mlpet.TracerDirector.prepareFreesurferData(varargin{:})
             
             this = mlraichle.TracerDirector( ...
@@ -312,7 +308,6 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'target', '', @ischar);
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.assertenv;
             mlpet.TracerDirector.prepareFreesurferData(varargin{:})
             
             this = TracerDirector( ...
@@ -347,8 +342,6 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'noclobber', true, @islogical);
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.assertenv;
-            
             this = TracerDirector( ...
                 mlpet.TracerBuilder(varargin{:})); 
             if (~ip.Results.noclobber)
@@ -377,8 +370,6 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'noclobber', true, @islogical);
             parse(ip, varargin{:});
-            
-            mlpet.TracerDirector.assertenv;
             
             this = TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:})); 
@@ -418,8 +409,6 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.assertenv;
-            
             those = mlsiemens.Herscovitch1985.constructPhysiologicals(ip.Results.sessionData);
         end 
         function this  = constructReferenceTracerToT1001T4(varargin)
@@ -428,7 +417,6 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.assertenv;  
             import mlraichle.*;
             census = StudyCensus('sessionData', ip.Results.sessionData);
  			this = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
@@ -442,7 +430,6 @@ classdef TracerDirector < mlpet.TracerDirector
             %  sequentially run FDG NAC, 15O NAC, then all tracers AC.
             %  @return this.sessionData.attenuationCorrection == false.
             
-            mlpet.TracerDirector.assertenv;  
             mlpet.TracerDirector.prepareFreesurferData(varargin{:});            
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));   
@@ -473,7 +460,6 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'target', '', @ischar);
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.assertenv;
             mlpet.TracerDirector.prepareFreesurferData(varargin{:})
             
             this = TracerDirector( ...
@@ -507,7 +493,6 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'target', '', @ischar);
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.assertenv;
             mlpet.TracerDirector.prepareFreesurferData(varargin{:})
             
             this = TracerDirector( ...
@@ -539,8 +524,6 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'target', '', @ischar);
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.assertenv;
-            
             this = TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:})); 
             this.anatomy_ = ip.Results.anatomy;
@@ -560,7 +543,6 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.assertenv;
             Herscovitch1985.configT1001(ip.Results.sessionData);
             Herscovitch1985.configMask( ip.Results.sessionData);
             
@@ -1212,7 +1194,6 @@ classdef TracerDirector < mlpet.TracerDirector
             parse(ip, varargin{:});
             
             try
-                mlpet.TracerDirector.assertenv;
                 mlpet.TracerDirector.prepareFreesurferData(varargin{:})
             
                 sessd = this.sessionData;
@@ -1348,7 +1329,6 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.assertenv;  
             import mlraichle.*;
             census = StudyCensus('sessionData', ip.Results.sessionData);
  			this = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
@@ -1367,9 +1347,7 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.assertenv;  
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:})          
-            
+            mlpet.TracerDirector.prepareFreesurferData(varargin{:})            
             mlraichle.UmapDirector.constructUmaps('sessionData', ip.Results.sessionData);
             
             this = mlraichle.TracerDirector( ...
