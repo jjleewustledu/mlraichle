@@ -1310,8 +1310,6 @@ classdef TracerDirector < mlpet.TracerDirector
         end     
     end
 
-	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
-    
     %% HIDDEN, DEPRECATED
     
     methods (Hidden, Static)
@@ -1355,5 +1353,28 @@ classdef TracerDirector < mlpet.TracerDirector
             this = this.instanceReconstructUnresolved;
         end 
     end
+    
+    methods (Hidden)        
+        function this  = instanceConstructKinetics(this, varargin)
+            %% INSTANCECONSTRUCTKINETICS requests that the builder prepare filesystems, coregistrations and 
+            %  resolve-projections of ancillary data to tracer data.  
+            %  Subsequently, it requests that the builder construct kinetics.
+            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'roisBuilder', ...
+                mlpet.BrainmaskBuilder('sessionData', this.sessionData), ...
+                @(x) isa(x, 'mlrois.IRoisBuilder'));
+            parse(ip, varargin{:});
+            
+            this.product_ = mlraichle.HyperglycemiaResults(varargin{:});
+            %this.builder_ = this.builder_.resolveRoisOnTracer(varargin{:});
+            %this.builder_ = this.builder_.instanceConstructKinetics(varargin{:});
+        end
+    end
+    
+	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
+    
  end
 
