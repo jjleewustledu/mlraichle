@@ -860,14 +860,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.HyperglycemiaDirector.prepareFreesurferData', varargin{:});
-        end  
-        function those = constructUmapSynthForDynamicFrames(varargin)
-            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
-            
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.constructUmapSynthForDynamicFrames', varargin{:});
-            
-        end  
+        end    
         function those = constructUmaps(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
             
@@ -1505,7 +1498,10 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
         function this = instanceSortDownloads(this, downloadPath)
             import mlfourdfp.*;
             try
-                DicomSorter.sessionSort(downloadPath, this.sessionData_.vLocation, 'sessionData', this.sessionData);
+                DicomSorter.CreateSorted( ...
+                    'srcPath', downloadPath, ...
+                    'destPath', this.sessionData_.vLocation, ...
+                    'sessionData', this.sessionData);
                 rds     = RawDataSorter('sessionData', this.sessionData_);
                 rawData = fullfile(downloadPath, 'RESOURCES', 'RawData', '');
                 scans   = fullfile(downloadPath, 'SCANS', '');
@@ -1525,7 +1521,10 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
         function this = instanceSortDownloadCT(this, downloadPath)
             import mlfourdfp.*;
             try
-                DicomSorter.sessionSort(downloadPath, this.sessionData_.sessionPath, 'sessionData', this.sessionData);
+                DicomSorter.CreateSorted( ...
+                    'srcPath', downloadPath, ...
+                    'destPath', this.sessionData_.sessionPath, ...
+                    'sessionData', this.sessionData);
             catch ME
                 handexcept(ME, 'mlraichle:filesystemError', ...
                     'HyperglycemiaDirector.instanceSortDownloadCT.downloadPath->%s may be missing folder SCANS', downloadPath);
@@ -1652,8 +1651,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
         end
     end
 
-	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
-    
     %% HIDDEN, DEPRECATED
     
     methods (Hidden, Static)        
@@ -1711,5 +1708,8 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 'mlraichle.TracerDirector.reconstructUnresolved', 'wallTime', '23:59:59', varargin{:});
         end
     end
+    
+	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
+    
  end
 
