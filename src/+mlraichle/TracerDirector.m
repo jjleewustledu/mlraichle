@@ -566,20 +566,6 @@ classdef TracerDirector < mlpet.TracerDirector
             
             this = [];
         end
-        function this  = constructUmapSynthForDynamicFrames(varargin)
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
-            parse(ip, varargin{:});
-            
-            mlpet.TracerDirector.assertenv;
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:})
-            
-            this = mlraichle.TracerDirector( ...
-                mlpet.TracerResolveBuilder(varargin{:}));             
-            this = this.instanceConstructUmapSynthForDynamicFrames;
-        end
         function out   = deleteTracer(varargin)
             
             ip = inputParser;
