@@ -146,8 +146,8 @@ classdef T4ResolveReport
             assert(isa(t4r, 'mlraichle.T4Resolve'));
             mat = nan(size(t4r.etas));
             e   = t4r.etas;
-            for m = 1:size(mat,1)
-                for n = 1:size(mat,2)
+            for n = 1:size(mat,2)
+                for m = 1:size(mat,1)
                     if (~isempty(e{m,n}))
                         mat(m,n) = e{m,n};
                     end
@@ -158,8 +158,8 @@ classdef T4ResolveReport
             assert(isa(t4r, 'mlraichle.T4Resolve'));
             mat = nan(size(t4r.curves));
             c   = t4r.curves;
-            for m = 1:size(mat,1)
-                for n = 1:size(mat,2)
+            for n = 1:size(mat,2)
+                for m = 1:size(mat,1)
                     if (~isempty(c{m,n}))
                         mat(m,n) = norm(c{m,n});
                     end
@@ -172,8 +172,8 @@ classdef T4ResolveReport
             e   = t4r.etas;
             Ee  = dipmean(cell2mat(this.t4resolve_.etas));
             Se  = dipstd( cell2mat(this.t4resolve_.etas));
-            for m = 1:size(mat,1)
-                for n = 1:size(mat,2)
+            for n = 1:size(mat,2)
+                for m = 1:size(mat,1)
                     if (~isempty(e{m,n}))
                         mat(m,n) = (e{m,n} - Ee)/Se;
                     end
@@ -186,8 +186,8 @@ classdef T4ResolveReport
             c   = t4r.curves;
             Ec  = dipmean(cell2mat(this.t4resolve_.curves));
             Sc  = dipstd( cell2mat(this.t4resolve_.curves));
-            for m = 1:size(mat,1)
-                for n = 1:size(mat,2)
+            for n = 1:size(mat,2)
+                for m = 1:size(mat,1)
                     if (~isempty(c{m,n}))
                         mat(m,n) = (norm(c{m,n}) - Ec)/Sc;
                     end
@@ -199,8 +199,8 @@ classdef T4ResolveReport
             mat = nan(size(t4r.etas));
             e   = t4r.etas;
             e0  = t4r0.etas;
-            for m = 1:size(mat,1)
-                for n = 1:size(mat,2)
+            for n = 1:size(mat,2)
+                for m = 1:size(mat,1)
                     if (~isempty(e{m,n}))
                         mat(m,n) = e{m,n} - e0{m,n};
                     end
@@ -212,8 +212,8 @@ classdef T4ResolveReport
             mat = nan(size(t4r.curves));
             c   = t4r.curves;
             c0  = t4r0.curves;
-            for m = 1:size(mat,1)
-                for n = 1:size(mat,2)
+            for n = 1:size(mat,2)
+                for m = 1:size(mat,1)
                     if (~isempty(c{m,n}))
                         mat(m,n) = norm(c{m,n} - c0{m,n});
                     end
@@ -226,8 +226,8 @@ classdef T4ResolveReport
             e   = t4r.etas;
             e0  = t4r0.etas;
             Se  = dipstd( cell2mat(this.t4resolve_.etas));
-            for m = 1:size(mat,1)
-                for n = 1:size(mat,2)
+            for n = 1:size(mat,2)
+                for m = 1:size(mat,1)
                     if (~isempty(e{m,n}))
                         mat(m,n) = (e{m,n} - e0{m,n})/Se;
                     end
@@ -240,8 +240,8 @@ classdef T4ResolveReport
             c   = t4r.curves;
             c0  = t4r0.curves;
             Sc  = dipstd( cell2mat(this.t4resolve_.curves));
-            for m = 1:size(mat,1)
-                for n = 1:size(mat,2)
+            for n = 1:size(mat,2)
+                for m = 1:size(mat,1)
                     if (~isempty(c{m,n}))
                         mat(m,n) = (norm(c{m,n} - c0{m,n}))/Sc;
                     end
