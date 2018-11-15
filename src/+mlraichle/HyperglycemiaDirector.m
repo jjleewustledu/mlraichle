@@ -167,7 +167,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             dtsess = DirTools( ...
                 fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
             parfor idtsess = 1:length(dtsess.fqdns)
-                sessp = dtsess.fqdns{idtsess};
+                sessp = dtsess.fqdns{idtsess}; %#ok<*PFBNS>
                 pwds = pushd(sessp);
                 dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
                 for idtv = 1:length(dtv.fqdns)
@@ -381,12 +381,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
                 'mlsurfer.SurferDirector.constructFreesurfer6', 'wallTime', '47:59:59', varargin{:});
-        end
-        function those = constructKinetics(varargin)
-            %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
-            
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.constructKinetics', varargin{:});
         end
         function those = constructNiftyPETy(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects
@@ -1410,12 +1404,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 popd(pwds);
             end 
         end 
-        function those = testLaunchingRemotely(varargin)
-            %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely
-            
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
-                'mlraichle.TracerDirector.testLaunchingRemotely', 'wallTime', '00:00:05', varargin{:});            
-        end
         function those = urgentCheckFdgOnOrigPar(varargin)
             import mlsystem.* mlraichle.*;
             ip = inputParser;

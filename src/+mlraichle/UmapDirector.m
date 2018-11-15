@@ -1,4 +1,4 @@
-classdef UmapDirector < mlpipeline.AbstractDataDirector
+classdef UmapDirector < mlpipeline.AbstractDirector
 	%% UMAPDIRECTOR  
 
 	%  $Revision$
@@ -9,44 +9,20 @@ classdef UmapDirector < mlpipeline.AbstractDataDirector
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John J. Lee.
  	
     properties (Dependent)
-        result
-    end
-    
-    methods 
-        
-        %% GET
-        
-        function g = get.result(this)
-            g = this.result_;
-        end
+        roiStats
     end
     
     methods (Static)
         function this = constructUmaps(varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'))
-            parse(ip, varargin{:});
-            
-            mlpet.TracerDirector.assertenv;
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:});
-            
-            sessd = ip.Results.sessionData;
-            sessd.attenuationCorrected = false;
-            pwd0 = pushd(sessd.vLocation);
-            fv = mlfourdfp.FourdfpVisitor;
-            try
-                if (~fv.lexist_4dfp(sessd.T1('typ','fp')))
-                    fv.copyfile_4dfp(sessd.T1('typ','fqfp'), pwd);
-                end
-            catch ME
-                dispwarning(ME);
-            end
+            import mlraichle.UmapDirector;
+            UmapDirector.prepareFreesurferData(varargin{:});            
+            this = UmapDirector( ...
+                mlfourdfp.CarneyUmapBuilder(varargin{:})); 
+            pwd0 = pushd(this.sessionData.vLocation);
+            this.builder_ = this.builder_.prepareMprToAtlasT4;
+            this.sessionData.attenuationCorrected = false;
+            [~,this.builder_] = this.builder_.buildUmap;
             popd(pwd0);
-            
-            this = mlraichle.UmapDirector( ...
-                mlfourdfp.CarneyUmapBuilder(varargin{:}));              
-            this = this.instanceConstructUmaps;
         end
         function this = constructPhantomCalibration(varargin)
             ip = inputParser;
@@ -65,25 +41,46 @@ classdef UmapDirector < mlpipeline.AbstractDataDirector
             end            
             popd(pwd0);
         end
+        function lst  = prepareFreesurferData(varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlraichle.SessionData'))
+            parse(ip, varargin{:});
+            sess = ip.Results.sessionData;
+            sess.attenuationCorrected = false;
+            
+            lst  = mlpet.TracerDirector.prepareFreesurferData(varargin{:});
+            pwd0 = pushd(sess.vLocation);
+            fv   = mlfourdfp.FourdfpVisitor;
+            try
+                if (~fv.lexist_4dfp(sess.T1('typ','fp')))
+                    fv.copyfile_4dfp(sess.T1('typ','fqfp'), pwd);
+                end
+            catch ME
+                dispwarning(ME);
+            end
+            popd(pwd0);            
+        end
+    end
+    
+    methods 
+        
+        %% GET
+        
+        function g = get.roiStats(this)
+            g = this.roiStats_;
+        end
     end
 
     %% PRIVATE
     
     properties (Access = private)
-        buildVisitor_
-        result_
+        roiStats_
     end
     
 	methods (Access = private)
-        function [this,umap] = instanceConstructUmaps(this)
-            this.sessionData.attenuationCorrected = false;
-            pwd0 = pushd(this.sessionData.vLocation);
-            this.builder_ = this.builder_.prepareMprToAtlasT4;
-            [umap,this.builder_] = this.builder_.buildUmap;
-            popd(pwd0);
-        end
         function this = instanceConstructPhantomUmap(this, phantomNumber)
-            bv = this.buildVisitor_;
+            bv = this.builder.buildVisitor;
             bv.sif_4dfp(this.tracerListmodeMhdr, this.tracerRevision);
             bv.cropfrac_4dfp(0.5, this.tracerRevision, this.tracerRevision);
             [~,fp] = bv.align_multiSpectral( ...
@@ -93,7 +90,7 @@ classdef UmapDirector < mlpipeline.AbstractDataDirector
             this.builder_.convertUmapToE7Format(this.umap)
         end
         function this = instanceConstructPhantomCalibration(this)
-            bv = this.buildVisitor_;
+            bv = this.builder.buildVisitor;
             bv.sif_4dfp(this.tracerListmodeMhdr, this.tracerRevision);
             bv.cropfrac_4dfp(0.5, this.tracerRevision, this.tracerRevision);
             bv.IFhdr_to_4dfp(this.tracerListmodeUmap, this.umap);
@@ -109,17 +106,17 @@ classdef UmapDirector < mlpipeline.AbstractDataDirector
             mskNN.save;
             
             tracerNN = NumericalNIfTId.load(this.sessionData.tracerRevision);
-            this     = this.setResultRoi(tracerNN, mskNN);
+            this     = this.constructRoiStats(tracerNN, mskNN);
         end
-        function this = setResultRoi(this, tracerNN, mskNN)            
+        function this = constructRoiStats(this, tracerNN, mskNN)
             tracerNN.view(this.sessionData.umap('frame0','typ','.4dfp.img'), [mskNN.fqfileprefix '.4dfp.img']);
             maskedImg = tracerNN.img(logical(mskNN.img));
-            this.result_.roiMean   = mean( maskedImg);
-            this.result_.roiStd    = std(  maskedImg);
-            this.result_.roiVoxels = numel(maskedImg);
-            this.result_.roiVol    = this.result_.roiVoxels * prod(mskNN.mmppix/10); % mL
-            this.result_.roiMin    = min(  maskedImg);
-            this.result_.roiMax    = max(  maskedImg);
+            this.roiStats_.roiMean   = mean( maskedImg);
+            this.roiStats_.roiStd    = std(  maskedImg);
+            this.roiStats_.roiVoxels = numel(maskedImg);
+            this.roiStats_.roiVol    = this.roiStats_.roiVoxels * prod(mskNN.mmppix/10); % mL
+            this.roiStats_.roiMin    = min(  maskedImg);
+            this.roiStats_.roiMax    = max(  maskedImg);
         end
         function fqfn = tracerListmodeMhdr(this)
             fqfn = this.sessionData.tracerListmodeMhdr;
@@ -142,8 +139,7 @@ classdef UmapDirector < mlpipeline.AbstractDataDirector
  			%% UMAPDIRECTOR
  			%  Usage:  this = UmapDirector()
 
-            this = this@mlpipeline.AbstractDataDirector(varargin{:});
-            this.buildVisitor_ = mlfourdfp.FourdfpVisitor;
+            this = this@mlpipeline.AbstractDirector(varargin{:});
  		end
     end 
 
