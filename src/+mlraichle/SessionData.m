@@ -45,7 +45,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         tauIndices % use to exclude late frames from builders of AC; e.g., HYGLY25 V1; taus := taus(tauIndices)
         taus
         times
-        timeMidpoints
         vfolder
     end
     
@@ -273,9 +272,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             for ig = 1:length(t)-1
                 g(ig+1) = sum(t(1:ig));
             end
-        end
-        function g = get.timeMidpoints(this)
-            g = this.times + this.taus/2;
         end
         
         %% IMRData
