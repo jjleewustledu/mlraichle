@@ -10,6 +10,7 @@ classdef RaichleRegistry < mlpatterns.Singleton
  	
     
     properties (Dependent)
+        rawdataDir
         subjectsDir
         subjectsFolder
         testSessionPath
@@ -17,6 +18,9 @@ classdef RaichleRegistry < mlpatterns.Singleton
     end
     
     methods %% GET
+        function x = get.rawdataDir(this)
+            x = this.subjectsDir;
+        end
         function x = get.subjectsDir(this)
             x = this.subjectsDir_;
         end
@@ -70,7 +74,7 @@ classdef RaichleRegistry < mlpatterns.Singleton
 	methods (Access = 'private')		  
  		function this = RaichleRegistry(varargin)
  			this = this@mlpatterns.Singleton(varargin{:});
-            this.subjectsDir_ = fullfile(getenv('PPG'), 'jjlee2', '');
+            this.subjectsDir_ = getenv('PPG_SUBJECTS_DIR');
  		end
     end 
 

@@ -21,7 +21,7 @@ classdef UmapDirector < mlpipeline.AbstractDirector
             pwd0 = pushd(this.sessionData.vLocation);
             this.builder_ = this.builder_.prepareMprToAtlasT4;
             this.sessionData.attenuationCorrected = false;
-            [~,this.builder_] = this.builder_.buildUmap;
+            this.builder_ = this.builder_.buildUmap;
             popd(pwd0);
         end
         function this = constructPhantomCalibration(varargin)

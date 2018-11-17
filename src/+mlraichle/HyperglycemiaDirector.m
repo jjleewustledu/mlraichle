@@ -859,7 +859,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
             
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.UmapDirector.constructUmaps', varargin{:});
+                'mlraichle.UmapDirector.constructUmaps', 'ac', false, varargin{:});
         end        
         function those = constructUmapsRemotely(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
@@ -1490,16 +1490,9 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                     'srcPath', downloadPath, ...
                     'destPath', this.sessionData_.vLocation, ...
                     'sessionData', this.sessionData);
-                rds     = RawDataSorter('sessionData', this.sessionData_);
-                rawData = fullfile(downloadPath, 'RESOURCES', 'RawData', '');
-                scans   = fullfile(downloadPath, 'SCANS', '');
-                try
-                    rds.dcm_sort_PPG(rawData);
-                    rds.moveRawData(rawData);
-                catch ME
-                    dispwarning(ME);
-                end
-                rds.copyUTE(scans);            
+                %RawDataSorter.CreateSorted( ...
+                %    'srcPath', downloadPath, ...
+                %    'sessionData', this.sessionData_);            
             catch ME
                 handexcept(ME, 'mlraichle:filesystemError', ...
                     'HyperglycemiaDirector.instanceSortDownloads.downloadPath->%s may be missing folders SCANS, RESOURCES', ...
@@ -1507,9 +1500,8 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             end
         end
         function this = instanceSortDownloadCT(this, downloadPath)
-            import mlfourdfp.*;
             try
-                DicomSorter.CreateSorted( ...
+                mlfourdfp.DicomSorter.CreateSorted( ...
                     'srcPath', downloadPath, ...
                     'destPath', this.sessionData_.sessionPath, ...
                     'sessionData', this.sessionData);

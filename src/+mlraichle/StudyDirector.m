@@ -14,6 +14,16 @@ classdef StudyDirector
     end
     
     methods (Static)
+        function ipr = adjustParameters(ipr)
+            assert(isstruct(ipr));
+            results = {'sessionsExpr' 'visitsExpr'};
+            for r = 1:length(results)
+                if (~lstrfind(ipr.(results{r}), '*'))
+                    ipr.(results{r}) = [ipr.(results{r}) '*'];
+                end
+            end
+        end
+        
         function [those,dtsess] = constructCellArrayOfObjects(varargin)
             %% CONSTRUCTCELLARRAYOFOBJECTS iterates over session and visit directories, 
             %  tracers and scan-instances, evaluating factoryMethod for each.
@@ -43,7 +53,7 @@ classdef StudyDirector
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
             addParameter(ip, 'index0Forced', [], @isnumeric);
             parse(ip, varargin{:});
-            ipr = ip.Results;
+            ipr = StudyDirector.adjustParameters(ip.Results);
             sessExpr = ipr.sessionsExpr;
             tracers = ensureCell(ipr.tracer);
             factoryMethod = ipr.factoryMethod;
@@ -66,7 +76,7 @@ classdef StudyDirector
                                 if (isprop(sessd, 'index0Forced'))
                                     sessd.index0Forced = ipr.index0Forced;
                                 end
-                                if (isdir(sessd.tracerLocation) || isdir(sessd.tracerConvertedLocation)) %#ok<*ISDIR>
+                                if (StudyDirector.isTracerDir(sessd)) %#ok<*ISDIR>
                                     % there exist spurious tracerLocations; select those with corresponding raw data
                                     
                                     evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', factoryMethod);
@@ -116,7 +126,7 @@ classdef StudyDirector
             addParameter(ip, 'index0Forced', [], @isnumeric);
             addParameter(ip, 'hoursOffsetForced', [], @isnumeric); 
             parse(ip, varargin{:});
-            ipr = ip.Results;
+            ipr = StudyDirector.adjustParameters(ip.Results);
             sessExpr = ipr.sessionsExpr;
             tracers = ensureCell(ipr.tracer);
             factoryMethod = ipr.factoryMethod;
@@ -142,7 +152,7 @@ classdef StudyDirector
                                 if (isprop(sessd, 'hoursOffsetForced'))
                                     sessd.hoursOffsetForced = ipr.hoursOffsetForced;
                                 end
-                                if (isdir(sessd.tracerLocation) || isdir(sessd.tracerConvertedLocation)) %#ok<*ISDIR>
+                                if (StudyDirector.isTracerDir(sessd)) %#ok<*ISDIR>
                                     % there exist spurious tracerLocations; select those with corresponding raw data
                                     
                                     evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', factoryMethod);
@@ -190,7 +200,7 @@ classdef StudyDirector
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
             parse(ip, varargin{:});
-            ipr = ip.Results;
+            ipr = StudyDirector.adjustParameters(ip.Results);
             sessExpr = ipr.sessionsExpr;
             tracers = ensureCell(ipr.tracer);
             factoryMethod = ipr.factoryMethod;
@@ -210,7 +220,7 @@ classdef StudyDirector
                             try                                
                                 sessd = StudyDirector.constructSessionData( ...
                                     ipr, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac});                                
-                                if (isdir(sessd.tracerLocation) || isdir(sessd.tracerConvertedLocation))
+                                if (StudyDirector.isTracerDir(sessd))
                                     % there exist spurious tracerLocations; select those with corresponding raw data
                                     
                                     fprintf('mlraichle.StudyDirector.constructCellArrayOfObjects:\n');
@@ -257,7 +267,7 @@ classdef StudyDirector
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
             parse(ip, varargin{:});
-            ipr = ip.Results;
+            ipr = StudyDirector.adjustParameters(ip.Results);
             sessExpr = ipr.sessionsExpr;
             tracers = ensureCell(ipr.tracer);
             factoryMethod = ipr.factoryMethod;
@@ -277,7 +287,7 @@ classdef StudyDirector
                             try                                
                                 sessd = StudyDirector.constructSessionData( ...
                                     ipr, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac}); %#ok<PFBNS>
-                                if (isdir(sessd.tracerLocation) || isdir(sessd.tracerConvertedLocation))
+                                if (StudyDirector.isTracerDir(sessd))
                                     % there exist spurious tracerLocations; select those with corresponding raw data
                                     
                                     fprintf('mlraichle.StudyDirector.constructCellArrayOfObjects:\n');
@@ -334,13 +344,14 @@ classdef StudyDirector
             addParameter(ip, 'wallTime', '12:00:00', @ischar);
             addParameter(ip, 'pushData', false, @islogical);
             parse(ip, varargin{:});
-            sessExpr = ip.Results.sessionsExpr;
-            if (~isempty(ip.Results.sesssionsExpr))
-                sessExpr = ip.Results.sesssionsExpr;
+            ipr = StudyDirector.adjustParameters(ip.Results);
+            sessExpr = ipr.sessionsExpr;
+            if (~isempty(ipr.sesssionsExpr))
+                sessExpr = ipr.sesssionsExpr;
             end
-            tracers = ensureCell(ip.Results.tracer);
-            wallTime = ip.Results.wallTime;
-            if (ip.Results.ac)
+            tracers = ensureCell(ipr.tracer);
+            wallTime = ipr.wallTime;
+            if (ipr.ac)
                 wallTime = '23:59:59';
             end
             
@@ -349,33 +360,33 @@ classdef StudyDirector
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ip.Results.visitsExpr));
+                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));
                 for idtv = 1:length(dtv.fqdns)                    
                     for itrac = 1:length(tracers)
-                        for iscan = ip.Results.scanList 
+                        for iscan = ipr.scanList 
                             if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
                                 continue
                             end
                             try
                                 sessd = StudyDirector.constructSessionData( ...
-                                    ip.Results, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac});  
-                                if (isdir(sessd.tracerLocation) || isdir(sessd.tracerConvertedLocation))
+                                    ipr, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac});  
+                                if (StudyDirector.isTracerDir(sessd))
                                     % there exist spurious tracerLocations; select those with corresponding raw data
                                     
                                     csessd = sessd;
                                     csessd.sessionPath = mldistcomp.CHPC.repSubjectsDir(sessd.sessionPath);                                
                                     chpc = mlpet.CHPC4TracerDirector( ...
-                                        [], 'distcompHost', ip.Results.distcompHost, ...
+                                        [], 'distcompHost', ipr.distcompHost, ...
                                         'sessionData', sessd, ...
-                                        'memUsage', ip.Results.memUsage, ...
+                                        'memUsage', ipr.memUsage, ...
                                         'wallTime', wallTime);
-                                    if (ip.Results.pushData)
+                                    if (ipr.pushData)
                                         chpc = chpc.pushData; %#ok<NASGU>
                                     end
                                     evalee = sprintf(['chpc.runSerialProgram(@%s, ' ...
                                         '{''sessionData'', csessd}, ' ...
-                                        'ip.Results.nArgout)'],  ...
-                                         ip.Results.factoryMethod);
+                                        'ipr.nArgout)'],  ...
+                                         ipr.factoryMethod);
                                     fprintf('mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely:\n');
                                     fprintf(['\t' evalee '\n']);
                                     fprintf(['\tcsessd.TracerLocation->' csessd.tracerLocation '\n']);                                    
@@ -392,7 +403,8 @@ classdef StudyDirector
                 popd(pwds);
             end
         end
-        function gr = constructGraphOfObjects(varargin)
+        
+        function gr    = constructGraphOfObjects(varargin)
             %% CONSTRUCTGRAPHOFOBJECTS
             %  @param those is from constructCellArrayOfObjects{,Remotely}.
             %  @return gr is a graph of those sessions, visits, tracers, scan objects specified by constructCellArrayOfObjects{,Remotely}.
@@ -494,15 +506,16 @@ classdef StudyDirector
             end
             
         end
+        function tf    = isTracerDir(sessd)
+            tf = isdir(sessd.tracerLocation) || ...
+                 isdir(sessd.tracerConvertedLocation);
+        end
     end    
-
-    %% PROTECTED
     
-	methods (Access = protected)
-		  
+    %% PRIVATE
+    
+	methods (Access = private)		  
  		function this = StudyDirector(varargin)
- 			%% STUDYDIRECTOR
- 			
         end        
  	end 
 

@@ -28,7 +28,7 @@ classdef Test_StudyData < matlab.unittest.TestCase
         end
         function test_rawdataDir(this)
             this.verifyEqual(this.testObj.rawdataDir, ...
-                fullfile(getenv('PPG'), 'rawdata', ''));
+                lraichle.RaichleRegistry.instance.rawdataDir);
         end
         function test_subjectsDir(this)
             this.verifyEqual(this.testObj.subjectsDir, ...

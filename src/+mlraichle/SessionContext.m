@@ -37,7 +37,7 @@ classdef SessionContext < mlpipeline.SessionContext
            g = fullfile(this.subjectsDir, this.sessionFolder_);
         end
         function g    = get.subjectsDir(~)
-           g = fullfile(getenv('PPG'), 'jjlee2', '');
+           g = mlraichle.RaichleRegistry.instance.subjectsDir;
         end
         function g    = get.vnumber(this)
            g = this.vnumber_;

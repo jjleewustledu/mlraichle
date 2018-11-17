@@ -21,7 +21,7 @@ classdef TestDataSingleton < mlraichle.StudyDataSingleton
             this = instance_;
         end
         function d    = subjectsDir
-            d = fullfile(getenv('PPG'), 'jjleeSynth', '');
+            d = fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, 'Test', '');
         end
     end
     

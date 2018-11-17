@@ -28,7 +28,7 @@ classdef StudyData < handle & mlpipeline.StudyData
             d = fullfile(getenv('PPG'), 'freesurfer', '');
         end
         function d = get.rawdataDir(~)
-            d = fullfile(getenv('PPG'), 'rawdata', '');
+            d = mlraichle.RaichleRegistry.instance.rawdataDir;
         end
         function g = get.subjectsDir(~)
             g = mlraichle.RaichleRegistry.instance.subjectsDir;
@@ -38,6 +38,26 @@ classdef StudyData < handle & mlpipeline.StudyData
         end
         
         %%
+        
+        function a    = seriesDicomAsterisk(this, fqdn)
+            assert(isdir(fqdn));
+            assert(isdir(fullfile(fqdn, 'DICOM')));
+            a = fullfile(fqdn, 'DICOM', ['*' this.dicomExtension]);
+        end        
+        function f    = subjectsDirFqdns(this)
+            if (isempty(this.subjectsDir))
+                f = {};
+                return
+            end
+            
+            dt = mlsystem.DirTools(this.subjectsDir);
+            f = {};
+            for di = 1:length(dt.dns)
+                if (strncmp(dt.dns{di}, 'NP', 2) || strncmp(dt.dns{di}, 'HY', 2))
+                    f = [f dt.fqdns(di)]; %#ok<AGROW>
+                end
+            end
+        end
         
  		function this = StudyData(varargin)
  			this = this@mlpipeline.StudyData(varargin{:});

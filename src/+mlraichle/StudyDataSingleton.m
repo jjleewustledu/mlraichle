@@ -40,7 +40,7 @@ classdef StudyDataSingleton < handle & mlpipeline.StudyDataSingleton
             d = fullfile(getenv('PPG'), 'freesurfer', '');
         end
         function d = get.rawdataDir(~)
-            d = fullfile(getenv('PPG'), 'rawdata', '');
+            d = mlraichle.RaichleRegistry.instance.subjectsDir;
         end
         function g = get.subjectsDir(~)
             g = mlraichle.RaichleRegistry.instance.subjectsDir;
