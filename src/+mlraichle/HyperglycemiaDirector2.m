@@ -12,6 +12,10 @@ classdef HyperglycemiaDirector2
  	end
 
     methods (Static)   
+        function those = constructResolvedNAC(varargin)
+            those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector2.constructResolvedNAC', 'ac', false, varargin{:}); 
+        end
         function those = constructUmaps(varargin)
             those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
                 'mlraichle.UmapDirector2.constructUmaps', 'ac', false, varargin{:});
@@ -47,6 +51,17 @@ classdef HyperglycemiaDirector2
             end
             cd(pwd0);
         end             
+    end
+    
+    methods        
+ 		function this = HyperglycemiaDirector2(varargin)
+ 			ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
+            parse(ip, varargin{:});
+            
+            this.sessionData_ = ip.Results.sessionData;   
+        end
     end
     
     %% PRIVATE
@@ -111,16 +126,7 @@ classdef HyperglycemiaDirector2
                     'HyperglycemiaDirector2.instanceSortDownloadsRawdata.downloadPath->%s may be missing folders SCANS, RESOURCES', ...
                     downloadPath);
             end
-        end
-        
- 		function this = HyperglycemiaDirector2(varargin)
- 			ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
-            parse(ip, varargin{:});
-            
-            this.sessionData_ = ip.Results.sessionData;   
- 		end
+        end        
  	end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

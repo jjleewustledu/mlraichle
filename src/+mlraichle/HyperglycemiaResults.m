@@ -113,8 +113,10 @@ classdef HyperglycemiaResults < mlglucose.AbstractSolvedResults
                 'sessionData', sessd, ...
                 'dtNyquist', this.DT_NYQUIST); % solver as argument is awkward
             solver.model = fdg;
-            this.glucoseDirector_ = GlucoseKineticsDirector( ...
-                F18DeoxyGlucoseKineticsBuilder('solver', solver));
+            
+            
+            
+            this.glucoseDirector_ = GlucoseKineticsDirector([]);
  		end
  	end 
 

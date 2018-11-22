@@ -262,10 +262,10 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:}));    
             this.anatomy_ = ip.Results.anatomy;
             if (~ip.Results.noclobber)
-                this.builder_.ignoreFinishfile = true;
+                this.builder_.ignoreFinishMark = true;
             end
             this = this.instanceConstructAnatomy( ...
-                'tag2', ['constructAnat_' this.anatomy_], ...
+                'tag', ['constructAnat_' this.anatomy_], ...
                 'target', ip.Results.target);
         end 
         function this  = constructCompositeResolved(varargin)
@@ -286,10 +286,10 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:})); 
             this.anatomy_ = ip.Results.anatomy;
             if (~ip.Results.noclobber)
-                this.builder_.ignoreFinishfile = true;
+                this.builder_.ignoreFinishMark = true;
             end
             this = this.instanceConstructCompositeResolved( ...
-                'tag2', 'constructCR_', ...
+                'tag', 'constructCR_', ...
                 'target', ip.Results.target);
         end
         function this  = constructExports(varargin)
@@ -317,7 +317,7 @@ classdef TracerDirector < mlpet.TracerDirector
             this = TracerDirector( ...
                 mlpet.TracerBuilder(varargin{:})); 
             if (~ip.Results.noclobber)
-                this.builder_.ignoreFinishfile = true;
+                this.builder_.ignoreFinishMark = true;
             end
             this = this.instanceConstructFdgOpT1001;
         end
@@ -334,7 +334,7 @@ classdef TracerDirector < mlpet.TracerDirector
             this = TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:})); 
             if (~ip.Results.noclobber)
-                this.builder_.ignoreFinishfile = true;
+                this.builder_.ignoreFinishMark = true;
             end
             sd = this.sessionData;
             sd.tracer = 'FDG';
@@ -439,17 +439,17 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:})); 
             this.anatomy_ = ip.Results.anatomy;
             if (~ip.Results.noclobber)
-                this.builder_.ignoreFinishfile = true;
+                this.builder_.ignoreFinishMark = true;
             end
             
             this.anatomy_ = 'brainmask';
             this = this.instanceConstructAnatomy( ...
-                'tag2', ['constructAnat_' this.anatomy_], ...
+                'tag', ['constructAnat_' this.anatomy_], ...
                 'mask', this.anatomy_, ...
                 'target', ip.Results.target);
             this.anatomy_ = 'T1001';
             this = this.instanceConstructCompositeResolved( ...
-                'tag2', 'constructSuvr_', ...
+                'tag', 'constructSuvr_', ...
                 'target', ip.Results.target);
             this = this.instanceConstructAtlas;
             this = this.instanceConstructSuvr;
@@ -472,17 +472,17 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:})); 
             this.anatomy_ = ip.Results.anatomy;
             if (~ip.Results.noclobber)
-                this.builder_.ignoreFinishfile = true;
+                this.builder_.ignoreFinishMark = true;
             end
             
             this.anatomy_ = 'brainmask';
             this = this.instanceConstructAnatomy( ...
-                'tag2', ['constructAnat_' this.anatomy_], ...
+                'tag', ['constructAnat_' this.anatomy_], ...
                 'mask', this.anatomy_, ...
                 'target', ip.Results.target);
             this.anatomy_ = 'T1001';
             this = this.instanceConstructCompositeResolved( ...
-                'tag2', 'constructSuvr_', ...
+                'tag', 'constructSuvr_', ...
                 'target', ip.Results.target);
         end
         function this  = constructSuvr2(varargin)
@@ -501,7 +501,7 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlpet.TracerResolveBuilder(varargin{:})); 
             this.anatomy_ = ip.Results.anatomy;
             if (~ip.Results.noclobber)
-                this.builder_.ignoreFinishfile = true;
+                this.builder_.ignoreFinishMark = true;
             end
             
             this = this.instanceConstructAtlas;
@@ -616,7 +616,7 @@ classdef TracerDirector < mlpet.TracerDirector
                         continue
                     end
                     load(dt.fqfns{1});
-                    err(d) = mlraichle.TracerDirector.meanNotNan(this.t4_resolve_err);
+                    err(d) = mean(this.t4_resolve_err, 'omitnan');
                     fprintf('\t%s %s %g\n', ct.date(d), sd.vLocation, err(d));
                 catch ME
                     dispwarning(ME)
@@ -645,7 +645,7 @@ classdef TracerDirector < mlpet.TracerDirector
                         continue
                     end
                     load(dt.fqfns{1});
-                    err(d) = mlraichle.TracerDirector.meanNotNan(this.t4_resolve_err);
+                    err(d) = mean(this.t4_resolve_err, 'omitnan');
                     fprintf('\t%s %s %g\n', ct.date(d), sd.vLocation, err(d));
                 catch ME
                     dispwarning(ME)
@@ -1210,9 +1210,6 @@ classdef TracerDirector < mlpet.TracerDirector
     %% PRIVATE
     
     methods (Static, Access = private)  
-        function m    = meanNotNan(mat)
-            m = mean(mat(~isnan(mat)));
-        end 
         function obj  = replaceEmptyWithSessionDataImagingContext(sessd, obj, whichIC)
             assert(isa(sessd, 'mlpipeline.ISessionData'));
             assert(ischar(whichIC))
@@ -1221,6 +1218,7 @@ classdef TracerDirector < mlpet.TracerDirector
             end
         end
         function this = reportResolvedAC(varargin)
+            %% See also mldistcomp.CHPC
             %  @param varargin for mlpet.TracerResolveBuilder.
             
             ip = inputParser;
@@ -1243,6 +1241,7 @@ classdef TracerDirector < mlpet.TracerDirector
             this.complete = this.n == 1;
         end
         function this = reportResolvedNAC(varargin)
+            %% See also mldistcomp.CHPC
             %  @param varargin for mlpet.TracerResolveBuilder.
             
             ip = inputParser;
