@@ -15,7 +15,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
     properties
         ensureFqfilename = false
         fractionalImageFrameThresh = 0.1 % of median
-        % cf. mlfourdfp.ImageFrames.nonEmptyImageIndices, mlpet.TracerResolveBuilder; valid for [0..1]
         filetypeExt = '.4dfp.hdr'
         indicesEpochCells = {} % indicesEpochCells{this.epoch} := numeric, size(numeric) == [1 this.maxLengthEpoch]
         modality
@@ -39,6 +38,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         rawdataDir
         rawdataFolder
         regionTag
+        scan
         studyCensus
         supEpoch
         t4ResolveBuilderBlurArg
@@ -184,6 +184,9 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             error('mlraichle:unsupportedParamTypeclass', ...
                 'SessionData.get.regionTag');
         end
+        function g = get.scan(this)
+            g = this.tracerRevision('typ', 'fp');
+        end  
         function g = get.studyCensus(this) 
             g = this.studyCensus_;
         end
@@ -546,6 +549,16 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             assert(lexist(fqfn, 'file'));
             obj  = this.fqfilenameObject(fqfn, varargin{:}, 'frame', nan);
         end
+        function obj  = tracerNipet(this, varargin)   
+            this.epoch = [];
+            this.rnumber = 1;
+            [ipr,schar] = this.iprLocation(varargin{:});
+            fqfn = fullfile( ...
+                this.tracerConvertedLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
+                'reconstructed', ...
+                sprintf('%s%sv%i.nii.gz', lower(ipr.tracer), schar, this.vnumber));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
         function obj  = tracerSif(this, varargin)
             
             [ipr,schar] = this.iprLocation(varargin{:});
@@ -555,7 +568,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 sprintf('%s%s_V%i-LM-00-OP%s', ...
                     ipr.tracer, schar, this.vnumber, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:}, 'frame', this.frame);
-        end        
+        end    
         function obj  = tracerPristine(this, varargin)   
             this.epoch = [];
             this.rnumber = 1;
@@ -671,8 +684,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             addParameter(ip, 'dest', 'fdg', @ischar);
             addParameter(ip, 'destVnumber', 1, @isnumeric); 
             addParameter(ip, 'destRnumber', 1, @isnumeric); 
-            addParameter(ip, 'tag1', '', @ischar);
-            addParameter(ip, 'tag2', '', @ischar);
+            addParameter(ip, 'tag', '', @ischar);
             parse(ip, varargin{:});  
             ipr = ip.Results;
             
@@ -681,8 +693,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             ensuredir(this.vallLocation);
             fqfn = fullfile( ...
                 this.vallLocation, ...
-                sprintf('%s%s_op_%sv%ir%i%s%s', ...
-                        ipr.name, ipr.tag1, ipr.dest, ipr.destVnumber, ipr.destRnumber, ipr.tag2, this.filetypeExt));
+                sprintf('%s%s_op_%sv%ir%i%s', ...
+                        ipr.name, ipr.tag, ipr.dest, ipr.destVnumber, ipr.destRnumber, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerResolvedSumt(this, varargin)
@@ -796,7 +808,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'tracer', this.tracer, @ischar);
-            addParameter(ip, 'blurTag', '_b40', @ischar);
+            addParameter(ip, 'blurTag', mlpet.Resources.instance.suffixBlurPointSpread, @ischar);
             parse(ip, varargin{:});
             this.tracer = ip.Results.tracer;
             
@@ -810,7 +822,13 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 sprintf('umapSynthv%i_op_%s%s', ...
                     this.vnumber, this.tracerRevision('typ', 'fp'), this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
-        end        
+        end    
+        function obj  = umapSynthOpT1001(this, varargin)
+            fqfn = fullfile(this.vLocation, ...
+                sprintf('umapSynth_op_%s%s.4dfp.hdr', ...
+                        this.T1001('typ', 'fp'), mlpet.Resources.instance.suffixBlurPointSpread));
+            obj  = this.fqfilenameObject(fqfn, varargin{2:end});
+        end    
         
         function obj  = cbfOpFdg(this, varargin)
             obj = this.visitMapOpFdg('cbf', varargin{:});
