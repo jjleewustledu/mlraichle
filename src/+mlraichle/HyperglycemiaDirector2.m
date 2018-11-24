@@ -12,9 +12,13 @@ classdef HyperglycemiaDirector2
  	end
 
     methods (Static)   
+        function those = constructResolvedAC(varargin)
+            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector2.constructResolved', 'ac', true, varargin{:}); 
+        end
         function those = constructResolvedNAC(varargin)
             those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector2.constructResolvedNAC', 'ac', false, varargin{:}); 
+                'mlraichle.TracerDirector2.constructResolved', 'ac', false, varargin{:}); 
         end
         function those = constructUmaps(varargin)
             those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
