@@ -109,7 +109,7 @@ classdef UmapDirector < mlpipeline.AbstractDirector
             this     = this.constructRoiStats(tracerNN, mskNN);
         end
         function this = constructRoiStats(this, tracerNN, mskNN)
-            tracerNN.view(this.sessionData.umap('frame0','typ','.4dfp.img'), [mskNN.fqfileprefix '.4dfp.img']);
+            tracerNN.view(this.sessionData.umapTagged('frame0','typ','.4dfp.img'), [mskNN.fqfileprefix '.4dfp.img']);
             maskedImg = tracerNN.img(logical(mskNN.img));
             this.roiStats_.roiMean   = mean( maskedImg);
             this.roiStats_.roiStd    = std(  maskedImg);
@@ -127,8 +127,8 @@ classdef UmapDirector < mlpipeline.AbstractDirector
         function fp   = tracerRevision(this)
             fp = this.sessionData.tracerRevision('typ','fp');
         end
-        function fp   = umap(this)
-            fp = this.sessionData.umap('frame0','typ','fp');
+        function fp   = umapTagged(this)
+            fp = this.sessionData.umapTagged('frame0','typ','fp');
         end
         function fqfp = umapPhantom(this, idx)
             fqfp = this.sessionData.umapPhantom( ...
