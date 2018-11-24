@@ -51,7 +51,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
         
         %%
         
-        function this  = instanceConstructResolvedAC(this)
+        function this = instanceConstructResolvedAC(this)
             pwd0 = pushd(this.builder_.sessionData.tracerLocation);            
             this.builder_ = this.builder_.reconstituteFramesAC;
             this.sessionData.frame = nan;
@@ -64,7 +64,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             save('mlraichle.TracerDirector_instanceConstructResolvedAC.mat');           
             popd(pwd0);
         end
-        function this  = instanceConstructResolvedNAC(this)     
+        function this = instanceConstructResolvedNAC(this)
             this          = this.prepareNipetTracerImages;
             this.builder_ = this.builder_.prepareMprToAtlasT4;
             this.builder_ = this.builder_.partitionMonolith; 
@@ -82,7 +82,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
                     this.sessionData.tracerNipet('typ', 'fqfp'), this.sessionData.tracerRevision('typ', 'fqfp'));
             end
             this.builder_ = this.builder_.packageProduct( ...
-                mlfourd.ImagingContext(this.sessionData.tracerRevision('typ', 'fqfn')));
+                mlfourd.ImagingContext2(this.sessionData.tracerRevision('typ', 'fqfn')));
         end      
 		  
  		function this = TracerDirector2(varargin)

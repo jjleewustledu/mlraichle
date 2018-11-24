@@ -294,7 +294,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             ip = inputParser;
             addParameter(ip, 'desc', 'TRIO_Y_NDC', @ischar);
             addParameter(ip, 'tag', '', @ischar);
-            addParameter(ip, 'typ', 'mlfourd.ImagingContext', @ischar);
+            addParameter(ip, 'typ', 'mlfourd.ImagingContext2', @ischar);
             parse(ip, varargin{:});
             
             obj = imagingType(ip.Results.typ, ...
@@ -341,7 +341,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             ip = inputParser;
             addParameter(ip, 'desc', 'HYGLY_atlas', @ischar);
             addParameter(ip, 'tag', '', @ischar);
-            addParameter(ip, 'typ', 'mlfourd.ImagingContext', @ischar);
+            addParameter(ip, 'typ', 'mlfourd.ImagingContext2', @ischar);
             parse(ip, varargin{:});
             
             obj = imagingType(ip.Results.typ, ...
@@ -788,7 +788,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 fullfile(this.vLocation, ...
                          sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.attenuationTag), 'T4', ''));
         end
-        function obj  = umap(this, varargin)
+        function obj  = umapTagged(this, varargin)
             %% legacy support
             
             ip = inputParser;
@@ -819,8 +819,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             end
             fqfn = fullfile( ...
                 this.tracerLocation('typ', 'path'), ...
-                sprintf('umapSynthv%i_op_%s%s', ...
-                    this.vnumber, this.tracerRevision('typ', 'fp'), this.filetypeExt));
+                sprintf('umapSynth_op_%s%s', ...
+                    this.tracerRevision('typ', 'fp'), this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end    
         function obj  = umapSynthOpT1001(this, varargin)

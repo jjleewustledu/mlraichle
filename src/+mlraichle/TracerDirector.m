@@ -355,7 +355,7 @@ classdef TracerDirector < mlpet.TracerDirector
             
             cRB = this.builder_.compositeResolveBuilder;
             for is = 1:length(sources)
-                this.localResolvedOpAtlas(cRB, mlfourd.ImagingContext(sources{is}));
+                this.localResolvedOpAtlas(cRB, mlfourd.ImagingContext2(sources{is}));
             end
             deleteExisting('*_b15.4dfp.*');
             popd(pwd0);
@@ -687,7 +687,7 @@ classdef TracerDirector < mlpet.TracerDirector
             import mlraichle.*;
             list = '';
             sessd.attenuationCorrected = false;
-            dtumap = mlsystem.DirTool(sessd.umap('frame*.v', 'typ', 'fqfp')); % abuse of umap args
+            dtumap = mlsystem.DirTool(sessd.umapTagged('frame*.v', 'typ', 'fqfp')); % abuse of umap args
             if (isdir(sessd.tracerRawdataLocation)) 
                 % there exist spurious tracerLocations; select those with corresponding raw data
                 
@@ -886,7 +886,7 @@ classdef TracerDirector < mlpet.TracerDirector
             sessd.attenuationCorrected = false;
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));  
-            dtumap = mlsystem.DirTool(sessd.umap('frame*.v', 'typ', 'fqfp')); % abuse of umap args
+            dtumap = mlsystem.DirTool(sessd.umapTagged('frame*.v', 'typ', 'fqfp')); % abuse of umap args
             if (isdir(sessd.tracerRawdataLocation)) 
                 % there exist spurious tracerLocations; select those with corresponding raw data
                 
@@ -941,8 +941,8 @@ classdef TracerDirector < mlpet.TracerDirector
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));
             sd0 = this.sessionData;
-            sd0.attenuationCorrected = false;
             sd1 = this.sessionData;
+            sd0.attenuationCorrected = false;
             sd1.attenuationCorrected = true;
             pwd0 = pushd(sd0.tracerLocation);
             try
@@ -1214,7 +1214,7 @@ classdef TracerDirector < mlpet.TracerDirector
             assert(isa(sessd, 'mlpipeline.ISessionData'));
             assert(ischar(whichIC))
             if (isempty(obj))   
-                obj = sessd.(whichIC)('typ', 'mlfourd.ImagingContext');
+                obj = sessd.(whichIC)('typ', 'mlfourd.ImagingContext2');
             end
         end
         function this = reportResolvedAC(varargin)
