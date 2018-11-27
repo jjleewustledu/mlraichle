@@ -16,6 +16,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         ensureFqfilename = false
         fractionalImageFrameThresh = 0.1 % of median
         filetypeExt = '.4dfp.hdr'
+        fullFov = [344 344 127];
         indicesEpochCells = {} % indicesEpochCells{this.epoch} := numeric, size(numeric) == [1 this.maxLengthEpoch]
         modality
         supScanList = 3
@@ -208,21 +209,14 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             g = this.tracerBlurArg;
         end
         function g = get.tauIndices(this)
+            pris = this.tracerPristine('typ','fqfp');
             g = [];
-
-            % tracerResolvedFinal depends on get.tauIndices
-            % tracerResolved is malformed:  2018may25
-            ref = this.tracerPristine('typ','fqfp');
-            if (lexist_4dfp(ref))
-                sz = this.size_4dfp(ref);
-                g = 1:sz(4);
-                
-                %% KLUDGE
-                if (length(g) > 73)
+            if (lexist_4dfp(pris))
+                sz = mlfourdfp.FourdfpVisitor.size_4dfp(pris);
+                g  = 1:sz(4);                
+                if (length(g) > 73) %% KLUDGE
                     g = 1:73;
-                end
-                
-                return
+                end                
             end
         end
         function g = get.taus(this)
@@ -354,8 +348,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         function obj  = T1001(this, varargin)
             fqfn = fullfile(this.vLocation, ['T1001' this.filetypeExt]);
             if (~lexist(fqfn, 'file') && isdir(this.freesurferLocation))
-                mic = T1001@mlpipeline.SessionData(this, 'typ', 'mlmr.MRImagingContext');
-                mic.niftid;
+                mic = T1001@mlpipeline.SessionData(this, 'typ', 'mlfourd.ImagingContext2');
+                mic.nifti;
                 mic.saveas(fqfn);
             end
             obj = this.fqfilenameObject(fqfn, varargin{:});
@@ -976,8 +970,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             catch ME
                 handexcept(ME);
             end
-            this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct( ...
-                fullfile(this.subjectsDir, this.bloodGlucoseAndHctXlsx));
+%            this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct( ...
+%                fullfile(this.subjectsDir, this.bloodGlucoseAndHctXlsx));
         end
     end
     

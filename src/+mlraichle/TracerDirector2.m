@@ -20,9 +20,8 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             %  for use by TriggeringTracers.js; 
             %  sequentially run FDG NAC, 15O NAC, then all tracers AC.
             %  @return this.sessionData.attenuationCorrection == false.
-            
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:});            
-            this = mlraichle.TracerDirector( ...
+                      
+            this = mlraichle.TracerDirector2( ...
                 mlpet.TracerResolveBuilder(varargin{:}));   
             if (~this.sessionData.attenuationCorrected)
                 this = this.instanceConstructResolvedNAC;
@@ -30,7 +29,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
                 this = this.instanceConstructResolvedAC;
             end
         end         
-        function lst = prepareFreesurferData(varargin)
+        function lst  = prepareFreesurferData(varargin)
             lst = mlpet.TracerDirector.prepareFreesurferData(varargin{:});
         end
     end
@@ -61,7 +60,8 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             this.builder_ = this.builder_.reconstituteFramesAC2;
             this.builder_ = this.builder_.sumProduct;
             this.builder_.logger.save; 
-            save('mlraichle.TracerDirector_instanceConstructResolvedAC.mat');           
+            save('mlraichle.TracerDirector_instanceConstructResolvedAC.mat');   
+            this.builder_.markAsFinished;
             popd(pwd0);
         end
         function this = instanceConstructResolvedNAC(this)
@@ -70,19 +70,22 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             this.builder_ = this.builder_.partitionMonolith; 
             [this.builder_,epochs,reconstituted] = this.builder_.motionCorrectFrames;
             reconstituted = reconstituted.motionCorrectCTAndUmap;             
-            this.builder_ = reconstituted.motionUncorrectUmap(epochs);
+            this.builder_ = reconstituted.motionUncorrectUmap(epochs);       
+            this.builder_ = this.builder_.aufbauUmaps;
             this.builder_.logger.save;
-            save('mlraichle.TracerDirector_instanceConstructResolvedNAC.mat');
+            save('mlraichle.TracerDirector2_instanceConstructResolvedNAC.mat');
+            this.builder_.markAsFinished;
         end
         function this = prepareNipetTracerImages(this)
+            import mlfourd.*;
             assert(isdir(this.reconstructionDir));
             ensuredir(this.sessionData.tracerRevision('typ', 'path'));
             if (~lexist_4dfp(this.sessionData.tracerRevision('typ', 'fqfp')))
-                this.builder_.buildVisitor.nifti_4dfp_4( ...
-                    this.sessionData.tracerNipet('typ', 'fqfp'), this.sessionData.tracerRevision('typ', 'fqfp'));
+                ic2 = ImagingContext2(this.sessionData.tracerNipet('typ', '.nii.gz'));
+                ic2.saveas(this.sessionData.tracerRevision('typ', '.4dfp.hdr'));
             end
             this.builder_ = this.builder_.packageProduct( ...
-                mlfourd.ImagingContext2(this.sessionData.tracerRevision('typ', 'fqfn')));
+                ImagingContext2(this.sessionData.tracerRevision('typ', '.4dfp.hdr')));
         end      
 		  
  		function this = TracerDirector2(varargin)

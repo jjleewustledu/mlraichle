@@ -19,8 +19,8 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
  	end
 
 	methods (Test)
-        function test_prepareNipet(this)            
-            tobj = mlnipet.NipetBuilder.CreatePrototype;
+        function test_NipetBuilder_CreatePrototype(this) %#ok<MANU>
+            tobj = mlnipet.NipetBuilder.CreatePrototypeAC;
             disp(tobj.product)
         end
         function test_constructUmaps(this)
@@ -63,7 +63,7 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
             td = td.setBuilder__(td.builder.prepareMprToAtlasT4);
             td = td.setBuilder__(td.builder.partitionMonolith); 
             [bldr,epochs,reconstituted] = td.builder.motionCorrectFrames; td = td.setBuilder__(bldr);
-            save('test_constructResolvedNAC4.mat');
+            save(fullfile(this.sessd.vLocation, 'test_constructResolvedNAC4.mat'));
             td.builder.logger.save;
             disp(bldr);
             disp(epochs);
@@ -74,23 +74,36 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
             td = td.prepareNipetTracerImages;
             td = td.setBuilder__(td.builder.prepareMprToAtlasT4);
             td = td.setBuilder__(td.builder.partitionMonolith); 
-            [bldr,~,reconstituted] = td.builder.motionCorrectFrames; td = td.setBuilder__(bldr);
+            [bldr,epochs,reconstituted] = td.builder.motionCorrectFrames; td = td.setBuilder__(bldr); %#ok<ASGLU>
 %            load('test_constructResolvedNAC4.mat');
             reconstituted = reconstituted.motionCorrectCTAndUmap;
-            save('test_constructResolvedNAC5.mat');
+            save(fullfile(this.sessd.vLocation, 'test_constructResolvedNAC5.mat'));
             reconstituted.logger.save;
             disp(reconstituted);
         end  
         function test_constructResolvedNAC6(this)
-            td = this.tracerDir;
-            td = td.prepareNipetTracerImages;
-            td = td.setBuilder__(td.builder.prepareMprToAtlasT4);
-            td = td.setBuilder__(td.builder.partitionMonolith); 
-            [bldr,epochs,reconstituted] = td.builder.motionCorrectFrames; td = td.setBuilder__(bldr);
-            reconstituted = reconstituted.motionCorrectCTAndUmap;             
-%            load('test_constructResolvedNAC5.mat');
+%             td = this.tracerDir;
+%             td = td.prepareNipetTracerImages;
+%             td = td.setBuilder__(td.builder.prepareMprToAtlasT4);
+%             td = td.setBuilder__(td.builder.partitionMonolith); 
+%             [bldr,epochs,reconstituted] = td.builder.motionCorrectFrames; td = td.setBuilder__(bldr);
+%             reconstituted = reconstituted.motionCorrectCTAndUmap;             
+            load('test_constructResolvedNAC5.mat');
             td = td.setBuilder__(reconstituted.motionUncorrectUmap(epochs));
-            save('test_constructResolvedNAC6.mat');
+            save(fullfile(this.sessd.vLocation, 'test_constructResolvedNAC6.mat'));
+            td.builder.logger.save;
+        end 
+        function test_constructResolvedNAC7(this)
+%             td = this.tracerDir;
+%             td = td.prepareNipetTracerImages;
+%             td = td.setBuilder__(td.builder.prepareMprToAtlasT4);
+%             td = td.setBuilder__(td.builder.partitionMonolith); 
+%             [bldr,epochs,reconstituted] = td.builder.motionCorrectFrames; td = td.setBuilder__(bldr);
+%             reconstituted = reconstituted.motionCorrectCTAndUmap;
+%             td = td.setBuilder__(reconstituted.motionUncorrectUmap(epochs));        
+            load('test_constructResolvedNAC6.mat');
+            td = td.setBuilder__(td.builder.aufbauUmaps);
+            save(fullfile(this.sessd.vLocation, 'test_constructResolvedNAC7.mat'));
             td.builder.logger.save;
         end    
         function test_constructResolvedNAC(this)
@@ -98,7 +111,7 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
                 'sessionsExpr', 'NP995_24', ...
                 'visitsExpr', 'V1', ...
                 'tracer', 'FDG', 'ac', false);
-            those{1}.builder.product.view;
+            those{1}.builder.product.fsleyes;
         end
 	end
 

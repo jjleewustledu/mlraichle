@@ -9,42 +9,53 @@ classdef UmapDirector2 < mlpipeline.AbstractDirector
     methods (Static)
         function this = constructUmaps(varargin)
             import mlraichle.UmapDirector2;
-            UmapDirector2.prepareFreesurferData(varargin{:});         
-            this = UmapDirector2(mlfourdfp.CarneyUmapBuilder2(varargin{:})); 
+            UmapDirector2.prepareFreesurferData(varargin{:});      
+            this = UmapDirector2(mlfourdfp.CarneyUmapBuilder2(varargin{:}));
             if (this.builder.isfinished)
                 return
             end 
             
+            import mlfourd.ImagingContext2;
+            import mlpet.Resources;
             pwd0 = pushd(this.sessionData.vLocation);   
             this.builder_ = this.builder.prepareMprToAtlasT4;
             ctm  = this.builder.buildCTMasked2;
             %ctm  = this.builder.buildCTMasked3(this.builder.prepareBrainmaskMskt); 
             ctm  = this.builder.rescaleCT(ctm);
             umap = this.builder.assembleCarneyUmap(ctm);
-            umap = this.builder.buildVisitor.imgblur_4dfp(umap, mlpet.Resources.instance.pointSpread);
+            umap = ImagingContext2([umap '.4dfp.hdr']);
+            umap = umap.blurred(Resources.instance.pointSpread);
+            umap.save;
             this.builder_ = this.builder.packageProduct(umap);
             this.builder.teardownBuildUmaps;
             popd(pwd0);
         end
-        function lst  = prepareFreesurferData(varargin)
+        function safefsd = prepareFreesurferData(varargin)
+            %% PREPAREFREESURFERDATA prepares session & visit-specific copies of data enumerated by this.freesurferData.
+            %  @param named sessionData is an mlraichle.SessionData.
+            %  @return 4dfp copies of this.freesurferData in sessionData.vLocation.
+            %  @return safefsd, a cell-array of fileprefixes for 4dfp objects created on the local filesystem.  
+            
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlraichle.SessionData'))
             parse(ip, varargin{:});
             sess = ip.Results.sessionData;
-            sess.attenuationCorrected = false;
+            sess.attenuationCorrected = false;            
             
-            lst  = mlpet.TracerDirector.prepareFreesurferData(varargin{:});
-            pwd0 = pushd(sess.vLocation);
-            fv   = mlfourdfp.FourdfpVisitor;
-            try
-                if (~fv.lexist_4dfp(sess.T1('typ','fp')))
-                    fv.copyfile_4dfp(sess.T1('typ','fqfp'), pwd);
-                end
-            catch ME
-                dispwarning(ME);
+            import mlfourd.ImagingContext2;
+            fv      = mlfourdfp.FourdfpVisitor;
+            fsd_    = { 'aparc+aseg' 'aparc.a2009s+aseg' 'brainmask' 'T1' };  
+            fsd     = cellfun(@(x) fullfile(sess.mriLocation, x),   fsd_, 'UniformOutput', false);
+            safefsd = fv.ensureSafeFileprefix(fsd_); safefsd{4} = [safefsd{4} '001'];
+            safefsd = cellfun(@(x) fullfile(sess.vLocation, x), safefsd, 'UniformOutput', false);
+            for f = 1:length(fsd)
+                ic2 = ImagingContext2([fsd{f} '.mgz']);
+                ic2.saveas([safefsd{f} '.4dfp.hdr']);
             end
-            popd(pwd0);            
+            if (~lexist('T1001_to_TRIO_Y_NDC_t4', 'file'))
+                fv.msktgenMprage('T1001');
+            end         
         end
     end
 
