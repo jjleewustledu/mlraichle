@@ -543,14 +543,23 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             assert(lexist(fqfn, 'file'));
             obj  = this.fqfilenameObject(fqfn, varargin{:}, 'frame', nan);
         end
-        function obj  = tracerNipet(this, varargin)   
+        function obj  = tracerNipet(this, varargin)  
+            ip = inputParser;
+            addParameter(ip, 'nativeFov', false, @islogical);
+            parse(ip, varargin{:});
+            
             this.epoch = [];
             this.rnumber = 1;
             [ipr,schar] = this.iprLocation(varargin{:});
+            if (ip.Results.nativeFov)
+                tr = upper(ipr.tracer);
+            else
+                tr = lower(ipr.tracer);
+            end
             fqfn = fullfile( ...
                 this.tracerConvertedLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
                 'reconstructed', ...
-                sprintf('%s%sv%i.nii.gz', lower(ipr.tracer), schar, this.vnumber));
+                sprintf('%s%sv%i.nii.gz', tr, schar, this.vnumber));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerSif(this, varargin)
