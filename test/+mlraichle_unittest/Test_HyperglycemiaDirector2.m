@@ -111,7 +111,7 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
                 'sessionsExpr', 'NP995_24', ...
                 'visitsExpr', 'V1', ...
                 'tracer', 'FDG', 'ac', false);
-            those{1}.builder.product.fsleyes;
+            those{1}.builder.product.freeview;
         end
 	end
 
