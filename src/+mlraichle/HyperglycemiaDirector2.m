@@ -13,7 +13,7 @@ classdef HyperglycemiaDirector2
 
     methods (Static)   
         function those = constructResolvedAC(varargin)
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+            those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector2.constructResolved', 'ac', true, varargin{:}); 
         end
         function those = constructResolvedNAC(varargin)
@@ -40,7 +40,7 @@ classdef HyperglycemiaDirector2
             if (~isdir(sessp))
                 mlfourdfp.FourdfpVisitor.mkdir(sessp);
             end
-            this  = HyperglycemiaDirector('sessionData', ...
+            this  = StudyDirector('sessionData', ...
                 SessionData('studyData', StudyData, 'sessionPath', sessp, 'vnumber', v));
             switch (lower(ip.Results.kind))
                 case 'ct'
