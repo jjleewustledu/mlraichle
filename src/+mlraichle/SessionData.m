@@ -209,9 +209,9 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             g = this.tracerBlurArg;
         end
         function g = get.tauIndices(this)
-            pris = this.tracerPristine('typ','fqfp');
+            pris = mlfourd.ImagingContext2(this.tracerPristine('typ','fqfn'));
             g = [];
-            if (lexist_4dfp(pris))
+            if (lexist_4dfp(pris.fqfileprefix))
                 sz = mlfourdfp.FourdfpVisitor.size_4dfp(pris);
                 g  = 1:sz(4);                
                 if (length(g) > 73) %% KLUDGE
