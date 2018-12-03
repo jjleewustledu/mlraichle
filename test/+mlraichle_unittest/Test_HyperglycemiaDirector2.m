@@ -39,6 +39,14 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
             this.verifyTrue(lexist_4dfp(fullfile(vloc, 'brainmask')));
             this.verifyTrue(lexist_4dfp(fullfile(vloc, 'T1')));
         end       
+        
+        function test_constructResolvedAC(this)
+            those = this.testObj.constructResolvedAC( ...
+                'sessionsExpr', 'NP995_24', ...
+                'visitsExpr', 'V1', ...
+                'tracer', 'FDG', 'ac', true);
+            those{1}.builder.product.fsleyes;
+        end
         function test_constructResolvedNAC1(this)
             td = this.tracerDir;
             td = td.prepareNipetTracerImages;
@@ -82,27 +90,14 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
             disp(reconstituted);
         end  
         function test_constructResolvedNAC6(this)
-%             td = this.tracerDir;
-%             td = td.prepareNipetTracerImages;
-%             td = td.setBuilder__(td.builder.prepareMprToAtlasT4);
-%             td = td.setBuilder__(td.builder.partitionMonolith); 
-%             [bldr,epochs,reconstituted] = td.builder.motionCorrectFrames; td = td.setBuilder__(bldr);
-%             reconstituted = reconstituted.motionCorrectCTAndUmap;             
-            load('test_constructResolvedNAC5.mat');
-            td = td.setBuilder__(reconstituted.motionUncorrectUmap(epochs));
+            load('test_constructResolvedNAC5.mat'); %#ok<LOAD>
+            td = td.setBuilder__(reconstituted.motionUncorrectUmap(epochs)); %#ok<NODEF>
             save(fullfile(this.sessd.vLocation, 'test_constructResolvedNAC6.mat'));
             td.builder.logger.save;
         end 
         function test_constructResolvedNAC7(this)
-%             td = this.tracerDir;
-%             td = td.prepareNipetTracerImages;
-%             td = td.setBuilder__(td.builder.prepareMprToAtlasT4);
-%             td = td.setBuilder__(td.builder.partitionMonolith); 
-%             [bldr,epochs,reconstituted] = td.builder.motionCorrectFrames; td = td.setBuilder__(bldr);
-%             reconstituted = reconstituted.motionCorrectCTAndUmap;
-%             td = td.setBuilder__(reconstituted.motionUncorrectUmap(epochs));        
-            load('test_constructResolvedNAC6.mat');
-            td = td.setBuilder__(td.builder.aufbauUmaps);
+            load('test_constructResolvedNAC6.mat'); %#ok<LOAD>
+            td = td.setBuilder__(td.builder.aufbauUmaps); %#ok<NODEF>
             save(fullfile(this.sessd.vLocation, 'test_constructResolvedNAC7.mat'));
             td.builder.logger.save;
         end    
@@ -111,7 +106,7 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
                 'sessionsExpr', 'NP995_24', ...
                 'visitsExpr', 'V1', ...
                 'tracer', 'FDG', 'ac', false);
-            those{1}.builder.product.freeview;
+            those{1}.builder.product.fsleyes;
         end
 	end
 
