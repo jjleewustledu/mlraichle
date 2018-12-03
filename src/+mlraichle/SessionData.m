@@ -545,6 +545,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         end
         function obj  = tracerNipet(this, varargin)  
             ip = inputParser;
+            ip.KeepUnmatched = true;
             addParameter(ip, 'nativeFov', false, @islogical);
             parse(ip, varargin{:});
             
@@ -557,8 +558,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                 tr = lower(ipr.tracer);
             end
             fqfn = fullfile( ...
-                this.tracerConvertedLocation('tracer', ipr.tracer, 'snumber', ipr.snumber, 'typ', 'path'), ...
-                'reconstructed', ...
+                this.tracerConvertedLocation('tracer', ipr.tracer, 'snumber', ipr.snumber), ...
+                'output', 'PET', ...
                 sprintf('%s%sv%i.nii.gz', tr, schar, this.vnumber));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end

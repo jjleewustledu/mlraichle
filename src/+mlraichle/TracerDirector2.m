@@ -8,6 +8,8 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
  	
 	properties (Dependent)
         anatomy 	
+        outputDir
+        outputFolder
         reconstructionDir
         reconstructionFolder
     end
@@ -41,6 +43,12 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
         function g = get.anatomy(this)
             g = this.anatomy_;
         end
+        function g = get.outputDir(this)
+            g = fullfile(this.sessionData.tracerConvertedLocation, this.outputFolder, '');
+        end
+        function g = get.outputFolder(~)
+            g = 'output';
+        end
         function g = get.reconstructionDir(this)
             g = fullfile(this.sessionData.tracerConvertedLocation, this.reconstructionFolder, '');
         end
@@ -51,7 +59,8 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
         %%
         
         function this = instanceConstructResolvedAC(this)
-            pwd0 = pushd(this.builder_.sessionData.tracerLocation);            
+            pwd0 = pushd(this.builder_.sessionData.tracerLocation);    
+            this          = this.prepareNipetTracerImages;   
             this.builder_ = this.builder_.reconstituteFramesAC;
             this.sessionData.frame = nan;
             this.builder_.sessionData.frame = nan;
@@ -78,7 +87,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
         end
         function this = prepareNipetTracerImages(this)
             import mlfourd.*;
-            assert(isdir(this.reconstructionDir));
+            assert(isdir(this.outputDir));
             ensuredir(this.sessionData.tracerRevision('typ', 'path'));
             if (~lexist_4dfp(this.sessionData.tracerRevision('typ', 'fqfp')))
                 ic2 = ImagingContext2(this.sessionData.tracerNipet('typ', '.nii.gz'));
