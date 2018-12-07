@@ -17,7 +17,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
         fractionalImageFrameThresh = 0.1 % of median
         filetypeExt = '.4dfp.hdr'
         fullFov = [344 344 127];
-        indicesEpochCells = {} % indicesEpochCells{this.epoch} := numeric, size(numeric) == [1 this.maxLengthEpoch]
         modality
         supScanList = 3
         tauMultiplier = 1 % 1,2,4,8,16
@@ -154,13 +153,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
         function g = get.indicesLogical(this) %#ok<MANU>
             g = true;
             return
-%             
-%             try
-%                 g = this.indicesEpochCells{this.epoch};
-%             catch ME
-%                 disp(warning(ME));
-%                 g = true;
-%             end
         end
         function g = get.maxLengthEpoch(this)
             if (~this.attenuationCorrected)
