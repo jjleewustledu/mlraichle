@@ -88,7 +88,8 @@ classdef StudyDirector
                                     warning('on', 'MATLAB:subsassigndimmismatch');
                                 end
                             catch ME
-                                dispwarning(ME);
+                                dispwarning(ME)
+                                getReport(ME)
                             end
                         end
                     end

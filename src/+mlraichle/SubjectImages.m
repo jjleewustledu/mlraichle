@@ -57,8 +57,8 @@ classdef SubjectImages
                             nn.save;
                             outs = [outs sprintf('%s.4dfp.img ', nn.fqfileprefix)]; %#ok<AGROW>
                         catch ME
-                            disp(ME.message);
-                            fprintf('mlraichle.SubjectImages.repairCrossModalDynamic did not src->%s\n', src);
+                            dispwarning(ME, 'mlraichle:RuntimeError', ...
+                                'SubjectImages.repairCrossModalDynamic failed with src->%s, out->%', src, out);
                         end
                     end
                 end
@@ -158,54 +158,48 @@ classdef SubjectImages
             %  theFdg,theHo,theOo,theOc
             %  @return t4 in this.t4s:            e.g., {hov[1-9]r1_sumtr1_op_hov[1-9]r1_avgr1_to_op_fdgv1r1_t4}.
             %  @return resolved in this.product:  e.g., {hov[1-9]r1_sumtr1_op_hov[1-9]r1_avgr1_op_fdgv1r1.4dfp.hdr}.            
-            
-            try
 
-                ensuredir(this.sessionData.vallLocation);
-                pwd0 = pushd(this.sessionData.vallLocation);            
-                theHo  = this.alignCommonModal('HO');
-                theHo  = theHo.productAverage;            
-                theOo  = this.alignCommonModal('OO');
-                theOo  = theOo.productAverage; 
-                theFdg = this.alignCommonModal('FDG');
-                theFdg = theFdg.productAverage;
-                this = theFdg;
+            ensuredir(this.sessionData.vallLocation);
+            pwd0   = pushd(this.sessionData.vallLocation);            
+            theHo  = this.alignCommonModal('HO');
+            theHo  = theHo.productAverage;            
+            theOo  = this.alignCommonModal('OO');
+            theOo  = theOo.productAverage; 
+            theFdg = this.alignCommonModal('FDG');
+            theFdg = theFdg.productAverage;
+            this = theFdg;
 
-                imgs = {theFdg.product{1}.fqfileprefix ...
-                        theHo.product{1}.fqfileprefix ...
-                        theOo.product{1}.fqfileprefix}; 
-                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/fdgv1r1_sumtr1_op_fdgv1r1_avg'
-                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/hov1r1_sumtr1_op_hov1r1_avg'
-                % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/oov1r1_sumtr1_op_oov1r1_avg'
+            imgs = {theFdg.product{1}.fqfileprefix ...
+                    theHo.product{1}.fqfileprefix ...
+                    theOo.product{1}.fqfileprefix}; 
+            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/fdgv1r1_sumtr1_op_fdgv1r1_avg'
+            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/hov1r1_sumtr1_op_hov1r1_avg'
+            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/oov1r1_sumtr1_op_oov1r1_avg'
 
-                this = this.resolve(imgs, ...
-                    'compAlignMethod', 'align_crossModal', ...
-                    'NRevisions', 1, ...
-                    'maskForImages', 'Msktgen');
-                % cell2str(this.t4s_) =>
-                % fdgv1r1_sumtr1_op_fdgv1r1_avgr1_to_op_fdgv1r1_t4
-                % hov1r1_sumtr1_op_hov1r1_avgr1_to_op_fdgv1r1_t4
-                % oov1r1_sumtr1_op_oov1r1_avgr1_to_op_fdgv1r1_t4
-                % cellfun(@(x) ls(x.filename), this.product_, 'UniformOutput', false) =>
-                % fdgv1r1_sumtr1_op_fdgv1r1_avgr1_op_fdgv1r1.4dfp.hdr
-                % hov1r1_sumtr1_op_hov1r1_avgr1_op_fdgv1r1.4dfp.hdr
-                % oov1r1_sumtr1_op_oov1r1_avgr1_op_fdgv1r1.4dfp.hdr
+            this = this.resolve(imgs, ...
+                'compAlignMethod', 'align_crossModal', ...
+                'NRevisions', 1, ...
+                'maskForImages', 'Msktgen');
+            % cell2str(this.t4s_) =>
+            % fdgv1r1_sumtr1_op_fdgv1r1_avgr1_to_op_fdgv1r1_t4
+            % hov1r1_sumtr1_op_hov1r1_avgr1_to_op_fdgv1r1_t4
+            % oov1r1_sumtr1_op_oov1r1_avgr1_to_op_fdgv1r1_t4
+            % cellfun(@(x) ls(x.filename), this.product_, 'UniformOutput', false) =>
+            % fdgv1r1_sumtr1_op_fdgv1r1_avgr1_op_fdgv1r1.4dfp.hdr
+            % hov1r1_sumtr1_op_hov1r1_avgr1_op_fdgv1r1.4dfp.hdr
+            % oov1r1_sumtr1_op_oov1r1_avgr1_op_fdgv1r1.4dfp.hdr
 
-                this.saveThis('alignCrossModal_this');
+            this.saveThis('alignCrossModal_this');
 
-                this.alignDynamicImages('commonRef', theHo,  'crossRef', this);
-                this.alignDynamicImages('commonRef', theOo,  'crossRef', this);
-                this.alignDynamicImages('commonRef', theFdg, 'crossRef', this);
-                popd(pwd0);    
+            this.alignDynamicImages('commonRef', theHo,  'crossRef', this);
+            this.alignDynamicImages('commonRef', theOo,  'crossRef', this);
+            this.alignDynamicImages('commonRef', theFdg, 'crossRef', this);
+            popd(pwd0);    
 
-                that = this.alignCrossModalSubset;
-                this.product_ = [this.product that.product];
+            that = this.alignCrossModalSubset;
+            this.product_ = [this.product that.product];
 
-                this.constructReferenceTracerToT1001T4;
-            
-            catch ME
-                dispexcept(ME);
-            end
+            this.constructReferenceTracerToT1001T4;
         end
         function this = alignCrossModalSubset(this)
             pwd0   = pushd(this.sessionData.vallLocation);                     
@@ -805,7 +799,8 @@ classdef SubjectImages
                         imgs{k} = acopy; %#ok<AGROW>
                         k = k + 1;
                     catch ME
-                        dispexcept(ME);
+                        dispexcept(ME, 'mlraichle:RuntimError', ...
+                            'SubjectImages.sourceImages erred while updating internal sessionData');
                     end
                 end
             end
