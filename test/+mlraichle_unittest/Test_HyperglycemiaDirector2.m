@@ -11,22 +11,29 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
  	%% It was developed on Matlab 9.4.0.813654 (R2018a) for MACI64.  Copyright 2018 John Joowon Lee.
  	
 	properties
+        ac = false % at TestClassSetup
         pwd0
  		registry
         sessd
+        sessExpr = 'NP995_19'
  		testObj
         tracerDir
- 	end
+        v = 2
+    end
+    
+    properties (Dependent)
+        vExpr
+    end
 
 	methods (Test)
-        function test_NipetBuilder_CreatePrototype(this) %#ok<MANU>
-            tobj = mlnipet.NipetBuilder.CreatePrototypeAC;
+        function test_NipetBuilder_CreatePrototype(this)
+            tobj = mlnipet.NipetBuilder.CreatePrototypeAC(this.sessd);
             disp(tobj.product)
         end
         function test_constructUmaps(this)
             those = this.testObj.constructUmaps( ...
-                'sessionsExpr', 'NP995_24*', ...
-                'visitsExpr', 'V1*', ...
+                'sessionsExpr', this.sessExpr, ...
+                'visitsExpr', this.vExpr, ...
                 'tracer', 'FDG', 'ac', false);
             those{1}.builder.product.view;
         end
@@ -37,37 +44,39 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
             this.verifyTrue(lexist_4dfp(fullfile(vloc, 'aparcAseg')));
             this.verifyTrue(lexist_4dfp(fullfile(vloc, 'aparcA2009sAseg')));
             this.verifyTrue(lexist_4dfp(fullfile(vloc, 'brainmask')));
-            this.verifyTrue(lexist_4dfp(fullfile(vloc, 'T1')));
+            this.verifyTrue(lexist_4dfp(fullfile(vloc, 'T1001')));
+            mlbash('fsleyes *.4dfp.hdr');
+            popd(this.pwd0);
         end       
         
         function test_constructResolvedAC(this)
             those = this.testObj.constructResolvedAC( ...
-                'sessionsExpr', 'NP995_24', ...
-                'visitsExpr', 'V1', ...
+                'sessionsExpr', this.sessExpr, ...
+                'visitsExpr', this.vExpr, ...
                 'tracer', 'FDG', 'ac', true);
             those{1}.builder.product.fsleyes;
         end
         function test_constructResolvedNAC1(this)
             td = this.tracerDir;
-            td = td.prepareNipetTracerImages;
+            td = td.prepareFourdfpTracerImages;
             disp(td);
         end  
         function test_constructResolvedNAC2(this)
             td = this.tracerDir;
-            td = td.prepareNipetTracerImages;
+            td = td.prepareFourdfpTracerImages;
             td = td.setBuilder__(td.builder.prepareMprToAtlasT4);
             disp(td);            
         end  
         function test_constructResolvedNAC3(this)
             td = this.tracerDir;
-            td = td.prepareNipetTracerImages;
+            td = td.prepareFourdfpTracerImages;
             td = td.setBuilder__(td.builder.prepareMprToAtlasT4);
             td = td.setBuilder__(td.builder.partitionMonolith); 
             disp(td);
         end  
         function test_constructResolvedNAC4(this)
             td = this.tracerDir;
-            td = td.prepareNipetTracerImages;
+            td = td.prepareFourdfpTracerImages;
             td = td.setBuilder__(td.builder.prepareMprToAtlasT4);
             td = td.setBuilder__(td.builder.partitionMonolith); 
             [bldr,epochs,reconstituted] = td.builder.motionCorrectFrames; td = td.setBuilder__(bldr);
@@ -79,7 +88,7 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
         end  
         function test_constructResolvedNAC5(this)
             td = this.tracerDir;
-            td = td.prepareNipetTracerImages;
+            td = td.prepareFourdfpTracerImages;
             td = td.setBuilder__(td.builder.prepareMprToAtlasT4);
             td = td.setBuilder__(td.builder.partitionMonolith); 
             [bldr,epochs,reconstituted] = td.builder.motionCorrectFrames; td = td.setBuilder__(bldr); %#ok<ASGLU>
@@ -103,8 +112,8 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
         end    
         function test_constructResolvedNAC(this)
             those = this.testObj.constructResolvedNAC( ...
-                'sessionsExpr', 'NP995_24', ...
-                'visitsExpr', 'V1', ...
+                'sessionsExpr', this.sessExpr, ...
+                'visitsExpr', this.vExpr, ...
                 'tracer', 'FDG', 'ac', false);
             those{1}.builder.product.fsleyes;
         end
@@ -115,9 +124,9 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
  			import mlraichle.*;
             this.sessd = SessionData( ...
                 'studyData', StudyData, ...
-                'sessionPath', fullfile(RaichleRegistry.instance.subjectsDir, 'NP995_24', ''), ...
-                'vnumber', 1, ...
-                'ac', false);
+                'sessionPath', fullfile(RaichleRegistry.instance.subjectsDir, this.sessExpr, ''), ...
+                'vnumber', this.v, ...
+                'ac', this.ac);
  			this.testObj_ = HyperglycemiaDirector2('sessionData', this.sessd);   
  		end
 	end
@@ -130,7 +139,16 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
                 mlpet.TracerResolveBuilder('sessionData', this.sessd));  
  			this.addTeardown(@this.cleanTestMethod);
  		end
-	end
+    end
+    
+    methods 
+        
+        %% GET
+        
+        function g = get.vExpr(this)
+            g = sprintf('V%i', this.v);
+        end
+    end
 
 	properties (Access = private)
  		testObj_
