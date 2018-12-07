@@ -374,7 +374,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             try
                 obj = this.mrObject('tof', varargin{:});
             catch ME
-                handwarning(ME);
+                dispwarning(ME);
                 obj = [];
             end
         end
@@ -458,8 +458,10 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
                 dt0_ = datetime(Y,M,D,H,MI,S,'TimeZone','Etc/GMT');
                 dt0_.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
                 date_ = datetime(Y,M,D);
-            catch ME %#ok<NASGU>
-                [dt0_,date_] = readDatetime0@mlpipeline.SessionData(this);
+            catch ME 
+                dispexcept(ME, 'mlraichle:RuntimeError', ...
+                    'SessionData.readDatetime0');
+                %[dt0_,date_] = readDatetime0@mlpipeline.SessionData(this);
             end
         end
         function obj  = t1MprageSagSeriesForReconall(this, varargin)
@@ -995,11 +997,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             if (isnat(this.sessionDate_))
                 this.sessionDate_ = this.readDatetime0;
             end
-            try
-                this.studyCensus_ = mlraichle.StudyCensus(this.STUDY_CENSUS_XLSX, 'sessionData', this);
-            catch ME
-                handexcept(ME);
-            end
+            this.studyCensus_ = mlraichle.StudyCensus(this.STUDY_CENSUS_XLSX, 'sessionData', this);
 %            this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct( ...
 %                fullfile(this.subjectsDir, this.bloodGlucoseAndHctXlsx));
         end
