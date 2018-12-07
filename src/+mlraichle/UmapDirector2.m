@@ -35,6 +35,7 @@ classdef UmapDirector2 < mlpipeline.AbstractDirector
             %  @param named sessionData is an mlraichle.SessionData.
             %  @return 4dfp copies of this.freesurferData in sessionData.vLocation.
             %  @return safefsd, a cell-array of fileprefixes for 4dfp objects created on the local filesystem.  
+            %  TO DO:  replace with TracerDirector2.prepareFreesurferData
             
             ip = inputParser;
             ip.KeepUnmatched = true;

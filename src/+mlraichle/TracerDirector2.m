@@ -23,16 +23,72 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             %  sequentially run FDG NAC, 15O NAC, then all tracers AC.
             %  @return this.sessionData.attenuationCorrection == false.
                       
-            this = mlraichle.TracerDirector2( ...
-                mlpet.TracerResolveBuilder(varargin{:}));   
+            import mlraichle.TracerDirector2;
+            this = TracerDirector2(mlpet.TracerResolveBuilder(varargin{:}));   
             if (~this.sessionData.attenuationCorrected)
+                TracerDirector2.prepareFreesurferData(varargin{:});
+                TracerDirector2.constructUmaps(varargin{:});
                 this = this.instanceConstructResolvedNAC;
             else
                 this = this.instanceConstructResolvedAC;
             end
         end         
         function lst  = prepareFreesurferData(varargin)
-            lst = mlpet.TracerDirector.prepareFreesurferData(varargin{:});
+            %% PREPAREFREESURFERDATA prepares session & visit-specific copies of data enumerated by this.freesurferData.
+            %  @param named sessionData is an mlraichle.SessionData.
+            %  @return 4dfp copies of this.freesurferData in sessionData.vLocation.
+            %  @return lst, a cell-array of fileprefixes for 4dfp objects created on the local filesystem.            
+        
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
+            parse(ip, varargin{:});            
+            sess = ip.Results.sessionData;
+            
+            pwd0    = pushd(sess.vLocation);
+            fv      = mlfourdfp.FourdfpVisitor;
+            fsd     = { 'aparc+aseg' 'aparc.a2009s+aseg' 'brainmask' 'T1' };  
+            safefsd = fsd; safefsd{4} = 'T1001';
+            safefsd = fv.ensureSafeFileprefix(safefsd);
+            lst     = cell(1, length(safefsd));
+            sess    = ip.Results.sessionData;
+            for f = 1:length(fsd)
+                if (~fv.lexist_4dfp(fullfile(sess.vLocation, safefsd{f})))
+                    try
+                        sess.mri_convert([fullfile(sess.mriLocation, fsd{f}) '.mgz'], [safefsd{f} '.nii']);
+                        ic2 = mlfourd.ImagingContext2([safefsd{f} '.nii']);
+                        ic2.saveas([safefsd{f} '.4dfp.hdr']);
+                        lst{f} = fullfile(pwd, safefsd{f});
+                    catch ME
+                        dispwarning(ME);
+                    end
+                end
+            end
+            if (~lexist('T1001_to_TRIO_Y_NDC_t4', 'file'))
+                fv.msktgenMprage('T1001');
+            end
+            popd(pwd0);
+        end
+        function this = constructUmaps(varargin)
+            import mlraichle.TracerDirector2;    
+            this = TracerDirector2(mlfourdfp.CarneyUmapBuilder2(varargin{:}));
+            if (this.builder.isfinished)
+                return
+            end 
+            
+            import mlfourd.ImagingContext2;
+            import mlpet.Resources;
+            pwd0 = pushd(this.sessionData.vLocation);   
+            this.builder_ = this.builder.prepareMprToAtlasT4;
+            ctm  = this.builder.buildCTMasked2;
+            ctm  = this.builder.rescaleCT(ctm);
+            umap = this.builder.assembleCarneyUmap(ctm);
+            umap = ImagingContext2([umap '.4dfp.hdr']);
+            umap = umap.blurred(Resources.instance.pointSpread);
+            umap.save;
+            this.builder_ = this.builder.packageProduct(umap);
+            this.builder.teardownBuildUmaps;
+            popd(pwd0);
         end
     end
     
@@ -59,8 +115,9 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
         %%
         
         function this = instanceConstructResolvedAC(this)
-            pwd0 = pushd(this.builder_.sessionData.tracerLocation);    
-            this          = this.prepareNipetTracerImages;   
+            pwd0 = pushd(this.sessionData.tracerLocation);  
+            mlnipet.NipetBuilder.CreatePrototypeAC(this.sessionData);
+            this          = this.prepareFourdfpTracerImages;   
             this.builder_ = this.builder_.reconstituteFramesAC;
             this.sessionData.frame = nan;
             this.builder_.sessionData.frame = nan;
@@ -71,21 +128,29 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             this.builder_.logger.save; 
             save('mlraichle.TracerDirector_instanceConstructResolvedAC.mat');   
             this.builder_.markAsFinished;
+            %this.builder_.deleteWorkFiles;
             popd(pwd0);
         end
         function this = instanceConstructResolvedNAC(this)
-            this          = this.prepareNipetTracerImages;
-            this.builder_ = this.builder_.prepareMprToAtlasT4;
-            this.builder_ = this.builder_.partitionMonolith; 
-            [this.builder_,epochs,reconstituted] = this.builder_.motionCorrectFrames;
-            reconstituted = reconstituted.motionCorrectCTAndUmap;             
-            this.builder_ = reconstituted.motionUncorrectUmap(epochs);       
+            if (~lexist('mlraichle.TracerDirector2_instanceConstructResolvedNAC_at_aufbauUmaps.mat', 'file'))                
+                mlnipet.NipetBuilder.CreatePrototypeNAC(this.sessionData);
+                this          = this.prepareFourdfpTracerImages;
+                this.builder_ = this.builder_.prepareMprToAtlasT4;
+                this.builder_ = this.builder_.partitionMonolith; 
+                [this.builder_,epochs,reconstituted] = this.builder_.motionCorrectFrames;
+                reconstituted = reconstituted.motionCorrectCTAndUmap;             
+                this.builder_ = reconstituted.motionUncorrectUmap(epochs);     
+                save('mlraichle.TracerDirector2_instanceConstructResolvedNAC_at_aufbauUmaps.mat'); 
+            else
+                load('mlraichle.TracerDirector2_instanceConstructResolvedNAC_at_aufbauUmaps.mat');
+            end
             this.builder_ = this.builder_.aufbauUmaps;
             this.builder_.logger.save;
             save('mlraichle.TracerDirector2_instanceConstructResolvedNAC.mat');
             this.builder_.markAsFinished;
+            %this.builder_.deleteWorkFiles;
         end
-        function this = prepareNipetTracerImages(this)
+        function this = prepareFourdfpTracerImages(this)
             import mlfourd.*;
             assert(isdir(this.outputDir));
             ensuredir(this.sessionData.tracerRevision('typ', 'path'));
@@ -105,7 +170,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
  			this = this@mlpipeline.AbstractDirector(varargin{:});
             
             ip = inputParser;
-            addOptional( ip, 'builder', [], @(x) isempty(x) || isa(x, 'mlpet.TracerBuilder'));
+            addOptional( ip, 'builder', [], @(x) isempty(x) || isa(x, 'mlfourdfp.AbstractSessionBuilder'));
             addParameter(ip, 'anatomy', 'T1001', @ischar);
             parse(ip, varargin{:});
             
