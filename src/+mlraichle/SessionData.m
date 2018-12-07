@@ -1,4 +1,4 @@
-classdef SessionData < mlpipeline.ResolvingSessionData
+classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
 	%% SESSIONDATA  
 
 	%  $Revision$
@@ -24,6 +24,11 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         tracerBlurArg = 7.5
         umapBlurArg = 1.5
         atlVoxelSize = 333
+        
+        %% mlnipet.ISessionData
+        
+        itr = 4
+        outfolder = 'output'
     end
     
 	properties (Dependent)    
@@ -47,6 +52,10 @@ classdef SessionData < mlpipeline.ResolvingSessionData
         taus
         times
         vfolder
+        
+        %% mlnipet.ISessionData
+        
+        lmTag
     end
     
     methods (Static)
@@ -271,6 +280,14 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             end
         end
         
+        function g = get.lmTag(this)
+            if (~this.attenuationCorrected)
+                g = 'createDynamicNAC';
+                return
+            end
+            g = 'createDynamic2Carney';
+        end
+        
         %% IMRData
         
         function obj  = adc(this, varargin)
@@ -457,7 +474,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             obj = this.studyCensus_.t1MprageSagSeriesForReconall(this, varargin{:});  
         end
         function loc  = tracerConvertedLocation(this, varargin)
-            
             [ipr,schar] = this.iprLocation(varargin{:});
             loc = locationType(ipr.typ, ...
                 fullfile(this.vLocation, ...
@@ -486,7 +502,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                            sprintf('%s%s_V%i', ipr.tracer, schar, this.vnumber), ''));
         end
         function loc  = tracerListmodeLocation(this, varargin)
-            
             [ipr,schar] = this.iprLocation(varargin{:});
             loc = locationType(ipr.typ, ...
                 fullfile(this.vLocation, ...
@@ -543,26 +558,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             assert(lexist(fqfn, 'file'));
             obj  = this.fqfilenameObject(fqfn, varargin{:}, 'frame', nan);
         end
-        function obj  = tracerNipet(this, varargin)  
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'nativeFov', false, @islogical);
-            parse(ip, varargin{:});
-            
-            this.epoch = [];
-            this.rnumber = 1;
-            [ipr,schar] = this.iprLocation(varargin{:});
-            if (ip.Results.nativeFov)
-                tr = upper(ipr.tracer);
-            else
-                tr = lower(ipr.tracer);
-            end
-            fqfn = fullfile( ...
-                this.tracerConvertedLocation('tracer', ipr.tracer, 'snumber', ipr.snumber), ...
-                'output', 'PET', ...
-                sprintf('%s%sv%i.nii.gz', tr, schar, this.vnumber));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
-        end
         function obj  = tracerSif(this, varargin)
             
             [ipr,schar] = this.iprLocation(varargin{:});
@@ -573,7 +568,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData
                     ipr.tracer, schar, this.vnumber, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:}, 'frame', this.frame);
         end    
-        function obj  = tracerPristine(this, varargin)   
+        function obj  = tracerPristine(this, varargin)
             this.epoch = [];
             this.rnumber = 1;
             [ipr,schar] = this.iprLocation(varargin{:});
@@ -886,7 +881,40 @@ classdef SessionData < mlpipeline.ResolvingSessionData
             
             obj = this.visitMapOnAtl('agi', varargin{:});
         end
-
+        
+        %% mlnipet.ISessionData
+        
+        function obj  = tracerNipet(this, varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'nativeFov', false, @islogical);
+            parse(ip, varargin{:});
+            
+            this.epoch = [];
+            this.rnumber = 1;
+            [ipr,schar] = this.iprLocation(varargin{:});
+            if (ip.Results.nativeFov)
+                tr = upper(ipr.tracer);
+            else
+                tr = lower(ipr.tracer);
+            end
+            fqfn = fullfile( ...
+                this.tracerConvertedLocation('tracer', ipr.tracer, 'snumber', ipr.snumber), ...
+                'output', 'PET', ...
+                sprintf('%s%sv%i.nii.gz', tr, schar, this.vnumber));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function loc  = tracerOutputLocation(this, varargin)
+            ipr = this.iprLocation(varargin{:});
+            loc = locationType(ipr.typ, ...
+                fullfile(this.tracerConvertedLocation(varargin{:}), this.outfolder, 'PET', ''));
+        end
+        function loc  = tracerOutputSingleFrameLocation(this, varargin)
+            ipr = this.iprLocation(varargin{:});
+            loc = locationType(ipr.typ, ...
+                fullfile(this.tracerOutputLocation(varargin{:}), 'single-frame', ''));
+        end
+        
         %%  
          
         function loc  = vallLocation(this, varargin)
