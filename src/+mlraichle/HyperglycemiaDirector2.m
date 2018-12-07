@@ -11,14 +11,16 @@ classdef HyperglycemiaDirector2
  		
  	end
 
-    methods (Static)   
-        function those = constructResolvedAC(varargin)
+    methods (Static)  
+        function those = constructResolved(varargin)
             those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector2.constructResolved', 'ac', true, varargin{:}); 
+                'mlraichle.TracerDirector2.constructResolved', varargin{:}); 
+        end 
+        function those = constructResolvedAC(varargin)
+            those = mlraichle.HyperglycemiaDirector2.constructResolved(varargin{:}, 'ac', true);
         end
         function those = constructResolvedNAC(varargin)
-            those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector2.constructResolved', 'ac', false, varargin{:}); 
+            those = mlraichle.HyperglycemiaDirector2.constructResolved(varargin{:}, 'ac', false);
         end
         function those = constructUmaps(varargin)
             those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
@@ -40,7 +42,7 @@ classdef HyperglycemiaDirector2
             if (~isdir(sessp))
                 mlfourdfp.FourdfpVisitor.mkdir(sessp);
             end
-            this  = StudyDirector('sessionData', ...
+            this  = HyperglycemiaDirector2('sessionData', ...
                 SessionData('studyData', StudyData, 'sessionPath', sessp, 'vnumber', v));
             switch (lower(ip.Results.kind))
                 case 'ct'
@@ -81,7 +83,7 @@ classdef HyperglycemiaDirector2
                 DicomSorter.CreateSorted( ...
                     'srcPath', downloadPath, ...
                     'destPath', this.sessionData_.vLocation, ...
-                    'sessionData', this.sessionData);          
+                    'sessionData', this.sessionData_);          
             catch ME
                 handexcept(ME, 'mlraichle:filesystemError', ...
                     'HyperglycemiaDirector2.instanceSortDownloads.downloadPath->%s may be missing folders SCANS, RESOURCES', ...
@@ -93,7 +95,7 @@ classdef HyperglycemiaDirector2
                 mlfourdfp.DicomSorter.CreateSorted( ...
                     'srcPath', downloadPath, ...
                     'destPath', this.sessionData_.sessionPath, ...
-                    'sessionData', this.sessionData);
+                    'sessionData', this.sessionData_);
             catch ME
                 handexcept(ME, 'mlraichle:filesystemError', ...
                     'HyperglycemiaDirector2.instanceSortDownloadCT.downloadPath->%s may be missing folder SCANS', downloadPath);
@@ -105,11 +107,11 @@ classdef HyperglycemiaDirector2
                 dt = mlsystem.DirTool(fullfile(downloadPath, 'ASSESSORS', '*freesurfer*'));
                 for idt = 1:length(dt.fqdns)
                     DATAdir = fullfile(dt.fqdns{idt}, 'DATA', '');
-                    if (~isdir(this.sessionData.freesurferLocation))
+                    if (~isdir(this.sessionData_.freesurferLocation))
                         if (isdir(fullfile(DATAdir, downloadFolder)))
                             DATAdir = fullfile(DATAdir, downloadFolder);
                         end
-                        movefile(DATAdir, this.sessionData.freesurferLocation);
+                        movefile(DATAdir, this.sessionData_.freesurferLocation);
                     end
                 end
             catch ME
