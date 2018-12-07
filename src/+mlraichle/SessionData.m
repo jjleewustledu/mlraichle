@@ -1075,7 +1075,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
                         srcPath, destPath, ...
                         'studyData', this.studyData_, 'seriesFilter', mybasename(fqfn), 'preferredName', mybasename(fqfn));
                 catch ME
-                    handexcept(ME);
+                    handexcept(ME, 'mlraichle:TypeError', ...
+                        'SessionData.ensureMRFqfilename:  possible defect in operations of mlfourdfp.DicomSorter');
                 end
             end
         end
