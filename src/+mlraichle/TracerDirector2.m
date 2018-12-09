@@ -14,7 +14,15 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
         reconstructionFolder
     end
 
-    methods (Static)
+    methods (Static)  
+        function ic2 = flipKLUDGE____(ic2)
+            if (mlnipet.Resources.instance.FLIP1)
+                assert(isa(ic2, 'mlfourd.ImagingContext2'), 'mlraichle:TypeError', 'TracerDirector2.flipKLUDGE____');
+                warning('mlraichle:RuntimeWarning', 'KLUDGE:TracerDirector2.flipKLUDGE____ is active');
+                ic2 = ic2.flip(1);
+            end
+        end
+        
         function this = constructResolved(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
@@ -170,21 +178,18 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             %this.builder_.deleteWorkFiles;
             popd(pwd0);
         end
-        function this = instanceConstructResolvedNAC(this)
-            if (~lexist('mlraichle.TracerDirector2_instanceConstructResolvedNAC_at_aufbauUmaps.mat', 'file'))                
-                mlnipet.NipetBuilder.CreatePrototypeNAC(this.sessionData);
-                this          = this.prepareFourdfpTracerImages;
-                this.builder_ = this.builder_.prepareMprToAtlasT4;
-                this.builder_ = this.builder_.partitionMonolith; 
-                [this.builder_,epochs,reconstituted] = this.builder_.motionCorrectFrames;
-                reconstituted = reconstituted.motionCorrectCTAndUmap;             
-                this.builder_ = reconstituted.motionUncorrectUmap(epochs);     
-                save('mlraichle.TracerDirector2_instanceConstructResolvedNAC_at_aufbauUmaps.mat'); 
-            else
-                load('mlraichle.TracerDirector2_instanceConstructResolvedNAC_at_aufbauUmaps.mat');
-            end
-            this.builder_ = this.builder_.aufbauUmaps;
-            this.builder_.logger.save;
+        function this = instanceConstructResolvedNAC(this)              
+            mlnipet.NipetBuilder.CreatePrototypeNAC(this.sessionData);
+            this          = this.prepareFourdfpTracerImages;
+            this.builder_ = this.builder_.prepareMprToAtlasT4;
+            this.builder_ = this.builder_.partitionMonolith; 
+            [this.builder_,epochs,reconstituted] = this.builder_.motionCorrectFrames;
+            reconstituted = reconstituted.motionCorrectCTAndUmap;             
+            this.builder_ = reconstituted.motionUncorrectUmap(epochs);     
+            this.builder_ = this.builder_.aufbauUmaps;     
+            this.builder_.logger.save;       
+            p = this.flipKLUDGE____(this.builder_.product); % KLUDGE:  bug at interface with NIPET
+            p.save;            
             save('mlraichle.TracerDirector2_instanceConstructResolvedNAC.mat');
             this.builder_.markAsFinished;
             %this.builder_.deleteWorkFiles;
@@ -195,11 +200,12 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             ensuredir(this.sessionData.tracerRevision('typ', 'path'));
             if (~lexist_4dfp(this.sessionData.tracerRevision('typ', 'fqfp')))
                 ic2 = ImagingContext2(this.sessionData.tracerNipet('typ', '.nii.gz'));
+                ic2 = this.flipKLUDGE____(ic2); % KLUDGE:  bug at interface with NIPET
                 ic2.saveas(this.sessionData.tracerRevision('typ', '.4dfp.hdr'));
             end
             this.builder_ = this.builder_.packageProduct( ...
                 ImagingContext2(this.sessionData.tracerRevision('typ', '.4dfp.hdr')));
-        end      
+        end    
 		  
  		function this = TracerDirector2(varargin)
  			%% TRACERDIRECTOR2
