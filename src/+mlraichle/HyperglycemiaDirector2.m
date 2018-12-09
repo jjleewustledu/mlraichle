@@ -25,7 +25,11 @@ classdef HyperglycemiaDirector2
         function those = constructUmaps(varargin)
             those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
                 'mlraichle.UmapDirector2.constructUmaps', 'ac', false, varargin{:});
-        end 
+        end         
+        function those = migrateResolvedToVall(varargin)
+            those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector2.migrateResolvedToVall', varargin{:}); 
+        end
         function this  = sortDownloads(downloadPath, sessionFolder, v, varargin)
             %% SORTDOWNLOADS installs data from rawdata into SUBJECTS_DIR; start here after downloading rawdata.  
             

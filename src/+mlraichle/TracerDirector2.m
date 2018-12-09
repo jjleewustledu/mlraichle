@@ -32,7 +32,46 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             else
                 this = this.instanceConstructResolvedAC;
             end
-        end         
+        end   
+        function objs = migrateResolvedToVall(varargin)
+            import mlraichle.TracerDirector2;
+            import mlfourd.ImagingContext2;
+            this = TracerDirector2(mlpet.TracerResolveBuilder(varargin{:}));  
+            sess = this.sessionData;
+            targ = fullfile( ...
+                '/data/nil-bluearc/raichle/PPGdata/jjlee3', ...
+                sess.sessionLocation('typ','folder'), ...
+                sess.vallLocation('typ','folder'), '');
+            res  = mlnipet.Resources.instance;
+            res.keepForensics = false;
+            
+            % flip and migrate PET
+            cd(sess.vLocation);
+            kinds = {'' '_sumt'};
+            for k = 1:length(kinds)
+                trac = ImagingContext2( ...
+                    sprintf('fdgv%ir2_op_fdgv%ie1to4r1_frame4%s.4dfp.hdr', sess.vnumber, sess.vnumber, kinds{k}));
+                trac = trac.flip(1);
+                trac.saveas(fullfile(targ, sprintf('fdgv%ir1%s.4dfp.hdr', sess.vnumber, kinds{k})));
+            end
+            
+            
+            % migrate and resolve T1001
+            movefile('T1001.4dfp.*', targ);
+            pwd0 = pushd(targ);
+            theImages = {'T1001' trac.fqfileprefix};
+            ct4rb = mlfourdfp.CompositeT4ResolveBuilder( ...
+                'sessionData', sess, ...
+                'theImages', theImages, ...
+                'blurArg', [1.5 4.3], ...
+                'maskForImages', {'none' 'none'}, ...
+                'NRevisions', 1);
+            ct4rb = ct4rb.resolve;            
+            popd(pwd0);
+            
+            res.keepForensics = true;
+            objs = {trac, ct4rb};
+        end      
         function lst  = prepareFreesurferData(varargin)
             %% PREPAREFREESURFERDATA prepares session & visit-specific copies of data enumerated by this.freesurferData.
             %  @param named sessionData is an mlraichle.SessionData.
