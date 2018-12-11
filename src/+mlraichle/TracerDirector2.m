@@ -20,9 +20,28 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
                 assert(isa(ic2, 'mlfourd.ImagingContext2'), 'mlraichle:TypeError', 'TracerDirector2.flipKLUDGE____');
                 warning('mlraichle:RuntimeWarning', 'KLUDGE:TracerDirector2.flipKLUDGE____ is active');
                 ic2 = ic2.flip(1);
+                ic2.ensureSingle;
             end
         end
         
+        function this = cleanResolved(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
+            %  @return umap files generated per motionUncorrectedUmap ready
+            %  for use by TriggeringTracers.js; 
+            %  sequentially run FDG NAC, 15O NAC, then all tracers AC.
+            %  @return this.sessionData.attenuationCorrection == false.
+                      
+            import mlraichle.TracerDirector2;
+            inst = mlnipet.Resources.instance;
+            inst.keepForensics = false;
+            this = TracerDirector2(mlpet.TracerResolveBuilder(varargin{:}));   
+            if (~this.sessionData.attenuationCorrected)
+                this = this.instanceCleanResolvedNAC;
+            else
+                this = this.instanceCleanResolvedAC;
+            end
+        end  
         function this = constructResolved(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
@@ -161,6 +180,40 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
         
         %%
         
+        function this = instanceCleanResolvedAC(this)
+            %  @return removes non-essential files from workspaces to conserve storage costs.
+            
+            pwd0 = pushd(this.sessionData.tracerLocation);  
+            mlnipet.NipetBuilder.CleanPrototype(this.sessionData);
+            this.builder_ = this.builder_.reconstituteFramesAC;
+            this.sessionData.frame = nan;
+            this.builder_.sessionData.frame = nan;
+            this.builder_ = this.builder_.partitionMonolith;
+            this.builder_ = this.builder_.motionCorrectFrames;            
+            this.builder_ = this.builder_.reconstituteFramesAC2;
+            this.builder_ = this.builder_.sumProduct;
+            this.builder_.logger.save; 
+            save('mlraichle.TracerDirector_instanceConstructResolvedAC.mat');   
+            this.builder_.markAsFinished;
+            %this.builder_.deleteWorkFiles;
+            popd(pwd0);
+        end
+        function this = instanceCleanResolvedNAC(this)    
+            %  @return removes non-essential files from workspaces to conserve storage costs.
+            
+            mlnipet.NipetBuilder.CleanPrototype(this.sessionData);
+            this.builder_ = this.builder_.partitionMonolith; 
+            [this.builder_,epochs,reconstituted] = this.builder_.motionCorrectFrames;
+            reconstituted = reconstituted.motionCorrectCTAndUmap;             
+            this.builder_ = reconstituted.motionUncorrectUmap(epochs);     
+            this.builder_ = this.builder_.aufbauUmaps;     
+            this.builder_.logger.save;       
+            p = this.flipKLUDGE____(this.builder_.product); % KLUDGE:  bug at interface with NIPET
+            p.save;            
+            save('mlraichle.TracerDirector2_instanceConstructResolvedNAC.mat');
+            this.builder_.markAsFinished;
+            %this.builder_.deleteWorkFiles;
+        end
         function this = instanceConstructResolvedAC(this)
             pwd0 = pushd(this.sessionData.tracerLocation);  
             mlnipet.NipetBuilder.CreatePrototypeAC(this.sessionData);
@@ -195,6 +248,8 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             %this.builder_.deleteWorkFiles;
         end
         function this = prepareFourdfpTracerImages(this)
+            %% copies reduced-FOV NIfTI tracer images to this.sessionData.tracerLocation in 4dfp format.
+            
             import mlfourd.*;
             assert(isdir(this.outputDir));
             ensuredir(this.sessionData.tracerRevision('typ', 'path'));

@@ -16,6 +16,10 @@ classdef HyperglycemiaDirector2
             those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector2.constructResolved', varargin{:}); 
         end 
+        function those = cleanResolved(varargin)
+            those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector2.cleanResolved', varargin{:}); 
+        end 
         function those = constructResolvedAC(varargin)
             those = mlraichle.HyperglycemiaDirector2.constructResolved(varargin{:}, 'ac', true);
         end
