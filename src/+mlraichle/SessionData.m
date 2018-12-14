@@ -436,14 +436,10 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
         function [dt0_,date_] = readDatetime0(this)
             try
                 frame0 = this.frame;
-                if (this.attenuationCorrected)
-                    this.frame = 0;
-                else
-                    this.frame = nan;
-                end
-                mhdr = this.tracerListmodeMhdr;
+                this.frame = nan;
+                dcm = this.tracerListmodeDcm;
                 this.frame = frame0;
-                lp = mlio.LogParser.load(mhdr);
+                lp = mlio.LogParser.load(dcm);
                 [dateStr,idx] = lp.findNextCell('%study date (yyyy:mm:dd):=', 1);
                  timeStr      = lp.findNextCell('%study time (hh:mm:ss GMT+00:00):=', idx);
                 dateNames     = regexp(dateStr, '%study date \(yyyy\:mm\:dd\)\:=(?<Y>\d\d\d\d)\:(?<M>\d+)\:(?<D>\d+)', 'names');
@@ -459,9 +455,9 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
                 dt0_.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
                 date_ = datetime(Y,M,D);
             catch ME 
-                dispexcept(ME, 'mlraichle:RuntimeError', ...
+                dispwarning(ME, 'mlraichle:RuntimeWarning', ...
                     'SessionData.readDatetime0');
-                %[dt0_,date_] = readDatetime0@mlpipeline.SessionData(this);
+                [dt0_,date_] = readDatetime0@mlpipeline.SessionData(this);
             end
         end
         function obj  = t1MprageSagSeriesForReconall(this, varargin)
@@ -501,6 +497,12 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
                 fullfile(this.vLocation, ...
                          sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.convertedTag), ...
                          sprintf('%s%s_V%i-LM-00', ipr.tracer, schar, this.vnumber), ''));
+        end
+        function obj  = tracerListmodeDcm(this, varargin)
+            dt   = mlsystem.DirTool(fullfile(this.tracerConvertedLocation, 'LM', '*.dcm'));
+            assert(1 == length(dt.fqfns));
+            fqfn = dt.fqfns{1};            
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerListmodeMhdr(this, varargin)
             
@@ -901,12 +903,17 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
         function loc  = tracerOutputLocation(this, varargin)
             ipr = this.iprLocation(varargin{:});
             loc = locationType(ipr.typ, ...
+                fullfile(this.tracerConvertedLocation(varargin{:}), this.outfolder, ''));
+        end
+        function loc  = tracerOutputPetLocation(this, varargin)
+            ipr = this.iprLocation(varargin{:});
+            loc = locationType(ipr.typ, ...
                 fullfile(this.tracerConvertedLocation(varargin{:}), this.outfolder, 'PET', ''));
         end
         function loc  = tracerOutputSingleFrameLocation(this, varargin)
             ipr = this.iprLocation(varargin{:});
             loc = locationType(ipr.typ, ...
-                fullfile(this.tracerOutputLocation(varargin{:}), 'single-frame', ''));
+                fullfile(this.tracerOutputPetLocation(varargin{:}), 'single-frame', ''));
         end
         
         %%  
@@ -993,13 +1000,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
  		function this = SessionData(varargin)
  			this = this@mlpipeline.ResolvingSessionData(varargin{:});
             
-            setenv('CCIR_RAD_MEASUREMENTS_DIR', fullfile(getenv('HOME'), 'Documents', 'private', ''));            
-            if (isnat(this.sessionDate_))
-                this.sessionDate_ = this.readDatetime0;
-            end
+            setenv('CCIR_RAD_MEASUREMENTS_DIR', fullfile(getenv('HOME'), 'Documents', 'private', ''));
             this.studyCensus_ = mlraichle.StudyCensus(this.STUDY_CENSUS_XLSX, 'sessionData', this);
-%            this.bloodGlucoseAndHct = mlraichle.BloodGlucoseAndHct( ...
-%                fullfile(this.subjectsDir, this.bloodGlucoseAndHctXlsx));
         end
     end
     
