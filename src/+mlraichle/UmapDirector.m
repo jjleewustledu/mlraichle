@@ -54,7 +54,7 @@ classdef UmapDirector < mlpipeline.AbstractDirector
             fv   = mlfourdfp.FourdfpVisitor;
             try
                 if (~fv.lexist_4dfp(sess.T1('typ','fp')))
-                    fv.copyfile_4dfp(sess.T1('typ','fqfp'), pwd);
+                    fv.copyfile_4dfp(sess.T1('typ','fqfp'), sess.T1('typ','fp'));
                 end
             catch ME
                 dispwarning(ME);
