@@ -65,38 +65,100 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             import mlfourd.ImagingContext2;
             this = TracerDirector2(mlpet.TracerResolveBuilder(varargin{:}));  
             sess = this.sessionData;
-            targ = fullfile( ...
+            src  = sess.vLocation;
+            dest = fullfile( ...
                 '/data/nil-bluearc/raichle/PPGdata/jjlee4', ...
                 sess.sessionLocation('typ','folder'), ...
                 sess.vallLocation('typ','folder'), '');
-            ensuredir(targ);
-            res  = mlnipet.Resources.instance;
+            ensuredir(dest);
+            logs = fullfile(dest, 'Log', '');
+            ensuredir(logs);
+            res = mlnipet.Resources.instance;
             res.keepForensics = false;
+            fv = mlfourdfp.FourdfpVisitor;
             
-            % migrate PET without flipping
-            cd(sess.vLocation);
-            kinds = {'' '_sumt'};
-            for k = 1:length(kinds)
-                movefile( ...
-                    sprintf('fdgv%ir2_op_fdgv%ie1to4r1_frame4%s.4dfp.*', sess.vnumber, sess.vnumber, kinds{k}), ...
-                    targ);
-            end            
+            %% migrate PET without flipping
+            tags = {'' '_sumt'};
+            for t = 1:length(tags)
+                fp0{t} = sprintf('fdgv%ir2_op_fdgv%ie1to4r1_frame4%s', sess.vnumber, sess.vnumber, tags{t});
+                fps{t} = [sess.tracerRevision('typ','fp') tags{t}];
+                src_fqfp0{t}  = fullfile(src,  fp0{t}); %#ok<*AGROW>
+                dest_fqfp0{t} = fullfile(dest, fps{t});
+                copyfile([src_fqfp0{t} '.log'], [dest_fqfp0{t} '.log']);
+            end  
+            fv.copy_4dfp(src_fqfp0{end}, dest_fqfp0{end});
+            if (~lexist_4dfp(dest_fqfp0{1}))
+                fv.move_4dfp(src_fqfp0{1}, dest_fqfp0{1});
+            end 
             
-            % migrate and resolve T1001
-            movefile('T1001.4dfp.*', targ);
-            pwd0 = pushd(targ);
-            theImages = {trac.fqfileprefix 'T1001'};
-            ct4rb = mlfourdfp.CompositeT4ResolveBuilder( ...
-                'sessionData', sess, ...
-                'theImages', theImages, ...
-                'blurArg', [4.3 4.3], ...
-                'maskForImages', {'Msktgen' 'T1001'}, ...
-                'NRevisions', 1);
-            ct4rb = ct4rb.resolve;            
+            %% migrate and resolve T1001
+            
+            pwd0 = pushd(dest);
+            if (~lexist_4dfp(fullfile(dest, 'T1001')))
+                copyfile(fullfile(src, 'T1001.4dfp.*'), dest);
+            end
+            theImages = {fps{end} 'T1001'};
+            try
+                ct4rb = mlfourdfp.CompositeT4ResolveBuilder( ...
+                    'sessionData', sess, ...
+                    'theImages', theImages, ...
+                    'blurArg', [4.3 4.3], ...
+                    'maskForImages', {'Msktgen' 'T1001'}, ...
+                    'NRevisions', 1);
+                ct4rb = ct4rb.resolve;       
+            catch ME
+                warning('mlraichle:FileNotFoundWarning', 'TracerDirector2.migrateResolvedToVall');
+                fprintf([ME.message '\n']);
+            end
+            
+            %% clean up
+            
+            fps1 = fps{1};
+            tmp = protectFiles;
+            deleteFiles;   
+            unprotectFiles(tmp);
             popd(pwd0);
             
             res.keepForensics = true;
-            objs = {trac, ct4rb};
+            objs = {dest ct4rb};
+            
+            function tmp = protectFiles
+                
+                % in tempFilepath
+                tmp = tempFilepath('protectFiles');
+                ensuredir(tmp);                
+                for f = 1:length(fps)
+                    moveExisting([fps{f} '.4dfp.*'], tmp);
+                    moveExisting([fps{f} 'r1_b43.4dfp.*'], tmp);
+                end
+                moveExisting( 'T1001.4dfp.*', tmp);
+                moveExisting(['T1001r1_op_' fps1 '.4dfp.*'], tmp);
+                moveExisting(sprintf('T1001_to_op_%s_t4', fps1), tmp)
+                moveExisting( 'T1001_to_TRIO_Y_NDC_t4', tmp)
+
+                % in Log
+                moveExisting('*.mat0', logs);
+                moveExisting('*.sub',  logs);
+                moveExisting('*.log',  logs);  
+            end
+            function unprotectFiles(tmp)
+                movefile(fullfile(tmp, '*'), pwd);
+                rmdir(tmp);
+            end
+            function deleteFiles
+                assert(lstrfind(dest_fqfp0{end}, '_sumt'));
+                deleteExisting([dest_fqfp0{end} 'r1.4dfp.*']);
+                deleteExisting([dest_fqfp0{end} 'r1_op_' fps1 '.4dfp.*']);
+                deleteExisting([dest_fqfp0{end} 'r1_to_op_' fps1 '_t4']);
+                deleteExisting([dest_fqfp0{end} 'r1_to_T1001r1_t4']);
+                for f = 1:length(fps)
+                    deleteExisting(fullfile(dest, ['T1001r1_to_' fps{f} 'r1_t4']));
+                end
+                deleteExisting('T1001r1.4dfp.*');
+                deleteExisting('T1001r1_b43.4dfp.*');
+                deleteExisting('*_mskt.4dfp.*');
+                deleteExisting('*_g11.4dfp.*');       
+            end
         end      
         function lst  = prepareFreesurferData(varargin)
             %% PREPAREFREESURFERDATA prepares session & visit-specific copies of data enumerated by this.freesurferData.
