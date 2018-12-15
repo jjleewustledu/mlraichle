@@ -36,11 +36,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             inst = mlnipet.Resources.instance;
             inst.keepForensics = false;
             this = TracerDirector2(mlpet.TracerResolveBuilder(varargin{:}));   
-            if (~this.sessionData.attenuationCorrected)
-                this = this.instanceCleanResolvedNAC;
-            else
-                this = this.instanceCleanResolvedAC;
-            end
+            this = this.instanceCleanResolved;
         end  
         function this = constructResolved(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
@@ -241,39 +237,25 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
         
         %%
         
-        function this = instanceCleanResolvedAC(this)
+        function this = instanceCleanResolved(this)
             %  @return removes non-essential files from workspaces to conserve storage costs.
             
-            pwd0 = pushd(this.sessionData.tracerLocation);  
-            mlnipet.NipetBuilder.CleanPrototype(this.sessionData);
-            this.builder_ = this.builder_.reconstituteFramesAC;
-            this.sessionData.frame = nan;
-            this.builder_.sessionData.frame = nan;
-            this.builder_ = this.builder_.partitionMonolith;
-            this.builder_ = this.builder_.motionCorrectFrames;            
-            this.builder_ = this.builder_.reconstituteFramesAC2;
-            this.builder_ = this.builder_.sumProduct;
-            this.builder_.logger.save; 
-            save('mlraichle.TracerDirector_instanceConstructResolvedAC.mat');   
-            this.builder_.markAsFinished;
-            %this.builder_.deleteWorkFiles;
-            popd(pwd0);
-        end
-        function this = instanceCleanResolvedNAC(this)    
-            %  @return removes non-essential files from workspaces to conserve storage costs.
+            sess = this.sessionData;
+            mlnipet.NipetBuilder.CleanPrototype(sess);
             
-            mlnipet.NipetBuilder.CleanPrototype(this.sessionData);
-            this.builder_ = this.builder_.partitionMonolith; 
-            [this.builder_,epochs,reconstituted] = this.builder_.motionCorrectFrames;
-            reconstituted = reconstituted.motionCorrectCTAndUmap;             
-            this.builder_ = reconstituted.motionUncorrectUmap(epochs);     
-            this.builder_ = this.builder_.aufbauUmaps;     
-            this.builder_.logger.save;       
-            p = this.flipKLUDGE____(this.builder_.product); % KLUDGE:  bug at interface with NIPET
-            p.save;            
-            save('mlraichle.TracerDirector2_instanceConstructResolvedNAC.mat');
-            this.builder_.markAsFinished;
-            %this.builder_.deleteWorkFiles;
+            pwd0 = pushd(this.sessionData.tracerLocation);
+            this.deleteExisting__;
+            this.moveLogs__;
+            for e = 1:sess.supEpoch
+                sess1 = sess;
+                sess1.epoch = e;                
+                this.deleteRNumber__(sess1, 1);
+                this.deleteRNumber__(sess1, 2);
+            end
+            sess1.epoch = 1:sess.supEpoch;
+            this.deleteRNumber__(sess1, 1);
+            this.deleteRNumber__(sess1, 2);
+            popd(pwd0);            
         end
         function this = instanceConstructResolvedAC(this)
             pwd0 = pushd(this.sessionData.tracerLocation);  
@@ -292,7 +274,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             %this.builder_.deleteWorkFiles;
             popd(pwd0);
         end
-        function this = instanceConstructResolvedNAC(this)              
+        function this = instanceConstructResolvedNAC(this)
             mlnipet.NipetBuilder.CreatePrototypeNAC(this.sessionData);
             this          = this.prepareFourdfpTracerImages;
             this.builder_ = this.builder_.prepareMprToAtlasT4;
@@ -344,6 +326,33 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
     
     properties (Access = protected)
         anatomy_
+    end
+    
+    methods (Access = protected)
+        function deleteRNumber__(this, sess_, r)
+            pwd_ = pushd(sess_.tracerLocation);
+            dt = mlsystem.DirTool('*_t4');
+            if (isempty(dt.fns))
+                return; 
+            end
+                
+            this.deleteExisting__;
+            this.moveLogs__;
+            sess_.rnumber = r;
+            deleteExisting([sess_.tracerRevision('typ','fp') '_frame*.4dfp.*']);  
+            popd(pwd_);
+        end
+        function moveLogs__(~)
+            ensuredir('Log');
+            %movefile('*.log', 'Log');
+            moveExisting('*.mat0', 'Log');
+            moveExisting('*.sub', 'Log');
+        end
+        function deleteExisting__(~)
+            deleteExisting('*_b75.4dfp.*');
+            deleteExisting('*_g11.4dfp.*');
+            deleteExisting('*_mskt.4dfp.*');
+        end
     end
     
     %% HIDDEN
