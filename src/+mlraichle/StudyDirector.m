@@ -8,7 +8,6 @@ classdef StudyDirector
  	
 	properties (Constant)
  		SCANS = 1:4
-        SUP_EPOCH = 3
         TRACERS = {'FDG' 'HO' 'OC' 'OO'}
         AC = true
     end
@@ -33,7 +32,6 @@ classdef StudyDirector
             %  @param  named scanList    is numeric := trace scan indices.
             %  @param  named tracer      is char    and passed to SessionData.
             %  @param  named ac          is logical and passed to SessionData.
-            %  @param  named supEpoch    is numeric; KLUDGE to pass parameter to mlraichle.SessionData.tracerResolvedFinal.
             %  @return those             is a cell-array of objects specified by factoryMethod.
             %  @return dtsess            is an mlsystem.DirTool for sessions.
             
@@ -46,13 +44,22 @@ classdef StudyDirector
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
-            addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
             addParameter(ip, 'frameAlignMethod', '', @ischar); % align_10243
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
             addParameter(ip, 'index0Forced', [], @isnumeric);
+            addParameter(ip, 'parSession', false, @islogical);
+            addParameter(ip, 'parTracer',  false, @islogical);
             parse(ip, varargin{:});
+            if (ip.Results.parSession)
+                [those,dtsess] = StudyDirector.constructCellArrayOfObjectsParSess(varargin{:});
+                return
+            end
+            if (ip.Results.parTracer)
+                [those,dtsess] = StudyDirector.constructCellArrayOfObjectsParTrac(varargin{:});
+                return
+            end
             ipr = StudyDirector.adjustParameters(ip.Results);
             sessExpr = ipr.sessionsExpr;
             tracers = ensureCell(ipr.tracer);
@@ -106,7 +113,6 @@ classdef StudyDirector
             %  @param  named scanList    is numeric := trace scan indices.
             %  @param  named tracer      is char    and passed to SessionData.
             %  @param  named ac          is logical and passed to SessionData.
-            %  @param  named supEpoch    is numeric; KLUDGE to pass parameter to mlraichle.SessionData.tracerResolvedFinal.
             %  @return those             is a cell-array of objects specified by factoryMethod.
             %  @return dtsess            is an mlsystem.DirTool for sessions.
             
@@ -119,7 +125,6 @@ classdef StudyDirector
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
-            addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
             addParameter(ip, 'frameAlignMethod', '', @ischar); % align_10243
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
@@ -182,7 +187,6 @@ classdef StudyDirector
             %  @param  named scanList    is numeric := trace scan indices.
             %  @param  named tracer      is char    and passed to SessionData.
             %  @param  named ac          is logical and passed to SessionData.
-            %  @param  named supEpoch    is numeric; KLUDGE to pass parameter to mlraichle.SessionData.tracerResolvedFinal.
             %  @return those             is a cell-array of objects specified by factoryMethod.
             %  @return dtsess            is an mlsystem.DirTool for sessions.
             
@@ -195,7 +199,6 @@ classdef StudyDirector
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
-            addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
             addParameter(ip, 'frameAlignMethod', '', @ischar); % align_2051
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
@@ -249,7 +252,6 @@ classdef StudyDirector
             %  @param  named scanList    is numeric := trace scan indices.
             %  @param  named tracer      is char    and passed to SessionData.
             %  @param  named ac          is logical and passed to SessionData.
-            %  @param  named supEpoch    is numeric; KLUDGE to pass parameter to mlraichle.SessionData.tracerResolvedFinal.
             %  @return those             is a cell-array of objects specified by factoryMethod.
             %  @return dtsess            is an mlsystem.DirTool for sessions.
             
@@ -262,7 +264,6 @@ classdef StudyDirector
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
-            addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
             addParameter(ip, 'frameAlignMethod', '', @ischar); % align_2051
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
@@ -319,7 +320,6 @@ classdef StudyDirector
             %  @param  named nArgout     is numeric.
             %  @param  named distcompHost is the hostname or distcomp profile.
             %  @param  named pushData calls mlpet.CHPC4TracerDirector.pushData if its logical value is true.
-            %  @param  named supEpoch    is numeric; KLUDGE to pass parameter to mlraichle.SessionData.tracerResolvedFinal.
             %  @return those             is a cell-array of objects specified by factoryMethod.
             %  @return dtsess            is an mlsystem.DirTool for sessions.
             
@@ -334,7 +334,6 @@ classdef StudyDirector
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
-            addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
             addParameter(ip, 'frameAlignMethod', '', @ischar); % align_10243
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
@@ -451,8 +450,7 @@ classdef StudyDirector
                 'vnumber', v, ...
                 'snumber', sc, ...
                 'tracer', tracer, ...
-                'ac', ipr.ac, ...
-                'supEpoch', ipr.supEpoch);
+                'ac', ipr.ac);
             if (~isempty(ipr.tauIndices))
                 sessd.tauIndices = ipr.tauIndices;
             end
@@ -474,8 +472,7 @@ classdef StudyDirector
                 'vnumber', v, ...
                 'snumber', sc, ...
                 'tracer', tracer, ...
-                'ac', ipr.ac, ...
-                'supEpoch', ipr.supEpoch);
+                'ac', ipr.ac);
             if (~isempty(ipr.tauIndices))
                 sessd.tauIndices = ipr.tauIndices;
             end
