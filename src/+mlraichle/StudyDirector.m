@@ -8,8 +8,8 @@ classdef StudyDirector
  	
 	properties (Constant)
  		SCANS = 1:4
-        TRACERS = {'FDG' 'HO' 'OC' 'OO'}
-        AC = true
+        TRACERS = {'FDG'} % 'HO' 'OC' 'OO'
+        AC = false
     end
     
     methods (Static)
@@ -116,7 +116,7 @@ classdef StudyDirector
             sessExpr = ipr.sessionsExpr;
             tracers = ensureCell(ipr.tracer);
             factoryMethod = ipr.factoryMethod;
-            varargin2 = varargin{2:end};
+            varargin2 = varargin(2:end);
             
             those = {};
             dtsess = DirTools(fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
@@ -177,7 +177,7 @@ classdef StudyDirector
             sessExpr = ipr.sessionsExpr;
             tracers = ensureCell(ipr.tracer);
             factoryMethod = ipr.factoryMethod;
-            varargin2 = varargin{2:end};
+            varargin2 = varargin(2:end);
             
             those = {};
             dtsess = DirTools(fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
