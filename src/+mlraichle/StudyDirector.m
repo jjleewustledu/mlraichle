@@ -136,7 +136,7 @@ classdef StudyDirector
                                     ipr, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac});
                                 fprintf('mlraichle.StudyDirector.constructCellArrayOfObjectsParSess:\n');
                                 fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
-                                factoryMethod('sessionData', sessd, varargin2);
+                                factoryMethod('sessionData', sessd, varargin2{:}); %#ok<PFBNS>
                             catch ME
                                 dispwarning(ME)
                                 getReport(ME)
@@ -197,7 +197,7 @@ classdef StudyDirector
                                     ipr, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac}); %#ok<PFBNS>
                                 fprintf('mlraichle.StudyDirector.constructCellArrayOfObjectsParTrac:\n');
                                 fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
-                                factoryMethod('sessionData', sessd, varargin2);
+                                factoryMethod('sessionData', sessd, varargin2{:}); %#ok<PFBNS>
                             catch ME
                                 dispwarning(ME)
                                 getReport(ME)
