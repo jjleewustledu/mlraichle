@@ -13,6 +13,22 @@ classdef HyperglycemiaDirector2
 
     methods (Static)  
         function those = constructResolved(varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'parSession', false, @islogical);
+            addParameter(ip, 'parTracer',  false, @islogical);
+            parse(ip, varargin{:});
+            
+            if (ip.Results.parSession)                
+                those = mlraichle.StudyDirector.constructCellArrayOfObjectsParSess( ...
+                    @mlraichle.TracerDirector2.constructResolved, varargin{:}); 
+                return
+            end
+            if (ip.Results.parTracer)                
+                those = mlraichle.StudyDirector.constructCellArrayOfObjectsParTrac( ...
+                    @mlraichle.TracerDirector2.constructResolved, varargin{:}); 
+                return
+            end
             those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector2.constructResolved', varargin{:}); 
         end 
