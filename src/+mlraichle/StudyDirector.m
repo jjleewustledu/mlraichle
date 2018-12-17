@@ -48,7 +48,6 @@ classdef StudyDirector
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
-            addParameter(ip, 'index0Forced', [], @isnumeric);
             addParameter(ip, 'parSession', false, @islogical);
             addParameter(ip, 'parTracer',  false, @islogical);
             parse(ip, varargin{:});
@@ -80,9 +79,6 @@ classdef StudyDirector
                             try
                                 sessd = StudyDirector.constructSessionData( ...
                                     ipr, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac});
-                                if (isprop(sessd, 'index0Forced'))
-                                    sessd.index0Forced = ipr.index0Forced;
-                                end
                                 if (StudyDirector.isTracerDir(sessd)) %#ok<*ISDIR>
                                     % there exist spurious tracerLocations; select those with corresponding raw data
                                     

@@ -13,11 +13,6 @@ classdef HerscovitchContext < mlraichle.SessionData
         resamplerType
         vnumberRef
     end
-    
-    properties 
-        index0Forced
-        sForced
-    end
 
 	methods 
         

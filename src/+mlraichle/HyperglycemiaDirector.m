@@ -405,7 +405,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
             addParameter(ip, 'visitsExpr', 'V*');
-            addParameter(ip, 'index0Forced', []);
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -426,7 +425,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                             'studyData', StudyData, ...
                             'sessionPath', sessp, ...
                             'vnumber', str2double(dtv.dns{idtv}(2:end)));
-                        sessd.index0Forced = ipr.index0Forced;
                         mlraichle.Herscovitch1985.constructPhysiologicals(sessd);
                     catch ME
                         handwarning(ME);
@@ -442,7 +440,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
             addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'tracer', {'HO' 'OO' 'OC'});
-            addParameter(ip, 'index0Forced', []);
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -463,7 +460,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                             'studyData', StudyData, ...
                             'sessionPath', sessp, ...
                             'vnumber', str2double(dtv.dns{idtv}(2:end)));
-                        sessd.index0Forced = ipr.index0Forced;
                         mlraichle.Herscovitch1985.constructPhysiologicals1(sessd, ip.Results.tracer);
                     catch ME
                         handwarning(ME);
@@ -514,7 +510,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
             addParameter(ip, 'visitsExpr', 'V*');
-            addParameter(ip, 'index0Forced', []);
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -535,7 +530,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                             'studyData', StudyData, ...
                             'sessionPath', sessp, ...
                             'vnumber', str2double(dtv.dns{idtv}(2:end)));
-                        sessd.index0Forced = ipr.index0Forced;
                         mlraichle.Herscovitch1985.constructPhysiologicals(sessd);
                     catch ME
                         handwarning(ME);
@@ -551,7 +545,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
             addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'tracer', {'HO' 'OO' 'OC'});
-            addParameter(ip, 'index0Forced', []);
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -572,7 +565,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                             'studyData', StudyData, ...
                             'sessionPath', sessp, ...
                             'vnumber', str2double(dtv.dns{idtv}(2:end)));
-                        sessd.index0Forced = ipr.index0Forced;
                         mlraichle.Herscovitch1985.constructPhysiologicals1(sessd, ip.Results.tracer);
                     catch ME
                         handwarning(ME);
