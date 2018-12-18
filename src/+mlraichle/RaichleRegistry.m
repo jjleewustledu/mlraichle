@@ -1,4 +1,4 @@
-classdef RaichleRegistry < mlpatterns.Singleton
+classdef RaichleRegistry < handle
 	%% RAICHLEREGISTRY 
 
 	%  $Revision$
@@ -73,7 +73,6 @@ classdef RaichleRegistry < mlpatterns.Singleton
     
 	methods (Access = 'private')		  
  		function this = RaichleRegistry(varargin)
- 			this = this@mlpatterns.Singleton(varargin{:});
             this.subjectsDir_ = getenv('PPG_SUBJECTS_DIR');
  		end
     end 

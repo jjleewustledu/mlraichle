@@ -40,8 +40,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
         frameTag    
         indicesLogical
         maxLengthEpoch
-        rawdataDir
-        rawdataFolder
         regionTag
         scan
         studyCensus
@@ -163,12 +161,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
         end
         function     set.maxLengthEpoch(~, ~)
             error('mlraichle:notImplemented', 'SessionData.set.maxLengthEpoch');
-        end
-        function g = get.rawdataDir(this)
-            g = this.studyData_.rawdataDir;
-        end 
-        function g = get.rawdataFolder(this)
-            g = basename(this.rawdataDir);
         end
         function g = get.regionTag(this)
             if (isempty(this.region))
