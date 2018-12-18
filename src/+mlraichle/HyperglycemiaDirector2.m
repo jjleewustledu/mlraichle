@@ -12,6 +12,19 @@ classdef HyperglycemiaDirector2
  	end
 
     methods (Static)  
+        function those = constructGlucoseMetab(varargin)
+            those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
+                'mlglucose.MetabDirector.constructHuang', varargin{:}); 
+        end
+        function those = constructOxygenMetab(varargin)
+            those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
+                'mloxygen.MetabDirector.constructAll', varargin{:}); 
+        end
+        
+        function those = cleanResolved(varargin)
+            those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
+                'mlraichle.TracerDirector2.cleanResolved', varargin{:}); 
+        end 
         function those = constructResolved(varargin)
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -31,10 +44,6 @@ classdef HyperglycemiaDirector2
             end
             those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector2.constructResolved', varargin{:}); 
-        end 
-        function those = cleanResolved(varargin)
-            those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector2.cleanResolved', varargin{:}); 
         end 
         function those = constructResolvedAC(varargin)
             those = mlraichle.HyperglycemiaDirector2.constructResolved(varargin{:}, 'ac', true);

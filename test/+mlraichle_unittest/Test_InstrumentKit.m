@@ -23,20 +23,20 @@ classdef Test_InstrumentKit < matlab.unittest.TestCase
  			this.verifyEqual(1,1);
  			this.assertEqual(1,1);
         end
-        function test_PrepareCapracDevice(this)
-            caprac = mlraichle.InstrumentKit.PrepareCapracDevice('session', this.session);
+        function test_prepareCapracDevice(this)
+            caprac = mlraichle.InstrumentKit.prepareCapracDevice('session', this.session);
             d = caprac.makeMeasurements(this.scan);
             this.verifyClass(d, 'mlcapintec.CapracData');
             %this.verifyEqual(d, );
         end
-        function test_PrepareTwiliteDevice(this)
-            twilite = mlraichle.InstrumentKit.PrepareTwiliteDevice('session', this.session);
+        function test_prepareTwiliteDevice(this)
+            twilite = mlraichle.InstrumentKit.prepareTwiliteDevice('session', this.session);
             d = twilite.makeMeasurements(this.scan);
             this.verifyClass(d, 'mlswisstrace.TwiliteData');
             %this.verifyEqual(d, );
         end
-        function test_PrepareBiographMMRDevice(this)
-            mmr = mlraichle.InstrumentKit.PrepareBiographMMRDevice('session', this.session);
+        function test_prepareBiographMMRDevice(this)
+            mmr = mlraichle.InstrumentKit.prepareBiographMMRDevice('session', this.session);
             d = mmr.makeMeasurements(this.scan);
             this.verifyClass(d, 'mlsiemens.BiographMMRData');
             %this.verifyEqual(d, );
@@ -55,7 +55,7 @@ classdef Test_InstrumentKit < matlab.unittest.TestCase
                 'project', 'CCIR_00559', 'subject', 'NP995-24', 'session', 'NP995-24_V1');
             this.scan = MockScan( ...
                 'project', 'CCIR_00559', 'subject', 'NP995-24', 'session', this.session, ...
-                'Assessor', '', ...
+                'assessor', '', ...
                 'resource', 'RawData', ...
                 'tags', {'Head_MRAC_PET_5min'});
  			this.addTeardown(@this.cleanTestMethod);

@@ -12,8 +12,19 @@ classdef InstrumentKit < handle & mlpet.InstrumentKit
         PREFERRED_TIMEZONE = mlkinetics.Timing.PREFERRED_TIMEZONE
  	end
 
-	methods (Static)
-        function rm = CreateRadMeasurements(varargin)
+    
+    methods (Static)
+        function this = instance()
+            persistent uniqueInstance
+            if isempty(uniqueInstance)
+                this = mlraichle.InstrumentKit();
+                uniqueInstance = this;
+            else
+                this = uniqueInstance;
+            end
+        end
+        
+        function rm  = createRadMeasurements(varargin)
             %% CREATERADMEASUREMENTS
  			%  @param session is mlraichle.Session.
             %  @return mlraichle.RadMeasurements.
@@ -21,9 +32,9 @@ classdef InstrumentKit < handle & mlpet.InstrumentKit
             ip = inputParser;
             addParameter(ip, 'session', [], @(x) isa(x, 'mlraichle.Session'));
             parse(ip, varargin{:});
-            rm = mlraichle.CCIRRadMeasurements.CreateBySession(ip.Results.session);
+            rm = mlraichle.CCIRRadMeasurements.createBySession(ip.Results.session);
         end
-        function rs = CreateReferenceSources(varargin)
+        function rs  = createReferenceSources(varargin)
             %% CREATEREFERENCESOURCES
  			%  @param session is mlraichle.Session.
             %  @return mlpet.ReferenceSource.
@@ -61,45 +72,45 @@ classdef InstrumentKit < handle & mlpet.InstrumentKit
                 assert(datetime(ip.Results.session) > rs(irs).refDate);
             end
         end
-        function obj = PrepareCapracDevice(varargin)
+        function obj = prepareCapracDevice(varargin)
  			%% PREPARECAPRACDEVICE instantiates the InstrumentKit with the device then calibrates the device.
  			%  @param session is mlraichle.Scan.
             
             import mlraichle.*;
             this = InstrumentKit(varargin{:});
             obj  = CapracDevice( ...
-                'radMeasurements',  this.CreateRadMeasurements( 'session', this.session_), ...
-                'referenceSources', this.CreateReferenceSources('session', this.session_));
+                'radMeasurements',  this.createRadMeasurements( 'session', this.session_), ...
+                'referenceSources', this.createReferenceSources('session', this.session_));
             try
                 obj = obj.calibrateDevice;
             catch ME
                 handexcept(ME, ...
                     'mlraichle:RunTimeError', ...
-                    'InstrumentKit.PrepareCapracDevice could not calibrate the device');
+                    'InstrumentKit.prepareCapracDevice could not calibrate the device');
             end
         end
-        function obj = PrepareTwiliteDevice(varargin)
+        function obj = prepareTwiliteDevice(varargin)
             import mlraichle.*;
             this = InstrumentKit(varargin{:});
-            obj  = TwiliteDevice('radMeasurements', this.CreateRadMeasurements('session', this.session_));
+            obj  = TwiliteDevice('radMeasurements', this.createRadMeasurements('session', this.session_));
             try
                 obj = obj.calibrateDevice(this.twiliteCalMeasurements);
             catch ME
                 handexcept(ME, ...
                     'mlraichle:RunTimeError', ...
-                    'InstrumentKit.PrepareTwiliteDevice could not calibrate the device');
+                    'InstrumentKit.prepareTwiliteDevice could not calibrate the device');
             end
         end
-        function obj = PrepareBiographMMRDevice(varargin)
+        function obj = prepareBiographMMRDevice(varargin)
             import mlraichle.*;
             this = InstrumentKit(varargin{:});
-            obj  = BiographMMRDevice('radRadMeasurements', this.CreateRadMeasurements('session', this.session_));
+            obj  = BiographMMRDevice('radRadMeasurements', this.createRadMeasurements('session', this.session_));
             try
                 obj = obj.calibrateDevice(this.biographMMRCalMeasurements);
             catch ME
                 handexcept(ME, ...
                     'mlraichle:RunTimeError', ...
-                    'InstrumentKit.PrepareBiographMMRDevice could not calibrate the device');
+                    'InstrumentKit.prepareBiographMMRDevice could not calibrate the device');
             end
         end
     end
@@ -136,7 +147,7 @@ classdef InstrumentKit < handle & mlpet.InstrumentKit
             addParameter(ip, 'session', [], @(x) isa(x, 'mlraichle.Session'));
             parse(ip, varargin{:});
             this.session_ = ip.Results.session;
-            this.radMeasurements_ = mlraichle.CCIRRadMeasurements.CreateBySession(this.session_);
+            this.radMeasurements_ = mlraichle.CCIRRadMeasurements.createBySession(this.session_);
  		end	   
   	end 
 
