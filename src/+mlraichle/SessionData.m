@@ -31,6 +31,13 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
     end
     
 	properties (Dependent)    
+        project
+        subject
+        session
+        scan
+        resource
+        assessor
+        
         STUDY_CENSUS_XLSX
         
         attenuationTag
@@ -41,7 +48,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
         indicesLogical
         maxLengthEpoch
         regionTag
-        scan
         studyCensus
         supEpoch
         t4ResolveBuilderBlurArg
@@ -84,6 +90,25 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
     methods
         
         %% GET
+        
+        function g = get.project(this)
+             g = [];
+        end
+        function g = get.subject(this)
+             g = [];
+        end
+        function g = get.session(this)
+             g = [];
+        end
+        function g = get.scan(this)
+            g = this.tracerRevision('typ', 'fp');
+        end  
+        function g = get.resource(this)
+             g = [];
+        end
+        function g = get.assessor(this)
+             g = [];
+        end
         
         function g = get.STUDY_CENSUS_XLSX(this)
             g = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), this.STUDY_CENSUS_XLSX_FN);
@@ -178,9 +203,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             error('mlraichle:unsupportedParamTypeclass', ...
                 'SessionData.get.regionTag');
         end
-        function g = get.scan(this)
-            g = this.tracerRevision('typ', 'fp');
-        end  
         function g = get.studyCensus(this) 
             g = this.studyCensus_;
         end
@@ -1064,7 +1086,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
                     import mlfourdfp.*;
                     srcPath = DicomSorter.findRawdataSession(this);
                     destPath = this.fourdfpLocation;
-                    ds = DicomSorter.Create('sessionData', this);
+                    ds = DicomSorter.create('sessionData', this);
                     ds.sessionDcmConvert( ...
                         srcPath, destPath, ...
                         'studyData', this.studyData_, 'seriesFilter', mybasename(fqfn), 'preferredName', mybasename(fqfn));
