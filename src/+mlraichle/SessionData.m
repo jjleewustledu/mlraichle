@@ -334,12 +334,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             obj = this.mrObject('ep2d_diff_26D_lgfov_nopat_TRACEW', varargin{:});
         end
         function loc  = freesurferLocation(this, varargin)
-            ip = inputParser;
-            addParameter(ip, 'typ', 'path', @ischar);
-            parse(ip, varargin{:});
-            
-            loc = locationType(ip.Results.typ, ...
-                fullfile(this.freesurfersDir, [this.sessionLocation('typ', 'folder') '_' this.vLocation('typ', 'folder')], ''));
+            loc = this.vLocation(varargin{:});
         end  
         function obj  = mpr(this, varargin)
             obj = this.T1(varargin{:});

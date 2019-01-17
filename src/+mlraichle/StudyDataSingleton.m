@@ -10,7 +10,6 @@ classdef StudyDataSingleton < handle & mlpipeline.StudyDataSingleton
         
     properties (Dependent)
         dicomExtension
-        freesurfersDir
         rawdataDir
         subjectsDir
         subjectsFolder
@@ -35,9 +34,6 @@ classdef StudyDataSingleton < handle & mlpipeline.StudyDataSingleton
         
         function g = get.dicomExtension(~)
             g = '.dcm';
-        end
-        function d = get.freesurfersDir(~)
-            d = fullfile(getenv('PPG'), 'freesurfer', '');
         end
         function d = get.rawdataDir(~)
             d = mlraichle.RaichleRegistry.instance.subjectsDir;

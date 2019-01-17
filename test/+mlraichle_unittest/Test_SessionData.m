@@ -31,10 +31,6 @@ classdef Test_SessionData < matlab.unittest.TestCase
         function test_testObj(this)
             this.verifyClass(this.testObj, 'mlraichle.SessionData');
         end
-        function test_freesurfersDir(this)
-            this.verifyEqual(this.testObj.freesurfersDir, ...
-                fullfile(getenv('PPG'), 'freesurfer', ''));
-        end
         function test_subjectsDir(this)
             this.verifyEqual(this.testObj.subjectsDir, this.studyd.subjectsDir);
         end

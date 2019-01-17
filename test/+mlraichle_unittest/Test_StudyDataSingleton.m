@@ -22,10 +22,6 @@ classdef Test_StudyDataSingleton < matlab.unittest.TestCase
             this.verifyClass(this.testObj, 'mlraichle.StudyDataSingleton');
             this.verifyEqual(this.testObj.dicomExtension, '.dcm');            
         end
-        function test_freesurfersDir(this)
-            this.verifyEqual(this.testObj.freesurfersDir, ...
-                fullfile(getenv('PPG'), 'freesurfer', ''));
-        end
         function test_rawdataDir(this)
             this.verifyEqual(this.testObj.rawdataDir, ...
                 lraichle.RaichleRegistry.instance.rawdataDir);
