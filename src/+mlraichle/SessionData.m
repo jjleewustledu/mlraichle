@@ -14,7 +14,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
     
     properties
         ensureFqfilename = false
-        fractionalImageFrameThresh = 0.1 % of median
+        fractionalImageFrameThresh = 0.01 % of median
         filetypeExt = '.4dfp.hdr'
         fullFov = [344 344 127];
         modality
@@ -204,7 +204,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
                 'SessionData.get.regionTag');
         end
         function g = get.studyCensus(this) 
-            g = this.studyCensus_;
+            g = mlraichle.StudyCensus(this.STUDY_CENSUS_XLSX, 'sessionData', this);
         end
         function g = get.supEpoch(this)
             if (~isempty(this.supEpoch_))
@@ -470,7 +470,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             end
         end
         function obj  = t1MprageSagSeriesForReconall(this, varargin)
-            obj = this.studyCensus_.t1MprageSagSeriesForReconall(this, varargin{:});  
+            cen = mlraichle.StudyCensus(this.STUDY_CENSUS_XLSX, 'sessionData', this);
+            obj = cen.t1MprageSagSeriesForReconall(this, varargin{:});  
         end
         function loc  = tracerConvertedLocation(this, varargin)
             [ipr,schar] = this.iprLocation(varargin{:});
@@ -1010,14 +1011,12 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
  			this = this@mlpipeline.ResolvingSessionData(varargin{:});
             
             setenv('CCIR_RAD_MEASUREMENTS_DIR', fullfile(getenv('HOME'), 'Documents', 'private', ''));
-            this.studyCensus_ = mlraichle.StudyCensus(this.STUDY_CENSUS_XLSX, 'sessionData', this);
         end
     end
     
     %% PROTECTED
     
     properties (Access = protected)
-        studyCensus_
         supEpoch_
     end
     
