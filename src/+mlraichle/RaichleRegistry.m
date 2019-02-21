@@ -73,7 +73,7 @@ classdef RaichleRegistry < handle
     
 	methods (Access = 'private')		  
  		function this = RaichleRegistry(varargin)
-            this.subjectsDir_ = getenv('SUBJECTS_DIR');
+            this.subjectsDir_ = getenv('PPG_SUBJECTS_DIR');
  		end
     end 
 

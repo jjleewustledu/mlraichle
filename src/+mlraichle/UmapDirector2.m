@@ -20,7 +20,6 @@ classdef UmapDirector2 < mlpipeline.AbstractDirector
             pwd0 = pushd(this.sessionData.vLocation);   
             this.builder_ = this.builder.prepareMprToAtlasT4;
             ctm  = this.builder.buildCTMasked2;
-            %ctm  = this.builder.buildCTMasked3(this.builder.prepareBrainmaskMskt); 
             ctm  = this.builder.rescaleCT(ctm);
             umap = this.builder.assembleCarneyUmap(ctm);
             umap = ImagingContext2([umap '.4dfp.hdr']);
