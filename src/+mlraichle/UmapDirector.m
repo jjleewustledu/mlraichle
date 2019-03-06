@@ -18,7 +18,7 @@ classdef UmapDirector < mlpipeline.AbstractDirector
             UmapDirector.prepareFreesurferData(varargin{:});            
             this = UmapDirector( ...
                 mlfourdfp.CarneyUmapBuilder(varargin{:})); 
-            pwd0 = pushd(this.sessionData.vLocation);
+            pwd0 = pushd(this.sessionData.sessionPath);
             this.builder_ = this.builder_.prepareMprToAtlasT4;
             this.sessionData.attenuationCorrected = false;
             this.builder_ = this.builder_.buildUmap;
@@ -50,7 +50,7 @@ classdef UmapDirector < mlpipeline.AbstractDirector
             sess.attenuationCorrected = false;
             
             lst  = mlpet.TracerDirector.prepareFreesurferData(varargin{:});
-            pwd0 = pushd(sess.vLocation);
+            pwd0 = pushd(sess.sessionPath);
             fv   = mlfourdfp.FourdfpVisitor;
             try
                 if (~fv.lexist_4dfp(sess.T1('typ','fp')))

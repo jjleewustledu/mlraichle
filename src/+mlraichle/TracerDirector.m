@@ -83,7 +83,7 @@ classdef TracerDirector < mlpet.TracerDirector
             sessd2 = sessd; sessd2.rnumber = 2;
                     
             import mlsystem.*;
-            pwdv = pushd(sessd.vLocation);
+            pwdv = pushd(sessd.sessionPath);
             fprintf('mlraichle.TracerDirector.cleanMore:  is cleaning %s\n', pwd); 
             
             deleteExisting('umapSynth_op_T1001_b40_b40.4dfp.*');
@@ -160,7 +160,7 @@ classdef TracerDirector < mlpet.TracerDirector
             sessd = ip.Results.sessionData;
                     
             import mlsystem.*;
-            pwdv = pushd(sessd.vLocation);
+            pwdv = pushd(sessd.sessionPath);
             fprintf('mlraichle.TracerDirector.cleanSinograms:  is cleaning %s\n', pwd); 
             dtconv = DirTool('*-Converted*');
             for idtconv = 1:length(dtconv.fqdns)
@@ -201,7 +201,7 @@ classdef TracerDirector < mlpet.TracerDirector
                 pwd0 = pushd(sd.tracerLocation);
                 for s = 1:length(suffs)
                     deleteExisting(                 [sd.T1001('typ','fp') suffs{s}]);
-                    copyfile(fullfile(sd.vLocation, [sd.T1001('typ','fp') suffs{s}]));
+                    copyfile(fullfile(sd.sessionPath, [sd.T1001('typ','fp') suffs{s}]));
                     deleteExisting(                              [sd.tracerListmodeSif('typ','fp') suffs{s}]);
                     copyfile(fullfile(sd.tracerListmodeLocation, [sd.tracerListmodeSif('typ','fp') suffs{s}]));
                 end
@@ -617,7 +617,7 @@ classdef TracerDirector < mlpet.TracerDirector
                     end
                     load(dt.fqfns{1});
                     err(d) = mean(this.t4_resolve_err, 'omitnan');
-                    fprintf('\t%s %s %g\n', ct.date(d), sd.vLocation, err(d));
+                    fprintf('\t%s %s %g\n', ct.date(d), sd.sessionPath, err(d));
                 catch ME
                     dispwarning(ME)
                 end
@@ -646,7 +646,7 @@ classdef TracerDirector < mlpet.TracerDirector
                     end
                     load(dt.fqfns{1});
                     err(d) = mean(this.t4_resolve_err, 'omitnan');
-                    fprintf('\t%s %s %g\n', ct.date(d), sd.vLocation, err(d));
+                    fprintf('\t%s %s %g\n', ct.date(d), sd.sessionPath, err(d));
                 catch ME
                     dispwarning(ME)
                 end
@@ -1010,7 +1010,7 @@ classdef TracerDirector < mlpet.TracerDirector
             sd.attenuationCorrected = true;
             vw = mlfourdfp.Viewer; %(fullfile(getenv('FSLDIR'), 'bin', 'fsleyes'));            
             try                
-                pwd0 = pushd(sd.vLocation);
+                pwd0 = pushd(sd.sessionPath);
                 assertExistResolved(sd);
                 tica = tracerImgCellArr(sd);
                 vw.view(tica);
@@ -1111,14 +1111,14 @@ classdef TracerDirector < mlpet.TracerDirector
             sd.tracer = 'FDG';
             sd.attenuationCorrected = true;
             
-            pwd0 = pushd(sd.vLocation);
+            pwd0 = pushd(sd.sessionPath);
             fv = mlfourdfp.FourdfpVisitor;
             t4_ = fv.t4_inv( ...
                 fullfile(sd.tracerLocation, sprintf('brainmaskr1r2_to_op_fdgv%ir1_t4', sd.vnumber)), ...
                                             sprintf('fdgv%ir1_to_brainmask_t4', sd.vnumber));            
             t4_ = fv.t4_mul(t4_, 'T1001_to_TRIO_Y_NDC_t4', 'urgentCheckFdg_to_TRIO_Y_NDC_t4');
             fp_ = fv.t4img_4dfp(t4_, sd.tracerResolvedFinalSumt('typ','fqfp'), 'out', 'urgentCheckFdgOnAtl', 'options', '-O111');
-            fqfp_ = fullfile(sd.vLocation, fp_);
+            fqfp_ = fullfile(sd.sessionPath, fp_);
             popd(pwd0);
         end
         function this  = viewExports(varargin)
@@ -1132,7 +1132,7 @@ classdef TracerDirector < mlpet.TracerDirector
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));
             sd = this.sessionData;
-            pwd0 = pushd(fullfile(sd.vLocation, 'export', ''));
+            pwd0 = pushd(fullfile(sd.sessionPath, 'export', ''));
             try
                 mlbash(sprintf('fslview_deprecated %s.4dfp.img %s_%s.4dfp.img', ...
                     sd.tracerResolvedFinal('typ','fp'), sd.T1001('typ','fp'), sd.resolveTag));
@@ -1189,7 +1189,6 @@ classdef TracerDirector < mlpet.TracerDirector
                 end
                 mlraichle.HyperglycemiaDirector.constructResolvedRemotely( ...
                                 'sessionsExpr', [sessd.sessionFolder '*'], ...
-                                'visitsExpr', sprintf('V%i*', sessd.vnumber), ...
                                 'tracer', sessd.tracer, ...
                                 'ac', sessd.attenuationCorrected, ...
                                 'scanList', sessd.snumber, ...

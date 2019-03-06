@@ -18,8 +18,8 @@ classdef RaichleRegistry < handle
     end
     
     methods %% GET
-        function x = get.rawdataDir(this)
-            x = this.subjectsDir;
+        function x = get.rawdataDir(~)
+            x = fullfile(getenv('PPG'), 'rawdata', '');
         end
         function x = get.subjectsDir(this)
             x = this.subjectsDir_;

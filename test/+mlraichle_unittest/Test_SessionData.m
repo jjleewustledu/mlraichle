@@ -44,7 +44,7 @@ classdef Test_SessionData < matlab.unittest.TestCase
             this.verifyEqual(this.testObj.sessionPath, this.sessp);
         end
         function test_vLocation(this)
-            this.verifyEqual(this.testObj.vLocation, this.vloc);
+            this.verifyEqual(this.testObj.sessionPath, this.vloc);
         end
         
         %% IMRData

@@ -22,7 +22,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             
             try
                 import mlraichle.*;
-                pwd1 = pushd(ip.Results.sessionData.vLocation);
+                pwd1 = pushd(ip.Results.sessionData.sessionPath);
                 this = CHPC4FdgKinetics.batchSerial(@mlraichle.FDGKineticsWholebrain.godo__, 1, {ip.Results.sessionData});
                 popd(pwd1);
             catch ME
@@ -199,10 +199,10 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             try
                 import mlraichle.*;
                 [~,sessd] = FDGKineticsWholebrain.godoMasks(sessd);
-                assert(isdir(sessd.vLocation));
-                pwd0 = pushd(sessd.vLocation);
+                assert(isdir(sessd.sessionPath));
+                pwd0 = pushd(sessd.sessionPath);
                 this = FDGKineticsWholebrain.load( ...
-                    fullfile(sessd.vLocation, sprintf('mlraichle_FDGKineticsWholebrain_%s', sessd.parcellation)), 'this');
+                    fullfile(sessd.sessionPath, sprintf('mlraichle_FDGKineticsWholebrain_%s', sessd.parcellation)), 'this');
                 this.plotAnnealing;
                 this.plot;
                 saveFigures(sprintf('fig_%s_wholebrain', strrep(class(this), '.','_')));

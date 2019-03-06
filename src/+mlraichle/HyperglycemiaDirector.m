@@ -16,19 +16,19 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
     methods (Static)   
         function those = alignCrossModal(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.alignCrossModal', varargin{:}, 'visitsExpr', 'V1*', 'tracer', 'FDG');
+                'mlraichle.TracerDirector.alignCrossModal', varargin{:}, 'tracer', 'FDG');
         end
         function those = alignCrossModalSubset(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.alignCrossModalSubset', varargin{:}, 'visitsExpr', 'V1*', 'tracer', 'FDG');
+                'mlraichle.TracerDirector.alignCrossModalSubset', varargin{:}, 'tracer', 'FDG');
         end
         function those = alignCrossModalPar(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsParSess( ...
-                @mlraichle.TracerDirector.alignCrossModal, varargin{:}, 'visitsExpr', 'V1*', 'tracer', 'FDG');
+                @mlraichle.TracerDirector.alignCrossModal, varargin{:}, 'tracer', 'FDG');
         end
         function those = alignCrossModalRemotely(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsRemotely( ...
-                'mlraichle.TracerDirector.alignCrossModal', varargin{:}, 'visitsExpr', 'V1*', 'tracer', 'FDG');
+                'mlraichle.TracerDirector.alignCrossModal', varargin{:}, 'tracer', 'FDG');
         end
         
         function         cleanConverted(varargin)
@@ -154,11 +154,11 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', 'FDG', @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', true);
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = ip.Results;
             tracers = ensureCell(ipr.tracer);
@@ -169,36 +169,32 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess}; %#ok<*PFBNS>
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
                     
-                    for itrac = 1:length(tracers)
-                        for iscan = ipr.scanList
-                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
-                                continue
+                for itrac = 1:length(tracers)
+                    for iscan = ipr.scanList
+                        if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
+                            continue
+                        end
+                        try
+                            sessd = SessionData( ...
+                                'studyData', StudyData, ...
+                                'sessionPath', sessp, ...
+                                'snumber', iscan, ...
+                                'tracer', tracers{itrac}, ...
+                                'ac', ipr.ac, ...
+                                'supEpoch', ipr.supEpoch);
+
+                            if (isdir(sessd.tracerRawdataLocation))
+                                % there exist spurious tracerLocations; select those with corresponding raw data
+
+                                mlraichle.TracerDirector.constructAnatomy( ...
+                                    'sessionData', sessd, varargin{:});
                             end
-                            try
-                                sessd = SessionData( ...
-                                    'studyData', StudyData, ...
-                                    'sessionPath', sessp, ...
-                                    'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                                    'snumber', iscan, ...
-                                    'tracer', tracers{itrac}, ...
-                                    'ac', ipr.ac, ...
-                                    'supEpoch', ipr.supEpoch);
-                                
-                                if (isdir(sessd.tracerRawdataLocation))
-                                    % there exist spurious tracerLocations; select those with corresponding raw data
-                                    
-                                    mlraichle.TracerDirector.constructAnatomy( ...
-                                        'sessionData', sessd, varargin{:});
-                                end
-                            catch ME
-                                handwarning(ME);
-                            end
+                        catch ME
+                            handwarning(ME);
                         end
                     end
-                end                        
+                end                   
                 popd(pwds);
             end        
         end
@@ -235,11 +231,11 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', 'FDG', @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', true);
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = ip.Results;
             tracers = ensureCell(ipr.tracer);
@@ -250,40 +246,36 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
                     
-                    if (lstrfind(dtv.dns{idtv}, 'HYGLY25'))
-                        continue
-                    end
-                    
-                    for itrac = 1:length(tracers)
-                        for iscan = ipr.scanList
-                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
-                                continue
+                if (lstrfind(dtv.dns{idtv}, 'HYGLY25'))
+                    continue
+                end
+
+                for itrac = 1:length(tracers)
+                    for iscan = ipr.scanList
+                        if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
+                            continue
+                        end
+                        try
+                            sessd = SessionData( ...
+                                'studyData', StudyData, ...
+                                'sessionPath', sessp, ...
+                                'snumber', iscan, ...
+                                'tracer', tracers{itrac}, ...
+                                'ac', ipr.ac, ...
+                                'supEpoch', ipr.supEpoch);
+
+                            if (isdir(sessd.tracerRawdataLocation))
+                                % there exist spurious tracerLocations; select those with corresponding raw data
+
+                                mlraichle.TracerDirector.constructCompositeResolved( ...
+                                    'sessionData', sessd, varargin{:});
                             end
-                            try
-                                sessd = SessionData( ...
-                                    'studyData', StudyData, ...
-                                    'sessionPath', sessp, ...
-                                    'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                                    'snumber', iscan, ...
-                                    'tracer', tracers{itrac}, ...
-                                    'ac', ipr.ac, ...
-                                    'supEpoch', ipr.supEpoch);
-                                
-                                if (isdir(sessd.tracerRawdataLocation))
-                                    % there exist spurious tracerLocations; select those with corresponding raw data
-                                    
-                                    mlraichle.TracerDirector.constructCompositeResolved( ...
-                                        'sessionData', sessd, varargin{:});
-                                end
-                            catch ME
-                                handwarning(ME);
-                            end
+                        catch ME
+                            handwarning(ME);
                         end
                     end
-                end                        
+                end                       
                 popd(pwds);
             end
         end
@@ -301,7 +293,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -311,28 +303,23 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
 
-                    try
-                        sessd = SessionData( ...
-                            'studyData', StudyData, ...
-                            'sessionPath', sessp, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                            'tracer', 'FDG', ...
-                            'ac', true);
+                try
+                    sessd = SessionData( ...
+                        'studyData', StudyData, ...
+                        'sessionPath', sessp, ...
+                        'tracer', 'FDG', ...
+                        'ac', true);
 
-                        if (isdir(sessd.tracerRawdataLocation))
-                            % there exist spurious tracerLocations; select those with corresponding raw data
+                    if (isdir(sessd.tracerRawdataLocation))
+                        % there exist spurious tracerLocations; select those with corresponding raw data
 
-                            mlraichle.TracerDirector.constructFdgOpT1001( ...
-                                'sessionData', sessd, varargin{:});
-                        end
-                    catch ME
-                        handwarning(ME);
+                        mlraichle.TracerDirector.constructFdgOpT1001( ...
+                            'sessionData', sessd, varargin{:});
                     end
-                            
-                end                        
+                catch ME
+                    handwarning(ME);
+                end                       
                 popd(pwds);
             end        
         end
@@ -341,7 +328,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -351,28 +338,23 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
 
-                    try
-                        sessd = SessionData( ...
-                            'studyData', StudyData, ...
-                            'sessionPath', sessp, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                            'tracer', 'FDG', ...
-                            'ac', true);
+                try
+                    sessd = SessionData( ...
+                        'studyData', StudyData, ...
+                        'sessionPath', sessp, ...
+                        'tracer', 'FDG', ...
+                        'ac', true);
 
-                        if (isdir(sessd.tracerRawdataLocation))
-                            % there exist spurious tracerLocations; select those with corresponding raw data
+                    if (isdir(sessd.tracerRawdataLocation))
+                        % there exist spurious tracerLocations; select those with corresponding raw data
 
-                            mlraichle.TracerDirector.constructFdgOpT1001( ...
-                                'sessionData', sessd, varargin{:});
-                        end
-                    catch ME
-                        handwarning(ME);
+                        mlraichle.TracerDirector.constructFdgOpT1001( ...
+                            'sessionData', sessd, varargin{:});
                     end
-                            
-                end                        
+                catch ME
+                    handwarning(ME);
+                end                      
                 popd(pwds);
             end        
         end
@@ -404,7 +386,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -415,21 +397,18 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
-                    if (strcmp(dtv.dns{idtv}, 'Vall'))
-                        continue
-                    end
-                    try
-                        sessd = mlraichle.HerscovitchContext( ...
-                            'studyData', StudyData, ...
-                            'sessionPath', sessp, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)));
-                        mlraichle.Herscovitch1985.constructPhysiologicals(sessd);
-                    catch ME
-                        handwarning(ME);
-                    end
-                end                        
+
+                if (strcmp(dtv.dns{idtv}, 'Vall'))
+                    continue
+                end
+                try
+                    sessd = mlraichle.HerscovitchContext( ...
+                        'studyData', StudyData, ...
+                        'sessionPath', sessp);
+                    mlraichle.Herscovitch1985.constructPhysiologicals(sessd);
+                catch ME
+                    handwarning(ME);
+                end         
                 popd(pwds);
             end
         end
@@ -438,8 +417,8 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'tracer', {'HO' 'OO' 'OC'});
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -450,21 +429,18 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
-                    if (strcmp(dtv.dns{idtv}, 'Vall'))
-                        continue
-                    end
-                    try
-                        sessd = mlraichle.HerscovitchContext( ...
-                            'studyData', StudyData, ...
-                            'sessionPath', sessp, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)));
-                        mlraichle.Herscovitch1985.constructPhysiologicals1(sessd, ip.Results.tracer);
-                    catch ME
-                        handwarning(ME);
-                    end
-                end                        
+
+                if (strcmp(dtv.dns{idtv}, 'Vall'))
+                    continue
+                end
+                try
+                    sessd = mlraichle.HerscovitchContext( ...
+                        'studyData', StudyData, ...
+                        'sessionPath', sessp);
+                    mlraichle.Herscovitch1985.constructPhysiologicals1(sessd, ip.Results.tracer);
+                catch ME
+                    handwarning(ME);
+                end                  
                 popd(pwds);
             end
         end
@@ -473,8 +449,8 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'resamplerType', 'VoxelResampler');
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -485,22 +461,19 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
-                    if (strcmp(dtv.dns{idtv}, 'Vall'))
-                        continue
-                    end
-                    try
-                        sessd = mlraichle.HerscovitchContext( ...
-                            'studyData', StudyData, ...
-                            'sessionPath', sessp, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                            'resamplerType', ipr.resamplerType);
-                        mlsiemens.Herscovitch1985_FDG.constructPhysiologicals2(sessd);
-                    catch ME
-                        handwarning(ME);
-                    end
-                end                        
+
+                if (strcmp(dtv.dns{idtv}, 'Vall'))
+                    continue
+                end
+                try
+                    sessd = mlraichle.HerscovitchContext( ...
+                        'studyData', StudyData, ...
+                        'sessionPath', sessp, ...
+                        'resamplerType', ipr.resamplerType);
+                    mlsiemens.Herscovitch1985_FDG.constructPhysiologicals2(sessd);
+                catch ME
+                    handwarning(ME);
+                end                     
                 popd(pwds);
             end
         end
@@ -509,7 +482,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -520,21 +493,18 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
-                    if (strcmp(dtv.dns{idtv}, 'Vall'))
-                        continue
-                    end
-                    try
-                        sessd = mlraichle.HerscovitchContext( ...
-                            'studyData', StudyData, ...
-                            'sessionPath', sessp, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)));
-                        mlraichle.Herscovitch1985.constructPhysiologicals(sessd);
-                    catch ME
-                        handwarning(ME);
-                    end
-                end                        
+
+                if (strcmp(dtv.dns{idtv}, 'Vall'))
+                    continue
+                end
+                try
+                    sessd = mlraichle.HerscovitchContext( ...
+                        'studyData', StudyData, ...
+                        'sessionPath', sessp);
+                    mlraichle.Herscovitch1985.constructPhysiologicals(sessd);
+                catch ME
+                    handwarning(ME);
+                end                      
                 popd(pwds);
             end
         end
@@ -543,8 +513,8 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'tracer', {'HO' 'OO' 'OC'});
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -555,21 +525,18 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
-                    if (strcmp(dtv.dns{idtv}, 'Vall'))
-                        continue
-                    end
-                    try
-                        sessd = mlraichle.HerscovitchContext( ...
-                            'studyData', StudyData, ...
-                            'sessionPath', sessp, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)));
-                        mlraichle.Herscovitch1985.constructPhysiologicals1(sessd, ip.Results.tracer);
-                    catch ME
-                        handwarning(ME);
-                    end
-                end                        
+
+                if (strcmp(dtv.dns{idtv}, 'Vall'))
+                    continue
+                end
+                try
+                    sessd = mlraichle.HerscovitchContext( ...
+                        'studyData', StudyData, ...
+                        'sessionPath', sessp);
+                    mlraichle.Herscovitch1985.constructPhysiologicals1(sessd, ip.Results.tracer);
+                catch ME
+                    handwarning(ME);
+                end                     
                 popd(pwds);
             end
         end
@@ -578,8 +545,8 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'resamplerType', 'VoxelResampler');
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -590,22 +557,19 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
-                    if (strcmp(dtv.dns{idtv}, 'Vall'))
-                        continue
-                    end
-                    try
-                        sessd = mlraichle.HerscovitchContext( ...
-                            'studyData', StudyData, ...
-                            'sessionPath', sessp, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                            'resamplerType', ipr.resamplerType);
-                        mlsiemens.Herscovitch1985_FDG.constructPhysiologicals2(sessd);
-                    catch ME
-                        handwarning(ME);
-                    end
-                end                        
+
+                if (strcmp(dtv.dns{idtv}, 'Vall'))
+                    continue
+                end
+                try
+                    sessd = mlraichle.HerscovitchContext( ...
+                        'studyData', StudyData, ...
+                        'sessionPath', sessp, ...
+                        'resamplerType', ipr.resamplerType);
+                    mlsiemens.Herscovitch1985_FDG.constructPhysiologicals2(sessd);
+                catch ME
+                    handwarning(ME);
+                end                    
                 popd(pwds);
             end
         end
@@ -619,7 +583,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
         end
         function those = constructReferenceTracerToT1001T4(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.constructReferenceTracerToT1001T4', varargin{:}, 'visitsExpr', 'V1*', 'tracer', 'FDG');            
+                'mlraichle.TracerDirector.constructReferenceTracerToT1001T4', varargin{:}, 'tracer', 'FDG');            
         end
         function those = constructResolved(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
@@ -659,9 +623,9 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
             addParameter(ip, 'sesssionsExpr', '');
-            addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'tracer', 'FDG', @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', true);
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = ip.Results;
             sessExpr = ipr.sessionsExpr;
@@ -676,27 +640,23 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             parfor idtsess = 1:length(dtsessFqdns)
                 sessp = dtsessFqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
-                    
-                    try
-                        sessd = SessionData( ...
-                            'studyData', StudyData, ...
-                            'sessionPath', sessp, ...
-                            'rnumber', 1, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                            'tracer', ipr.tracer, ...
-                            'ac', ipr.ac);    
-                        if (isdir(sessd.tracerRawdataLocation))
-                            % there exist spurious tracerLocations; select those with corresponding raw data
 
-                            mlraichle.TracerDirector.constructSuvr1( ...
-                                'sessionData', sessd, varargin{:});
-                        end
-                    catch ME
-                        handwarning(ME);
+                try
+                    sessd = SessionData( ...
+                        'studyData', StudyData, ...
+                        'sessionPath', sessp, ...
+                        'rnumber', 1, ...
+                        'tracer', ipr.tracer, ...
+                        'ac', ipr.ac);    
+                    if (isdir(sessd.tracerRawdataLocation))
+                        % there exist spurious tracerLocations; select those with corresponding raw data
+
+                        mlraichle.TracerDirector.constructSuvr1( ...
+                            'sessionData', sessd, varargin{:});
                     end
-                end                        
+                catch ME
+                    handwarning(ME);
+                end                     
                 popd(pwds);
             end 
         end 
@@ -706,9 +666,9 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
             addParameter(ip, 'sesssionsExpr', '');
-            addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'tracer', 'FDG', @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', true);
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = ip.Results;
             sessExpr = ipr.sessionsExpr;
@@ -723,27 +683,23 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             parfor idtsess = 1:length(dtsessFqdns)
                 sessp = dtsessFqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
-                    
-                    try
-                        sessd = SessionData( ...
-                            'studyData', StudyData, ...
-                            'sessionPath', sessp, ...
-                            'rnumber', 1, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                            'tracer', ipr.tracer, ...
-                            'ac', ipr.ac);    
-                        if (isdir(sessd.tracerRawdataLocation))
-                            % there exist spurious tracerLocations; select those with corresponding raw data
 
-                            mlraichle.TracerDirector.constructSuvr2( ...
-                                'sessionData', sessd, varargin{:});
-                        end
-                    catch ME
-                        handwarning(ME);
+                try
+                    sessd = SessionData( ...
+                        'studyData', StudyData, ...
+                        'sessionPath', sessp, ...
+                        'rnumber', 1, ...
+                        'tracer', ipr.tracer, ...
+                        'ac', ipr.ac);    
+                    if (isdir(sessd.tracerRawdataLocation))
+                        % there exist spurious tracerLocations; select those with corresponding raw data
+
+                        mlraichle.TracerDirector.constructSuvr2( ...
+                            'sessionData', sessd, varargin{:});
                     end
-                end                        
+                catch ME
+                    handwarning(ME);
+                end                 
                 popd(pwds);
             end 
         end 
@@ -753,9 +709,9 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
             addParameter(ip, 'sesssionsExpr', '');
-            addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'tracer', 'FDG', @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', true);
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = ip.Results;
             sessExpr = ipr.sessionsExpr;
@@ -770,27 +726,23 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             for idtsess = 1:length(dtsessFqdns)
                 sessp = dtsessFqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
-                    
-                    try
-                        sessd = SessionData( ...
-                            'studyData', StudyData, ...
-                            'sessionPath', sessp, ...
-                            'rnumber', 1, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                            'tracer', ipr.tracer, ...
-                            'ac', ipr.ac);    
-                        if (isdir(sessd.tracerRawdataLocation))
-                            % there exist spurious tracerLocations; select those with corresponding raw data
 
-                            mlraichle.TracerDirector.constructSuvr2( ...
-                                'sessionData', sessd, varargin{:});
-                        end
-                    catch ME
-                        handwarning(ME);
+                try
+                    sessd = SessionData( ...
+                        'studyData', StudyData, ...
+                        'sessionPath', sessp, ...
+                        'rnumber', 1, ...
+                        'tracer', ipr.tracer, ...
+                        'ac', ipr.ac);    
+                    if (isdir(sessd.tracerRawdataLocation))
+                        % there exist spurious tracerLocations; select those with corresponding raw data
+
+                        mlraichle.TracerDirector.constructSuvr2( ...
+                            'sessionData', sessd, varargin{:});
                     end
-                end                        
+                catch ME
+                    handwarning(ME);
+                end          
                 popd(pwds);
             end 
         end 
@@ -800,9 +752,9 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
             addParameter(ip, 'sesssionsExpr', '');
-            addParameter(ip, 'visitsExpr', 'V1*');
             addParameter(ip, 'tracer', 'FDG', @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', true);
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = ip.Results;
             sessExpr = ipr.sessionsExpr;
@@ -817,27 +769,23 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             for idtsess = 1:length(dtsessFqdns)
                 sessp = dtsessFqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
-                    
-                    try
-                        sessd = HerscovitchContext( ...
-                            'studyData', StudyData, ...
-                            'sessionPath', sessp, ...
-                            'rnumber', 1, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                            'tracer', ipr.tracer, ...
-                            'ac', ipr.ac);    
-                        if (isdir(sessd.tracerRawdataLocation))
-                            % there exist spurious tracerLocations; select those with corresponding raw data
 
-                            mlraichle.TracerDirector.constructSuvr2018jun17( ...
-                                'sessionData', sessd, varargin{:});
-                        end
-                    catch ME
-                        handwarning(ME);
+                try
+                    sessd = HerscovitchContext( ...
+                        'studyData', StudyData, ...
+                        'sessionPath', sessp, ...
+                        'rnumber', 1, ...
+                        'tracer', ipr.tracer, ...
+                        'ac', ipr.ac);    
+                    if (isdir(sessd.tracerRawdataLocation))
+                        % there exist spurious tracerLocations; select those with corresponding raw data
+
+                        mlraichle.TracerDirector.constructSuvr2018jun17( ...
+                            'sessionData', sessd, varargin{:});
                     end
-                end                        
+                catch ME
+                    handwarning(ME);
+                end                  
                 popd(pwds);
             end 
         end 
@@ -889,7 +837,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                         'vnumber', tbl.v_(d), ...
                         'ac', true));
                     
-                pwd0 = pushd(atlBldr.vLocation);
+                pwd0 = pushd(atlBldr.sessionPath);
                 assert(lexist(atlBldr.tracer_to_atl_t4));
                 tracerOnAtl_fp = [atlBldr.sessionData.tracerResolvedFinalSumt('typ','fp') '_on_TRIO_Y_NDC_333'];
                 fv.t4img_4dfp( ...
@@ -1204,11 +1152,11 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
         end  
         function those = pullT4RE(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.pullT4RE', 'ac', true, 'visitsExpr', 'V*', varargin{:});
+                'mlraichle.TracerDirector.pullT4RE', 'ac', true, varargin{:});
         end
         function those = pullVall(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.pullVall', 'ac', true, 'visitsExpr', 'V1*', varargin{:});
+                'mlraichle.TracerDirector.pullVall', 'ac', true, varargin{:});
         end
         function those = pushToRemote(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
@@ -1287,12 +1235,12 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', true);
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
             addParameter(ip, 'tauIndices', [], @isnumeric);
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = ip.Results;
             tracers = ensureCell(ipr.tracer);
@@ -1303,39 +1251,35 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
                     
-                    for itrac = 1:length(tracers)
-                        for iscan = ipr.scanList
-                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
-                                continue
+                for itrac = 1:length(tracers)
+                    for iscan = ipr.scanList
+                        if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
+                            continue
+                        end
+                        try
+                            sessd = SessionData( ...
+                                'studyData', StudyData, ...
+                                'sessionPath', sessp, ...
+                                'snumber', iscan, ...
+                                'tracer', tracers{itrac}, ...
+                                'ac', ipr.ac, ...
+                                'supEpoch', ipr.supEpoch);                                
+                            if (~isempty(ipr.tauIndices))
+                                sessd.tauIndices = ipr.tauIndices;
                             end
-                            try
-                                sessd = SessionData( ...
-                                    'studyData', StudyData, ...
-                                    'sessionPath', sessp, ...
-                                    'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                                    'snumber', iscan, ...
-                                    'tracer', tracers{itrac}, ...
-                                    'ac', ipr.ac, ...
-                                    'supEpoch', ipr.supEpoch);                                
-                                if (~isempty(ipr.tauIndices))
-                                    sessd.tauIndices = ipr.tauIndices;
-                                end
-                                
-                                if (isdir(sessd.tracerRawdataLocation))
-                                    % there exist spurious tracerLocations; select those with corresponding raw data
-                                    
-                                    mlraichle.TracerDirector.sumTracerRevision1( ...
-                                        'sessionData', sessd, varargin{:});
-                                end
-                            catch ME
-                                handwarning(ME);
+
+                            if (isdir(sessd.tracerRawdataLocation))
+                                % there exist spurious tracerLocations; select those with corresponding raw data
+
+                                mlraichle.TracerDirector.sumTracerRevision1( ...
+                                    'sessionData', sessd, varargin{:});
                             end
+                        catch ME
+                            handwarning(ME);
                         end
                     end
-                end                        
+                end                  
                 popd(pwds);
             end 
         end 
@@ -1344,12 +1288,12 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', true);
             addParameter(ip, 'supEpoch', StudyDirector.SUP_EPOCH, @isnumeric); % KLUDGE
             addParameter(ip, 'tauIndices', [], @isnumeric);
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = ip.Results;
             tracers = ensureCell(ipr.tracer);
@@ -1360,39 +1304,35 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
-                    
-                    for itrac = 1:length(tracers)
-                        for iscan = ipr.scanList
-                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
-                                continue
+
+                for itrac = 1:length(tracers)
+                    for iscan = ipr.scanList
+                        if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
+                            continue
+                        end
+                        try
+                            sessd = SessionData( ...
+                                'studyData', StudyData, ...
+                                'sessionPath', sessp, ...
+                                'snumber', iscan, ...
+                                'tracer', tracers{itrac}, ...
+                                'ac', ipr.ac, ...
+                                'supEpoch', ipr.supEpoch);                                
+                            if (~isempty(ipr.tauIndices))
+                                sessd.tauIndices = ipr.tauIndices;
                             end
-                            try
-                                sessd = SessionData( ...
-                                    'studyData', StudyData, ...
-                                    'sessionPath', sessp, ...
-                                    'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                                    'snumber', iscan, ...
-                                    'tracer', tracers{itrac}, ...
-                                    'ac', ipr.ac, ...
-                                    'supEpoch', ipr.supEpoch);                                
-                                if (~isempty(ipr.tauIndices))
-                                    sessd.tauIndices = ipr.tauIndices;
-                                end
-                                
-                                if (isdir(sessd.tracerRawdataLocation))
-                                    % there exist spurious tracerLocations; select those with corresponding raw data
-                                    
-                                    mlraichle.TracerDirector.sumTracerResolvedFinal( ...
-                                        'sessionData', sessd, varargin{:});
-                                end
-                            catch ME
-                                handwarning(ME);
+
+                            if (isdir(sessd.tracerRawdataLocation))
+                                % there exist spurious tracerLocations; select those with corresponding raw data
+
+                                mlraichle.TracerDirector.sumTracerResolvedFinal( ...
+                                    'sessionData', sessd, varargin{:});
                             end
+                        catch ME
+                            handwarning(ME);
                         end
                     end
-                end                        
+                end                  
                 popd(pwds);
             end 
         end 
@@ -1401,7 +1341,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'visitsExpr', 'V*');
+            addParameter(ip, 'visitsExpr', '');
             parse(ip, varargin{:});
             ipr = ip.Results;
             
@@ -1412,49 +1352,40 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
-                    try
-                        sessd = SessionData( ...
-                            'studyData', StudyData, ...
-                            'sessionPath', sessp, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                            'tracer', 'FDG', ...
-                            'ac', true);  
-                        if (isdir(sessd.tracerRawdataLocation))
-                            % there exist spurious tracerLocations; select those with corresponding raw data
-                            mlraichle.TracerDirector.urgentCheckFdgOnAtl( ...
-                                'sessionData', sessd, varargin{:});
-                        end
-                    catch ME
-                        handwarning(ME);
+
+                try
+                    sessd = SessionData( ...
+                        'studyData', StudyData, ...
+                        'sessionPath', sessp, ...
+                        'tracer', 'FDG', ...
+                        'ac', true);  
+                    if (isdir(sessd.tracerRawdataLocation))
+                        % there exist spurious tracerLocations; select those with corresponding raw data
+                        mlraichle.TracerDirector.urgentCheckFdgOnAtl( ...
+                            'sessionData', sessd, varargin{:});
                     end
-                end                        
+                catch ME
+                    handwarning(ME);
+                end               
                 popd(pwds);
             end             
             
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
-                    try
-                        sessd = SessionData( ...
-                            'studyData', StudyData, ...
-                            'sessionPath', sessp, ...
-                            'vnumber', str2double(dtv.dns{idtv}(2:end)), ...
-                            'tracer', 'FDG', ...
-                            'ac', true);  
-                        if (isdir(sessd.tracerRawdataLocation))
-                            % there exist spurious tracerLocations; select those with corresponding raw data
-                            
-                            
-                            
-                        end
-                    catch ME
-                        handwarning(ME);
+                try
+                    sessd = SessionData( ...
+                        'studyData', StudyData, ...
+                        'sessionPath', sessp, ...
+                        'tracer', 'FDG', ...
+                        'ac', true);  
+                    if (isdir(sessd.tracerRawdataLocation))
+                        % there exist spurious tracerLocations; select those with corresponding raw data
+
                     end
-                end                        
+                catch ME
+                    handwarning(ME);
+                end                      
                 popd(pwds);
             end 
             
@@ -1480,7 +1411,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             try
                 DicomSorter.CreateSorted( ...
                     'srcPath', downloadPath, ...
-                    'destPath', this.sessionData_.vLocation, ...
+                    'destPath', this.sessionData_.sessionPath, ...
                     'sessionData', this.sessionData);
                 %RawDataSorter.CreateSorted( ...
                 %    'srcPath', downloadPath, ...
@@ -1665,11 +1596,11 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
         end
         function those = reconstructErrMat(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlraichle.TracerDirector.reconstructErrMat', varargin{:}, 'visitsExpr', 'V1*', 'tracer', 'FDG');
+                'mlraichle.TracerDirector.reconstructErrMat', varargin{:}, 'tracer', 'FDG');
         end
         function those = reconstructErrMatPar(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjectsParSess( ...
-                @mlraichle.TracerDirector.reconstructErrMat, varargin{:}, 'visitsExpr', 'V1*', 'tracer', 'FDG');
+                @mlraichle.TracerDirector.reconstructErrMat, varargin{:}, 'tracer', 'FDG');
         end
         function those = reconstructUnresolvedRemotely(varargin)
             %  See also:  mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely

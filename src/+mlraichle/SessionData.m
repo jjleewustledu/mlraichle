@@ -35,8 +35,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
         subject
         session
         scan
-        resource
-        assessor
+        resources
+        assessors
         
         STUDY_CENSUS_XLSX
         
@@ -54,7 +54,6 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
         tauIndices % use to exclude late frames from builders of AC; e.g., HYGLY25 V1; taus := taus(tauIndices)
         taus
         times
-        vfolder
         
         %% mlnipet.ISessionData
         
@@ -103,10 +102,10 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
         function g = get.scan(this)
             g = this.tracerRevision('typ', 'fp');
         end  
-        function g = get.resource(this)
+        function g = get.resources(this)
              g = [];
         end
-        function g = get.assessor(this)
+        function g = get.assessors(this)
              g = [];
         end
         
@@ -213,13 +212,10 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             end
             g = ceil(length(this.taus) / this.maxLengthEpoch);
         end
-        function this = set.supEpoch(this, s) %#ok<MCHV2>
+        function this = set.supEpoch(this, s) 
             assert(isnumeric(s));
             this.supEpoch_ = s;
         end
-        function g = get.vfolder(this)
-            g = sprintf('V%i', this.vnumber);
-        end  
         function g = get.t4ResolveBuilderBlurArg(this)
             g = this.tracerBlurArg;
         end
@@ -235,7 +231,11 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             end
         end
         function g = get.taus(this)
-            if (~this.attenuationCorrected)
+            if (lexist(this.listmodeJson, 'file'))
+                j = jsondecode(fileread(this.listmodeJson));
+                g = j.taus';
+                return
+            elseif (~this.attenuationCorrected)
                 switch (upper(this.tracer))
                     case 'FDG'
                         g = [30,30,30,30,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
@@ -280,7 +280,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             if (this.tauMultiplier > 1)
                 g = this.multiplyTau(g);
             end
-        end        
+        end
         function g = get.times(this)
             t = this.taus;
             g = zeros(size(t));
@@ -295,6 +295,12 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
                 return
             end
             g = 'createDynamic2Carney';
+        end
+        
+        function f = listmodeJson(this)
+            dt = mlsystem.DirTool(fullfile(this.tracerOutputPetLocation, [upper(this.tracer) 'dt*.json']));
+            assert(1 == dt.length);
+            f = dt.fqfns{1};
         end
         
         %% IMRData
@@ -327,7 +333,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
         end
         function obj  = brainmaskBinarizeBlended(this, varargin)
             fn   = sprintf('brainmask_%s_binarizeBlended%s', this.resolveTag, this.filetypeExt);
-            fqfn = fullfile(this.vLocation, fn);
+            fqfn = fullfile(this.sessionPath, fn);
             if (~lexist(fqfn, 'file'))
                 fqfn = fullfile(this.tracerLocation, fn);
             end
@@ -337,14 +343,14 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             obj = this.mrObject('ep2d_diff_26D_lgfov_nopat_TRACEW', varargin{:});
         end
         function loc  = freesurferLocation(this, varargin)
-            loc = this.vLocation(varargin{:});
+            loc = this.sessionLocation(varargin{:});
         end  
         function obj  = mpr(this, varargin)
             obj = this.T1(varargin{:});
         end
         function obj  = mprForReconall(this, varargin)
             obj = this.fqfilenameObject( ...
-                fullfile(this.vLocation, ['mpr' this.filetypeExt]), varargin{:});            
+                fullfile(this.sessionPath, ['mpr' this.filetypeExt]), varargin{:});            
         end
         function obj  = mprage(this, varargin)
             obj = this.T1(varargin{:});
@@ -367,7 +373,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             obj = this.T1001(varargin{:});
         end
         function obj  = T1001(this, varargin)
-            fqfn = fullfile(this.vLocation, ['T1001' this.filetypeExt]);
+            fqfn = fullfile(this.sessionPath, ['T1001' this.filetypeExt]);
             if (~lexist(fqfn, 'file') && isdir(this.freesurferLocation))
                 mic = T1001@mlpipeline.SessionData(this, 'typ', 'mlfourd.ImagingContext2');
                 mic.nifti;
@@ -413,7 +419,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
         end
         function obj  = arterialSamplerCrv(this, varargin)
             fqfn = fullfile( ...
-                this.vLocation('typ', 'path'), ...
+                this.sessionLocation('typ', 'path'), ...
                 sprintf('%s_V%i.crv', this.sessionFolder, this.vnumber));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
@@ -422,7 +428,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
         end
         function obj  = ctRescaled(this, varargin)
             fqfn = fullfile( ...
-                this.vLocation('typ', 'path'), ...
+                this.sessionLocation('typ', 'path'), ...
                 sprintf('ctRescaledv%i%s', this.vnumber, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
@@ -430,13 +436,8 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             obj = this.mrObject('AIFFOV%s%s', varargin{:});
         end
         function loc  = petLocation(this, varargin)
-            if (lstrfind(upper(this.tracer), 'FDG'))
-                loc = fullfile(this.vLocation(varargin{:}), ...
-                               sprintf('%s_V%i-%s', upper(this.tracer), this.vnumber, this.attenuationTag), '');
-            else
-                loc = fullfile(this.vLocation(varargin{:}), ...
-                               sprintf('%s%i_V%i-%s', upper(this.tracer), this.snumber, this.vnumber, this.attenuationTag), '');
-            end
+            loc = fullfile(this.sessionLocation(varargin{:}), ...
+                sprintf('%s_V%i-%s', upper(this.tracer), this.vnumber, this.attenuationTag), '');
         end
         function p    = petPointSpread(~, varargin)
             inst = mlsiemens.MMRRegistry.instance;
@@ -479,17 +480,17 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
         function loc  = tracerConvertedLocation(this, varargin)
             [ipr,schar] = this.iprLocation(varargin{:});
             loc = locationType(ipr.typ, ...
-                fullfile(this.vLocation, ...
+                fullfile(this.sessionPath, ...
                          sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.convertedTag), ''));
         end
         function loc  = tracerLocation(this, varargin)
             [ipr,schar] = this.iprLocation(varargin{:});
             if (isempty(ipr.tracer))
-                loc = locationType(ipr.typ, this.vLocation);
+                loc = locationType(ipr.typ, this.sessionPath);
                 return
             end
             loc = locationType(ipr.typ, ...
-                  fullfile(this.vLocation, ...
+                  fullfile(this.sessionPath, ...
                            sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.attenuationTag), ...
                            capitalize(this.epochTag), ...
                            ''));
@@ -497,17 +498,17 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
         function loc  = tracerRawdataLocation(this, varargin)
             [ipr,schar] = this.iprLocation(varargin{:});
             if (isempty(ipr.tracer))
-                loc = locationType(ipr.typ, this.vLocation);
+                loc = locationType(ipr.typ, this.sessionPath);
                 return
             end
             loc = locationType(ipr.typ, ...
-                  fullfile(this.vLocation, ...
+                  fullfile(this.sessionPath, ...
                            sprintf('%s%s_V%i', ipr.tracer, schar, this.vnumber), ''));
         end
         function loc  = tracerListmodeLocation(this, varargin)
             [ipr,schar] = this.iprLocation(varargin{:});
             loc = locationType(ipr.typ, ...
-                fullfile(this.vLocation, ...
+                fullfile(this.sessionPath, ...
                          sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.convertedTag), ...
                          sprintf('%s%s_V%i-LM-00', ipr.tracer, schar, this.vnumber), ''));
         end
@@ -588,7 +589,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
         end
         function obj  = tracerResolved(this, varargin)
             fqfn = fullfile( ...
-                this.vLocation, ...
+                this.sessionPath, ...
                 sprintf('%s_%s%s', this.tracerRevision('typ', 'fp'), this.resolveTag, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end        
@@ -652,7 +653,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             end
         end
         function obj  = tracerResolvedFinalOnAtl(this, varargin)
-            fqfn = fullfile(this.vLocation, ...
+            fqfn = fullfile(this.sessionPath, ...
                 sprintf('%s_on_%s_%i%s', this.tracerResolvedFinal('typ', 'fp'), this.studyAtlas.fileprefix, this.atlVoxelSize, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
@@ -662,7 +663,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
                 return
             end
             %this.rnumber = 2;
-            fqfn = fullfile(this.vLocation, ...
+            fqfn = fullfile(this.sessionPath, ...
                 sprintf('%sr2_op_%s%s', this.tracerResolvedFinal('typ', 'fp'), this.fdgACRevision('typ', 'fp'), this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
@@ -675,7 +676,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             if (~strcmpi(this.tracer, 'FDG'))
                 fn = sprintf('%sr2_op_%s', this.tracerResolvedFinalSumt('typ', 'fp'), this.fdgACRevision('typ', 'fn')); 
             end
-            obj  = this.fqfilenameObject(fullfile(this.vLocation, fn), varargin{:});
+            obj  = this.fqfilenameObject(fullfile(this.sessionPath, fn), varargin{:});
         end
         function obj  = tracerResolvedSubj(this, varargin)
             %% TRACERRESOLVEDSUBJ is designed for use with mlraichle.SubjectImages.
@@ -734,13 +735,13 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end        
         function obj  = tracerSuvr(this, varargin)
-            fqfn = fullfile(this.vLocation, ...
+            fqfn = fullfile(this.sessionPath, ...
                 sprintf('%s_suvr_%i%s', this.tracerRevision('typ', 'fp'), this.atlVoxelSize, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerSuvrAveraged(this, varargin)   
             ipr = this.iprLocation(varargin{:});         
-            fqfn = fullfile(this.vLocation, ...
+            fqfn = fullfile(this.sessionPath, ...
                 sprintf('%sav%i%sr%i_suvr_%i%s', ...
                 lower(ipr.tracer), this.vnumber, this.epochTag, ipr.rnumber, this.atlVoxelSize, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
@@ -753,17 +754,17 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
                 strcmpi(this.tracer, 'HO'))
                 schar = 'a'; % sprintf('%i', this.snumber);
             end
-            fqfn = fullfile(this.vLocation, ...
+            fqfn = fullfile(this.sessionPath, ...
                 sprintf('%s%sv%ir%i_suvr_%i%s', lower(name), schar, this.vnumber, this.rnumber, this.atlVoxelSize, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerTimeWindowed(this, varargin)
-            fqfn = fullfile(this.vLocation, ...
+            fqfn = fullfile(this.sessionPath, ...
                 sprintf('%s_timeWindowed%s', this.tracerRevision('typ', 'fp'), this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerTimeWindowedOnAtl(this, varargin)
-            fqfn = fullfile(this.vLocation, ...
+            fqfn = fullfile(this.sessionPath, ...
                 sprintf('%s_timeWindowed_%i%s', this.tracerRevision('typ', 'fp'), this.atlVoxelSize, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
@@ -779,21 +780,21 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             [ipr,schar] = this.iprLocation(varargin{:});
             if (lstrfind(ipr.tracer, 'FDG'))
                 loc = locationType(ipr.typ, ...
-                    fullfile(this.vLocation, ...
+                    fullfile(this.sessionPath, ...
                              sprintf('%s_V%i-%s', ipr.tracer, this.vnumber, this.attenuationTag), 'T4', ''));
                 return
             end
             if (lstrfind(ipr.tracer, 'HO') || lstrfind(ipr.tracer, 'OO'))
                 ipr.tracer = 'OO';
             end            
-            if (isdir(fullfile(this.vLocation, sprintf('OO1_V%i-%s', this.vnumber, this.attenuationTag))))
+            if (isdir(fullfile(this.sessionPath, sprintf('OO1_V%i-%s', this.vnumber, this.attenuationTag))))
                 schar = '1';
             end
-            if (isdir(fullfile(this.vLocation, sprintf('OO2_V%i-%s', this.vnumber, this.attenuationTag))))
+            if (isdir(fullfile(this.sessionPath, sprintf('OO2_V%i-%s', this.vnumber, this.attenuationTag))))
                 schar = '2';
             end
             loc = locationType(ipr.typ, ...
-                fullfile(this.vLocation, ...
+                fullfile(this.sessionPath, ...
                          sprintf('%s%s_V%i-%s', ipr.tracer, schar, this.vnumber, this.attenuationTag), 'T4', ''));
         end
         function obj  = umapTagged(this, varargin)
@@ -821,7 +822,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             this.tracer = ip.Results.tracer;
             
             if (isempty(this.tracer))
-                fqfn = fullfile(this.vLocation('typ', 'path'), ['umapSynth_op_T1001' ip.Results.blurTag this.filetypeExt]);
+                fqfn = fullfile(this.sessionLocation('typ', 'path'), ['umapSynth_op_T1001' ip.Results.blurTag this.filetypeExt]);
                 obj  = this.fqfilenameObject(fqfn, varargin{:});
                 return
             end
@@ -832,7 +833,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end    
         function obj  = umapSynthOpT1001(this, varargin)
-            fqfn = fullfile(this.vLocation, ...
+            fqfn = fullfile(this.sessionPath, ...
                 sprintf('umapSynth_op_%s%s.4dfp.hdr', ...
                         this.T1001('typ', 'fp'), mlpet.Resources.instance.suffixBlurPointSpread));
             obj  = this.fqfilenameObject(fqfn, varargin{2:end});
@@ -998,17 +999,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             end
             this.ensurePETFqfilename(fqfn);
             obj = imagingType(ip.Results.typ, fqfn);
-        end         
-        function loc  = vLocation(this, varargin)
-            %  @override
-            
-            ip = inputParser;
-            addParameter(ip, 'typ', 'path', @ischar);
-            parse(ip, varargin{:});
-            
-            loc = locationType(ip.Results.typ, ...
-                fullfile(this.sessionPath, sprintf('V%i', this.vnumber), ''));
-        end        
+        end       
         
  		function this = SessionData(varargin)
  			this = this@mlpipeline.ResolvingSessionData(varargin{:});
@@ -1164,7 +1155,7 @@ classdef SessionData < mlpipeline.ResolvingSessionData & mlnipet.ISessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end     
         function obj  = visitMapOpFdg(this, map, varargin)
-            fqfn = fullfile(this.vLocation, ...
+            fqfn = fullfile(this.sessionPath, ...
                 sprintf('%s_op_%s%s', map, this.fdgACRevision('typ', 'fp'), this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end

@@ -15,7 +15,7 @@ classdef StudyDirector
     methods (Static)
         function ipr = adjustParameters(ipr)
             assert(isstruct(ipr));
-            results = {'sessionsExpr' 'visitsExpr'};
+            results = {'sessionsExpr'};
             for r = 1:length(results)
                 if (~lstrfind(ipr.(results{r}), '*'))
                     ipr.(results{r}) = [ipr.(results{r}) '*'];
@@ -40,7 +40,6 @@ classdef StudyDirector
             ip.KeepUnmatched = true;
             addRequired( ip, 'factoryMethod', @ischar);
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
@@ -48,6 +47,7 @@ classdef StudyDirector
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = StudyDirector.adjustParameters(ip.Results);
             sessExpr = ipr.sessionsExpr;
@@ -58,31 +58,28 @@ classdef StudyDirector
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwdsess = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));     
-                for idtv = 1:length(dtv.fqdns)
                     
-                    for itrac = 1:length(tracers)
-                        for iscan = ipr.scanList
-                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
-                                continue
-                            end
-                            try
-                                sessd = StudyDirector.constructSessionData( ...
-                                    ipr, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac});
-                                evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', factoryMethod);
-                                fprintf('mlraichle.StudyDirector.constructCellArrayOfObjects:\n');
-                                fprintf(['\t' evalee '\n']);
-                                fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
-                                warning('off', 'MATLAB:subsassigndimmismatch');
-                                those{idtsess,idtv,itrac,iscan} = eval(evalee); 
-                                warning('on', 'MATLAB:subsassigndimmismatch');
-                            catch ME
-                                dispwarning(ME)
-                                getReport(ME)
-                            end
+                for itrac = 1:length(tracers)
+                    for iscan = ipr.scanList
+                        if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
+                            continue
+                        end
+                        try
+                            sessd = StudyDirector.constructSessionData( ...
+                                ipr, sessp, iscan, tracers{itrac});
+                            evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', factoryMethod);
+                            fprintf('mlraichle.StudyDirector.constructCellArrayOfObjects:\n');
+                            fprintf(['\t' evalee '\n']);
+                            fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
+                            warning('off', 'MATLAB:subsassigndimmismatch');
+                            those{idtsess,itrac,iscan} = eval(evalee); 
+                            warning('on', 'MATLAB:subsassigndimmismatch');
+                        catch ME
+                            dispwarning(ME)
+                            getReport(ME)
                         end
                     end
-                end                        
+                end                     
                 popd(pwdsess);
             end
         end
@@ -103,7 +100,6 @@ classdef StudyDirector
             ip.KeepUnmatched = true;
             addRequired( ip, 'factoryMethod', @(x) isa(x, 'function_handle'));
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
@@ -111,6 +107,7 @@ classdef StudyDirector
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = StudyDirector.adjustParameters(ip.Results);
             sessExpr = ipr.sessionsExpr;
@@ -123,27 +120,24 @@ classdef StudyDirector
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess}; %#ok<PFBNS>
                 pwdsess = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr)); %#ok<PFBNS>
-                for idtv = 1:length(dtv.fqdns)
                                
-                    for itrac = 1:length(tracers)
-                        for iscan = ipr.scanList
-                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
-                                continue
-                            end
-                            try
-                                sessd = StudyDirector.constructSessionData( ...
-                                    ipr, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac});
-                                fprintf('mlraichle.StudyDirector.constructCellArrayOfObjectsParSess:\n');
-                                fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
-                                factoryMethod('sessionData', sessd, varargin2{:}); %#ok<PFBNS>
-                            catch ME
-                                dispwarning(ME)
-                                getReport(ME)
-                            end
+                for itrac = 1:length(tracers)
+                    for iscan = ipr.scanList %#ok<PFBNS>
+                        if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
+                            continue
+                        end
+                        try
+                            sessd = StudyDirector.constructSessionData( ...
+                                ipr, sessp, iscan, tracers{itrac});
+                            fprintf('mlraichle.StudyDirector.constructCellArrayOfObjectsParSess:\n');
+                            fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
+                            factoryMethod('sessionData', sessd, varargin2{:}); %#ok<PFBNS>
+                        catch ME
+                            dispwarning(ME)
+                            getReport(ME)
                         end
                     end
-                end                        
+                end                    
                 popd(pwdsess);
             end
         end
@@ -164,7 +158,6 @@ classdef StudyDirector
             ip.KeepUnmatched = true;
             addRequired( ip, 'factoryMethod', @(x) isa(x, 'function_handle'));
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
@@ -172,6 +165,7 @@ classdef StudyDirector
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = StudyDirector.adjustParameters(ip.Results);
             sessExpr = ipr.sessionsExpr;
@@ -184,27 +178,24 @@ classdef StudyDirector
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwdsess = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));
-                for idtv = 1:length(dtv.fqdns)
                                
-                    parfor itrac = 1:length(tracers)
-                        for iscan = ipr.scanList %#ok<PFBNS>
-                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
-                                continue
-                            end
-                            try
-                                sessd = StudyDirector.constructSessionData( ...
-                                    ipr, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac}); %#ok<PFBNS>
-                                fprintf('mlraichle.StudyDirector.constructCellArrayOfObjectsParTrac:\n');
-                                fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
-                                factoryMethod('sessionData', sessd, varargin2{:}); %#ok<PFBNS>
-                            catch ME
-                                dispwarning(ME)
-                                getReport(ME)
-                            end
+                parfor itrac = 1:length(tracers)
+                    for iscan = ipr.scanList %#ok<PFBNS>
+                        if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
+                            continue
+                        end
+                        try
+                            sessd = StudyDirector.constructSessionData( ...
+                                ipr, sessp, iscan, tracers{itrac}); 
+                            fprintf('mlraichle.StudyDirector.constructCellArrayOfObjectsParTrac:\n');
+                            fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
+                            factoryMethod('sessionData', sessd, varargin2{:}); %#ok<PFBNS>
+                        catch ME
+                            dispwarning(ME)
+                            getReport(ME)
                         end
                     end
-                end                        
+                end                
                 popd(pwdsess);
             end
         end
@@ -230,7 +221,6 @@ classdef StudyDirector
             addParameter(ip, 'factoryArgs', {}, @iscell);
             addParameter(ip, 'sessionsExpr',  'HYGLY*');
             addParameter(ip, 'sesssionsExpr', '');
-            addParameter(ip, 'visitsExpr', 'V*');
             addParameter(ip, 'scanList', StudyDirector.SCANS);
             addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
             addParameter(ip, 'ac', StudyDirector.AC);
@@ -243,6 +233,7 @@ classdef StudyDirector
             addParameter(ip, 'memUsage', '32000', @ischar);
             addParameter(ip, 'wallTime', '12:00:00', @ischar);
             addParameter(ip, 'pushData', false, @islogical);
+            addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
             ipr = StudyDirector.adjustParameters(ip.Results);
             sessExpr = ipr.sessionsExpr;
@@ -260,47 +251,44 @@ classdef StudyDirector
                 fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, sessExpr));
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
-                pwds = pushd(sessp);
-                dtv = DirTools(fullfile(sessp, ipr.visitsExpr));
-                for idtv = 1:length(dtv.fqdns)                    
-                    for itrac = 1:length(tracers)
-                        for iscan = ipr.scanList 
-                            if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
-                                continue
-                            end
-                            try
-                                sessd = StudyDirector.constructSessionData( ...
-                                    ipr, sessp, str2double(dtv.dns{idtv}(2:end)), iscan, tracers{itrac});  
-                                if (StudyDirector.isTracerDir(sessd))
-                                    % there exist spurious tracerLocations; select those with corresponding raw data
-                                    
-                                    csessd = sessd;
-                                    csessd.sessionPath = mldistcomp.CHPC.repSubjectsDir(sessd.sessionPath);                                
-                                    chpc = mlpet.CHPC4TracerDirector( ...
-                                        [], 'distcompHost', ipr.distcompHost, ...
-                                        'sessionData', sessd, ...
-                                        'memUsage', ipr.memUsage, ...
-                                        'wallTime', wallTime);
-                                    if (ipr.pushData)
-                                        chpc = chpc.pushData; %#ok<NASGU>
-                                    end
-                                    evalee = sprintf(['chpc.runSerialProgram(@%s, ' ...
-                                        '{''sessionData'', csessd}, ' ...
-                                        'ipr.nArgout)'],  ...
-                                         ipr.factoryMethod);
-                                    fprintf('mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely:\n');
-                                    fprintf(['\t' evalee '\n']);
-                                    fprintf(['\tcsessd.TracerLocation->' csessd.tracerLocation '\n']);                                    
-                                    warning('off', 'MATLAB:subsassigndimmismatch');
-                                    those{idtsess,idtv,itrac,iscan} = eval(evalee); 
-                                    warning('on', 'MATLAB:subsassigndimmismatch');
+                pwds = pushd(sessp);                  
+                for itrac = 1:length(tracers)
+                    for iscan = ipr.scanList 
+                        if (iscan > 1 && strcmpi(tracers{itrac}, 'FDG'))
+                            continue
+                        end
+                        try
+                            sessd = StudyDirector.constructSessionData( ...
+                                ipr, sessp, iscan, tracers{itrac});  
+                            if (StudyDirector.isTracerDir(sessd))
+                                % there exist spurious tracerLocations; select those with corresponding raw data
+
+                                csessd = sessd;
+                                csessd.sessionPath = mldistcomp.CHPC.repSubjectsDir(sessd.sessionPath);                                
+                                chpc = mlpet.CHPC4TracerDirector( ...
+                                    [], 'distcompHost', ipr.distcompHost, ...
+                                    'sessionData', sessd, ...
+                                    'memUsage', ipr.memUsage, ...
+                                    'wallTime', wallTime);
+                                if (ipr.pushData)
+                                    chpc = chpc.pushData; %#ok<NASGU>
                                 end
-                            catch ME
-                                dispexcept(ME);
+                                evalee = sprintf(['chpc.runSerialProgram(@%s, ' ...
+                                    '{''sessionData'', csessd}, ' ...
+                                    'ipr.nArgout)'],  ...
+                                     ipr.factoryMethod);
+                                fprintf('mlraichle.StudyDirector.constructCellArrayOfObjectsRemotely:\n');
+                                fprintf(['\t' evalee '\n']);
+                                fprintf(['\tcsessd.TracerLocation->' csessd.tracerLocation '\n']);                                    
+                                warning('off', 'MATLAB:subsassigndimmismatch');
+                                those{idtsess,itrac,iscan} = eval(evalee); 
+                                warning('on', 'MATLAB:subsassigndimmismatch');
                             end
-                        end                    
-                    end
-                end                        
+                        catch ME
+                            dispexcept(ME);
+                        end
+                    end                    
+                end
                 popd(pwds);
             end
         end
@@ -343,12 +331,11 @@ classdef StudyDirector
             
             %gr = graph(s, t, ones(size(s)), names);
         end        
-        function sessd = constructSessionData(ipr, sessp, v, sc, tracer)
+        function sessd = constructSessionData(ipr, sessp, sc, tracer)
             import mlraichle.*;
             sessd = SessionData( ...
                 'studyData', StudyData, ...
                 'sessionPath', sessp, ...
-                'vnumber', v, ...
                 'snumber', sc, ...
                 'tracer', tracer, ...
                 'ac', ipr.ac);

@@ -39,14 +39,14 @@ classdef CHPC4FdgKinetics < mldistcomp.CHPC
             import mlraichle.*;
             sessd           = SessionData.struct2sessionData(datobj);
             chpc            = CHPC('sessionData', sessd); 
-            chpcVPth        = fullfile(chpc.chpcSubjectsDir, sessd.sessionFolder, sessd.vfolder, '');
-            chpcFdgPth      = fullfile(chpc.chpcSubjectsDir, sessd.sessionFolder, sessd.vfolder, ...
+            chpcVPth        = fullfile(chpc.chpcSubjectsDir, sessd.sessionFolder, '');
+            chpcFdgPth      = fullfile(chpc.chpcSubjectsDir, sessd.sessionFolder, ...
                               sessd.tracerLocation('typ', 'folder'), '');
-            chpcListmodePth = fullfile(chpc.chpcSubjectsDir, sessd.sessionFolder, sessd.vfolder, ...
+            chpcListmodePth = fullfile(chpc.chpcSubjectsDir, sessd.sessionFolder,...
                               sessd.tracerConvertedLocation('typ','folder'), ...
                               sessd.tracerListmodeLocation('typ','folder'), '');
             chpcMriPth      = fullfile(chpc.sessionData.freesurferLocation, ...
-                              sprintf('%s_%s', sessd.sessionFolder, sessd.vfolder), 'mri', '');
+                              sessd.sessionFolder, 'mri', '');
             
             chpc.scpToChpc(sessd.bloodGlucoseAndHctXlsx, chpc.chpcSubjectsDir);
             chpc.scpToChpc(sessd.CCIRRadMeasurements, chpcVPth);
@@ -68,9 +68,9 @@ classdef CHPC4FdgKinetics < mldistcomp.CHPC
             import mlraichle.*;
             sessd = SessionData.struct2sessionData(datobj);
             chpc  = CHPC('sessionData', sessd); 
-            logs  = fullfile(chpc.chpcSubjectsDir, sessd.sessionFolder, sessd.vfolder, '*.log');
-            mats  = fullfile(chpc.chpcSubjectsDir, sessd.sessionFolder, sessd.vfolder, '*.mat');
-            figs  = fullfile(chpc.chpcSubjectsDir, sessd.sessionFolder, sessd.vfolder, 'fig*');
+            logs  = fullfile(chpc.chpcSubjectsDir, sessd.sessionFolder, '*.log');
+            mats  = fullfile(chpc.chpcSubjectsDir, sessd.sessionFolder, '*.mat');
+            figs  = fullfile(chpc.chpcSubjectsDir, sessd.sessionFolder, 'fig*');
             
             chpc.scpFromChpc(logs);
             chpc.scpFromChpc(mats);
@@ -84,7 +84,7 @@ classdef CHPC4FdgKinetics < mldistcomp.CHPC
             %  @param src is the filename on the local machine.
             %  @param named dest is the f.q. path on the cluster (optional).
             
-            dest = sprintf('%s:%s', this.LOGIN_HOSTNAME, this.chpcSessionData.vLocation);
+            dest = sprintf('%s:%s', this.LOGIN_HOSTNAME, this.chpcSessionData.sessionPath);
             ip = inputParser;
             addRequired(ip, 'src', @ischar);
             addOptional(ip, 'dest', dest, @ischar);

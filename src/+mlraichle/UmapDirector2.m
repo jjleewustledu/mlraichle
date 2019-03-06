@@ -17,7 +17,7 @@ classdef UmapDirector2 < mlpipeline.AbstractDirector
             
             import mlfourd.ImagingContext2;
             import mlpet.Resources;
-            pwd0 = pushd(this.sessionData.vLocation);   
+            pwd0 = pushd(this.sessionData.sessionPath);   
             this.builder_ = this.builder.prepareMprToAtlasT4;
             ctm  = this.builder.buildCTMasked2;
             ctm  = this.builder.rescaleCT(ctm);
@@ -32,7 +32,7 @@ classdef UmapDirector2 < mlpipeline.AbstractDirector
         function safefsd = prepareFreesurferData(varargin)
             %% PREPAREFREESURFERDATA prepares session & visit-specific copies of data enumerated by this.freesurferData.
             %  @param named sessionData is an mlraichle.SessionData.
-            %  @return 4dfp copies of this.freesurferData in sessionData.vLocation.
+            %  @return 4dfp copies of this.freesurferData in sessionData.sessionPath.
             %  @return safefsd, a cell-array of fileprefixes for 4dfp objects created on the local filesystem.  
             %  TO DO:  replace with TracerDirector2.prepareFreesurferData
             
@@ -48,7 +48,7 @@ classdef UmapDirector2 < mlpipeline.AbstractDirector
             fsd_    = { 'aparc+aseg' 'aparc.a2009s+aseg' 'brainmask' 'T1' };  
             fsd     = cellfun(@(x) fullfile(sess.mriLocation, x),   fsd_, 'UniformOutput', false);
             safefsd = fv.ensureSafeFileprefix(fsd_); safefsd{4} = [safefsd{4} '001'];
-            safefsd = cellfun(@(x) fullfile(sess.vLocation, x), safefsd, 'UniformOutput', false);
+            safefsd = cellfun(@(x) fullfile(sess.sessionPath, x), safefsd, 'UniformOutput', false);
             for f = 1:length(fsd)
                 ic2 = ImagingContext2([fsd{f} '.mgz']);
                 ic2.saveas([safefsd{f} '.4dfp.hdr']);

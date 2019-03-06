@@ -33,14 +33,13 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
         function test_constructUmaps(this)
             those = this.testObj.constructUmaps( ...
                 'sessionsExpr', this.sessExpr, ...
-                'visitsExpr', this.vExpr, ...
                 'tracer', 'FDG', 'ac', false);
             those{1}.builder.product.view;
         end
         function test_prepareFreesurferData(this)
             this.pwd0 = pushd(this.sessd.tracerLocation);
             mlraichle.TracerDirector2.prepareFreesurferData('sessionData', this.sessd); 
-            vloc = this.sessd.vLocation;
+            vloc = this.sessd.sessionPath;
             this.verifyTrue(lexist_4dfp(fullfile(vloc, 'aparcAseg')));
             this.verifyTrue(lexist_4dfp(fullfile(vloc, 'aparcA2009sAseg')));
             this.verifyTrue(lexist_4dfp(fullfile(vloc, 'brainmask')));
@@ -52,7 +51,6 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
         function test_constructResolvedAC(this)
             those = this.testObj.constructResolvedAC( ...
                 'sessionsExpr', this.sessExpr, ...
-                'visitsExpr', this.vExpr, ...
                 'tracer', 'FDG', 'ac', true);
             those{1}.builder.product.fsleyes;
         end
@@ -80,7 +78,7 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
             td = td.setBuilder__(td.builder.prepareMprToAtlasT4);
             td = td.setBuilder__(td.builder.partitionMonolith); 
             [bldr,epochs,reconstituted] = td.builder.motionCorrectFrames; td = td.setBuilder__(bldr);
-            save(fullfile(this.sessd.vLocation, 'test_constructResolvedNAC4.mat'));
+            save(fullfile(this.sessd.sessionPath, 'test_constructResolvedNAC4.mat'));
             td.builder.logger.save;
             disp(bldr);
             disp(epochs);
@@ -94,26 +92,25 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
             [bldr,epochs,reconstituted] = td.builder.motionCorrectFrames; td = td.setBuilder__(bldr); %#ok<ASGLU>
 %            load('test_constructResolvedNAC4.mat');
             reconstituted = reconstituted.motionCorrectCTAndUmap;
-            save(fullfile(this.sessd.vLocation, 'test_constructResolvedNAC5.mat'));
+            save(fullfile(this.sessd.sessionPath, 'test_constructResolvedNAC5.mat'));
             reconstituted.logger.save;
             disp(reconstituted);
         end  
         function test_constructResolvedNAC6(this)
             load('test_constructResolvedNAC5.mat'); %#ok<LOAD>
             td = td.setBuilder__(reconstituted.motionUncorrectUmap(epochs)); %#ok<NODEF>
-            save(fullfile(this.sessd.vLocation, 'test_constructResolvedNAC6.mat'));
+            save(fullfile(this.sessd.sessionPath, 'test_constructResolvedNAC6.mat'));
             td.builder.logger.save;
         end 
         function test_constructResolvedNAC7(this)
             load('test_constructResolvedNAC6.mat'); %#ok<LOAD>
             td = td.setBuilder__(td.builder.aufbauUmaps); %#ok<NODEF>
-            save(fullfile(this.sessd.vLocation, 'test_constructResolvedNAC7.mat'));
+            save(fullfile(this.sessd.sessionPath, 'test_constructResolvedNAC7.mat'));
             td.builder.logger.save;
         end    
         function test_constructResolvedNAC(this)
             those = this.testObj.constructResolvedNAC( ...
                 'sessionsExpr', this.sessExpr, ...
-                'visitsExpr', this.vExpr, ...
                 'tracer', 'FDG', 'ac', false);
             those{1}.builder.product.fsleyes;
         end
@@ -133,7 +130,7 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
 
  	methods (TestMethodSetup)
 		function setupHyperglycemiaDirector2Test(this)
-            this.pwd0 = pushd(this.sessd.vLocation);
+            this.pwd0 = pushd(this.sessd.sessionPath);
  			this.testObj = this.testObj_;
             this.tracerDir = mlraichle.TracerDirector2( ...
                 mlpet.TracerResolveBuilder('sessionData', this.sessd));  

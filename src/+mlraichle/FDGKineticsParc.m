@@ -219,8 +219,8 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             try
                 import mlraichle.*;
                 [m,sessd] = FDGKineticsParc.godoMasks(sessd);
-                assert(isdir(sessd.vLocation));
-                pwd0 = pushd(sessd.vLocation);
+                assert(isdir(sessd.sessionPath));
+                pwd0 = pushd(sessd.sessionPath);
                 this = FDGKineticsParc(sessd, 'mask', m);
                 state = this.stateOfBayes; this = state.this;
                 this.plotAnnealing;
@@ -235,7 +235,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             import mlraichle.*;
             assert(isa(sessd, 'mlraichle.SessionData'));
             [m, sessd,ct4rb] = FDGKineticsWholebrain.godoMasks(sessd);            
-            pwd0 = pushd(sessd.vLocation); 
+            pwd0 = pushd(sessd.sessionPath); 
             if (strcmp(sessd.parcellation(1), 'y'))
                 m = FDGKineticsParc.yeoMask(sessd, sessd.parcellation);
             elseif (~isempty(sessd.parcellation))

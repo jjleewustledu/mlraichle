@@ -55,7 +55,7 @@ classdef Test_O15ResolveBuilder < matlab.unittest.TestCase
             this.studyd = mlraichle.SynthStudyData;
             this.sessd = mlraichle.SynthSessionData( ...
                 'studyData', this.studyd, 'sessionPath', fullfile(this.studyd.subjectsDir, this.hyglyNN, ''));
-            cd(this.sessd.vLocation);
+            cd(this.sessd.sessionPath);
             this.setupClassFiles;           
             this.testObj_ = mlraichle.O15ResolveBuilder('sessionData', this.sessd);
             setenv('DEBUG', ''); % cf. dbbash

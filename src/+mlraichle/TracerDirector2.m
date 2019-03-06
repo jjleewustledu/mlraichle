@@ -61,7 +61,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             import mlfourd.ImagingContext2;
             this = TracerDirector2(mlpet.TracerResolveBuilder(varargin{:}));  
             sess = this.sessionData;
-            src  = sess.vLocation;
+            src  = sess.sessionPath;
             dest = fullfile( ...
                 '/data/nil-bluearc/raichle/PPGdata/jjlee4', ...
                 sess.sessionLocation('typ','folder'), ...
@@ -161,7 +161,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
         function lst  = prepareFreesurferData(varargin)
             %% PREPAREFREESURFERDATA prepares session & visit-specific copies of data enumerated by this.freesurferData.
             %  @param named sessionData is an mlraichle.SessionData.
-            %  @return 4dfp copies of this.freesurferData in sessionData.vLocation.
+            %  @return 4dfp copies of this.freesurferData in sessionData.sessionPath.
             %  @return lst, a cell-array of fileprefixes for 4dfp objects created on the local filesystem.            
         
             ip = inputParser;
@@ -170,7 +170,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             parse(ip, varargin{:});            
             sess = ip.Results.sessionData;
             
-            pwd0    = pushd(sess.vLocation);
+            pwd0    = pushd(sess.sessionPath);
             fv      = mlfourdfp.FourdfpVisitor;
             fsd     = { 'aparc+aseg' 'aparc.a2009s+aseg' 'brainmask' 'T1' };  
             safefsd = fsd; safefsd{4} = 'T1001';
@@ -178,7 +178,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             lst     = cell(1, length(safefsd));
             sess    = ip.Results.sessionData;
             for f = 1:length(fsd)
-                if (~fv.lexist_4dfp(fullfile(sess.vLocation, safefsd{f})))
+                if (~fv.lexist_4dfp(fullfile(sess.sessionPath, safefsd{f})))
                     try
                         sess.mri_convert([fullfile(sess.mriLocation, fsd{f}) '.mgz'], [safefsd{f} '.nii']);
                         ic2 = mlfourd.ImagingContext2([safefsd{f} '.nii']);
@@ -203,7 +203,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             
             import mlfourd.ImagingContext2;
             import mlpet.Resources;
-            pwd0 = pushd(this.sessionData.vLocation);   
+            pwd0 = pushd(this.sessionData.sessionPath);   
             this.builder_ = this.builder.prepareMprToAtlasT4;
             ctm  = this.builder.buildCTMasked2;
             ctm  = this.builder.rescaleCT(ctm);

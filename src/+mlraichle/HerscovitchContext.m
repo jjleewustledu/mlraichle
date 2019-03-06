@@ -105,7 +105,7 @@ classdef HerscovitchContext < mlraichle.SessionData
         end
         
         function loc  = freesurferLocation(this, varargin)
-            loc = this.vLocation(varargin{:});
+            loc = this.sessionLocation(varargin{:});
         end 
         function loc  = vallLocation(this, varargin)
             ip = inputParser;
