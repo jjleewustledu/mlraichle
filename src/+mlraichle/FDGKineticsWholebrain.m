@@ -48,19 +48,17 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             dthDns = dth.dns; % for parfor
             jobs   = cell(length(dth.dns), 2);
             for d = 1:length(dth.dns)
-                for v = ip.Results.vs
-                    datobj = struct('sessionFolder', dthDns{d}, 'vnumber', v, 'sessionDate', ip.Results.sessionDate);
-                    try
-                        pwd1 = pushd(fullfile(dthDns{d}, sprintf('V%i', v), ''));
-                        
-                        %CHPC4FdgKinetics.pushData0(datobj);
-                        c.batch(@mlraichle.FDGKineticsWholebrain.godoMasksOnly, 1, {datobj});
-                        jobs{d,v} = c.batch(@mlraichle.FDGKineticsWholebrain.godo3, 1, {datobj});
-                        
-                        popd(pwd1);
-                    catch ME
-                        dispwarning(ME);                        
-                    end
+                datobj = struct('sessionFolder', dthDns{d}, 'sessionDate', ip.Results.sessionDate);
+                try
+                    pwd1 = pushd(fullfile(dthDns{d}, sprintf('V%i', v), ''));
+
+                    %CHPC4FdgKinetics.pushData0(datobj);
+                    c.batch(@mlraichle.FDGKineticsWholebrain.godoMasksOnly, 1, {datobj});
+                    jobs{d,v} = c.batch(@mlraichle.FDGKineticsWholebrain.godo3, 1, {datobj});
+
+                    popd(pwd1);
+                catch ME
+                    dispwarning(ME);                        
                 end
             end
             popd(pwd0);
@@ -87,19 +85,17 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             dthDns = dth.dns; % for parfor
             jobs   = cell(length(dth.dns), 2);
             for d = 1:length(dth.dns) 
-                for v = ip.Results.vs
-                    datobj = struct('sessionFolder', dthDns{d}, 'vnumber', v, 'sessionDate', ip.Results.sessionDate);
-                    try
-                        pwd1 = pushd(fullfile(dthDns{d}, sprintf('V%i', v), ''));
-                        
-                        FDGKineticsWholebrain.godoMasksOnly(datobj);
-                        jobs{d,v} = FDGKineticsWholebrain.godo3(datobj);
-                        saveFigures(sprintf('fig_%s', datestr(now,30)));
-                        
-                        popd(pwd1);                    
-                    catch ME
-                        dispwarning(ME);                        
-                    end
+                datobj = struct('sessionFolder', dthDns{d}, 'sessionDate', ip.Results.sessionDate);
+                try
+                    pwd1 = pushd(fullfile(dthDns{d}, sprintf('V%i', v), ''));
+
+                    FDGKineticsWholebrain.godoMasksOnly(datobj);
+                    jobs{d,v} = FDGKineticsWholebrain.godo3(datobj);
+                    saveFigures(sprintf('fig_%s', datestr(now,30)));
+
+                    popd(pwd1);                    
+                catch ME
+                    dispwarning(ME);                        
                 end
             end
             popd(pwd0);
@@ -115,11 +111,8 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             dth    = mlsystem.DirTool('HYGLY2*');
             for d = 1:length(dth.dns)
                 datobj.sessionFolder = dth.dns{d};
-                for v = 1:2
-                    datobj.vnumber = v;
-                    sessd = SessionData.struct2sessionData(datobj);
-                    FDGKineticsWholebrain.godoPlots(sessd);
-                end
+                sessd = SessionData.struct2sessionData(datobj);
+                FDGKineticsWholebrain.godoPlots(sessd);
             end
             popd(pwd0);
         end
@@ -131,19 +124,16 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             dth    = mlsystem.DirTool('HYGLY2*');
             for d = 1:length(dth.dns)
                 datobj.sessionFolder = dth.dns{d};
-                for v = 1:2
-                    datobj.vnumber = v;
-                    pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
-                    sessd = SessionData.struct2sessionData(datobj);
-                    CHPC4FdgKinetics.pullData0(sessd); % previously built
-                    this = FDGKineticsWholebrain.load('mlraichle_FDGKineticsWholebrain_.mat');
-                    try
-                        this.writetable('fqfp', fqfp, 'Range', sprintf('A%i:V%i', 2*d+v, 2*d+v), 'writeHeader', 1==d&&1==v);
-                    catch ME
-                        dispwarning(ME);
-                    end
-                    popd(pwd1);
+                pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
+                sessd = SessionData.struct2sessionData(datobj);
+                CHPC4FdgKinetics.pullData0(sessd); % previously built
+                this = FDGKineticsWholebrain.load('mlraichle_FDGKineticsWholebrain_.mat');
+                try
+                    this.writetable('fqfp', fqfp, 'Range', sprintf('A%i:V%i', 2*d+v, 2*d+v), 'writeHeader', 1==d&&1==v);
+                catch ME
+                    dispwarning(ME);
                 end
+                popd(pwd1);
             end
             popd(pwd0);
         end

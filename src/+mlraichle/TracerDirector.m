@@ -104,7 +104,6 @@ classdef TracerDirector < mlpet.TracerDirector
                 deleteExisting('*_b43.4dfp.*');
                 deleteExisting('umapSynth_frame*.4dfp.*');
                 deleteExisting('umapSynth*.log');
-                deleteExisting([sessd.tracerVisit('typ','fp') 'r*_b4*.4dfp.*']);
                 deleteExisting('*-LM-00-umap.4dfp.*');
                 deleteExisting('*-LM-00-umap_f1.4dfp.*');
                 deleteExisting('*-LM-00-umapfz.4dfp.*');
@@ -561,7 +560,7 @@ classdef TracerDirector < mlpet.TracerDirector
             deleteExisting(sprintf('%s_*_%s%s.4dfp.*', sd1.tracerRevision('typ','fp'), sdf.resolveTag, sdf.frameTag));
             deleteExisting(sprintf('%s_*_%s%s.4dfp.*', sd2.tracerRevision('typ','fp'), sdf.resolveTag, sdf.frameTag));
             deleteExisting('*_to_op_*_t4');
-            deleteExisting(sprintf('*_op_*%sv%ie*_frame*.4dfp.*', lower(sd.tracer), sd.vnumber));   
+            deleteExisting(sprintf('*_op_*%se*_frame*.4dfp.*', lower(sd.tracer)));   
             mlraichle.TracerDirector.cleanLocalLogs;         
             popd(pwd0);
         end

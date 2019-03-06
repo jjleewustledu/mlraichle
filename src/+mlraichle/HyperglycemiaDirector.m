@@ -834,7 +834,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                     mlraichle.SessionData( ...
                         'studyData', mlraichle.StudyData, ...
                         'sessionFolder', sid{1}, ...
-                        'vnumber', tbl.v_(d), ...
                         'ac', true));
                     
                 pwd0 = pushd(atlBldr.sessionPath);
@@ -1216,7 +1215,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             if (~isdir(sessp))
                 mlfourdfp.FourdfpVisitor.mkdir(sessp);
             end
-            sessd = SessionData('studyData', StudyData, 'sessionPath', sessp, 'vnumber', v);
+            sessd = SessionData('studyData', StudyData, 'sessionPath', sessp);
             this  = HyperglycemiaDirector('sessionData', sessd);
             switch (lower(ip.Results.kind))
                 case 'ct'
@@ -1540,8 +1539,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                     'ac', true, ...
                     'tracer', '', ...
                     'rnumber', 1, ...
-                    'snumber', 1, ...
-                    'vnumber', tbl.v_(r));
+                    'snumber', 1);
                 nn  = mlfourd.NumericalNIfTId.load(sd.tracerSuvrNamed(param));
                 img = nn.img;
                 if (sum(sum(sum(img))) < eps)

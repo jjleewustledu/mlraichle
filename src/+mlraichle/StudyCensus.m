@@ -18,6 +18,10 @@ classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2018 John Joowon Lee.
     
+    properties (Constant)
+        STUDY_CENSUS_XLSX_FN = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), 'census 2018may31.xlsx')
+    end
+    
 	properties (Dependent)
         censusSubtable
  		censusTable
@@ -39,7 +43,7 @@ classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
             g = this.censusTable_;
         end  
         function g = get.fqfilenameDefault(~)
-            g =  fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), mlraichle.SessionData.STUDY_CENSUS_XLSX_FN);
+            g =  fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), this.STUDY_CENSUS_XLSX_FN);
         end
         function g = get.row(this)
             assert(~isempty(this.sessionData), 'please assign sessionData before requesting a row');

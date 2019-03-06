@@ -78,7 +78,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             fps = {};
             dest_fqfp0 = {};
             for t = 1:length(tags)
-                fp0{t} = sprintf('fdgv%ir2_op_fdgv%ie1to4r1_frame4%s', sess.vnumber, sess.vnumber, tags{t});
+                fp0{t} = sprintf('fdgr2_op_fdge1to4r1_frame4%s', tags{t});
                 fps{t} = [sess.tracerRevision('typ','fp') tags{t}];
                 src_fqfp0{t}  = fullfile(src,  fp0{t}); %#ok<*AGROW>
                 dest_fqfp0{t} = fullfile(dest, fps{t});

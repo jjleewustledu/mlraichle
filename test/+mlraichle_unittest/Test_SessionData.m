@@ -20,8 +20,6 @@ classdef Test_SessionData < matlab.unittest.TestCase
         studyd
  		testObj
         tracer = 'FDG'
-        vloc
-        vnum = 1
  	end
 
 	methods (Test)
@@ -44,7 +42,7 @@ classdef Test_SessionData < matlab.unittest.TestCase
             this.verifyEqual(this.testObj.sessionPath, this.sessp);
         end
         function test_vLocation(this)
-            this.verifyEqual(this.testObj.sessionPath, this.vloc);
+            this.verifyEqual(this.testObj.sessionPath, this.sessp);
         end
         
         %% IMRData
@@ -65,7 +63,7 @@ classdef Test_SessionData < matlab.unittest.TestCase
             this.verifyEqual(this.testObj.freesurferLocation, fullfile(getenv('PPG'), 'freesurfer', 'HYGLY28_V1'));
         end
         function test_fslLocation(this)
-            this.verifyEqual(this.testObj.fslLocation, fullfile(this.vloc, 'fsl', ''));
+            this.verifyEqual(this.testObj.fslLocation, fullfile(this.sessp, 'fsl', ''));
         end
         function test_mriLocation(this)
             this.verifyEqual(this.testObj.mriLocation, ...
@@ -73,28 +71,28 @@ classdef Test_SessionData < matlab.unittest.TestCase
         end              
         function test_T1(this)
             this.verifyEqual(this.testObj.T1('typ', 'fqfn'), ...
-                fullfile(this.vloc, 'T1001.4dfp.hdr'));
+                fullfile(this.sessp, 'T1001.4dfp.hdr'));
         end     
         function test_T1001(this)
             this.verifyEqual(this.testObj.T1('typ', 'fqfn'), ...
-                fullfile(this.vloc, 'T1001.4dfp.hdr'));
+                fullfile(this.sessp, 'T1001.4dfp.hdr'));
         end
         
         function test_mpr_path(this)
             this.verifyEqual(this.testObj.mpr('typ', 'path'), ...
-                fullfile(this.vloc, ''));
+                fullfile(this.sessp, ''));
         end
         function test_mpr_fqfp(this)
             this.verifyEqual(this.testObj.mpr('typ', 'fqfp'), ...
-                fullfile(this.vloc, 'T1001'));
+                fullfile(this.sessp, 'T1001'));
         end
         function test_mpr_4dfpIfh(this)
             this.verifyEqual(this.testObj.mpr('typ', '.4dfp.hdr'), ...
-                fullfile(this.vloc, 'T1001.4dfp.hdr'));
+                fullfile(this.sessp, 'T1001.4dfp.hdr'));
         end
         function test_mpr_niiGz(this)
             this.verifyEqual(this.testObj.mpr('typ', '.nii.gz'), ...
-                fullfile(this.vloc, 'T1001.nii.gz'));
+                fullfile(this.sessp, 'T1001.nii.gz'));
         end
         function test_mpr_imagingContext(this)
             ic = this.testObj.mpr('typ', 'mlmr.MRImagingContext');
@@ -110,10 +108,10 @@ classdef Test_SessionData < matlab.unittest.TestCase
             this.verifyEqual(this.testObj.ct('typ', 'fqfp'), fullfile(this.sessp, 'ct'));
         end
         function test_hdrinfoLocation(this)
-            this.verifyEqual(this.testObj.hdrinfoLocation, fullfile(this.vloc));
+            this.verifyEqual(this.testObj.hdrinfoLocation, fullfile(this.sessp));
         end
         function test_petLocation(this)
-            this.verifyEqual(this.testObj.petLocation, fullfile(this.vloc, 'FDG_V1-NAC', ''));
+            this.verifyEqual(this.testObj.petLocation, fullfile(this.sessp, 'FDG_V1-NAC', ''));
         end
         
         function test_tracerListmodeFrameV(this)
@@ -150,88 +148,77 @@ classdef Test_SessionData < matlab.unittest.TestCase
         function test_tracerLocation(this)
             this.testObj.attenuationCorrected = true;
             this.verifyEqual(this.testObj.tracerLocation, ...
-                sprintf('%s/%s/V%i/%s_V%i-AC', ...
-                this.studyd.subjectsDir, this.sessf, this.vnum, this.tracer, this.vnum));
+                sprintf('%s/%s/%s-AC', ...
+                this.studyd.subjectsDir, this.sessf, this.tracer));
         end
         function test_tracerRevision(this)
             this.testObj.attenuationCorrected = true;
             this.verifyEqual(this.testObj.tracerRevision, ...
-                sprintf('%s/%s/V%i/%s_V%i-AC/%sv%ir1.4dfp.hdr', ...
-                this.studyd.subjectsDir, this.sessf, this.vnum, this.tracer, this.vnum, ...
-                lower(this.tracer), this.vnum));
+                sprintf('%s/%s/%s-AC/%sr1.4dfp.hdr', ...
+                this.studyd.subjectsDir, this.sessf, this.tracer, lower(this.tracer)));
             % fdgv1r1.4dfp.hdr            
             this.testObj.epoch = 1;             
             this.verifyEqual(this.testObj.tracerRevision, ...
-                sprintf('%s/%s/V%i/%s_V%i-AC/E1/%sv%ie1r1.4dfp.hdr', ...
-                this.studyd.subjectsDir, this.sessf, this.vnum, this.tracer, this.vnum, ...
-                lower(this.tracer), this.vnum));
+                sprintf('%s/%s/%s-AC/E1/%se1r1.4dfp.hdr', ...
+                this.studyd.subjectsDir, this.sessf, this.tracer, lower(this.tracer)));
             % E1/fdgv1e1r1.4dfp.hdr
             this.testObj.epoch = 1:4; 
             this.verifyEqual(this.testObj.tracerRevision, ...
-                sprintf('%s/%s/V%i/%s_V%i-AC/E1to4/%sv%ie1to4r1.4dfp.hdr', ...
-                this.studyd.subjectsDir, this.sessf, this.vnum, this.tracer, this.vnum, ...
-                lower(this.tracer), this.vnum));
+                sprintf('%s/%s/%s-AC/E1to4/%se1to4r1.4dfp.hdr', ...
+                this.studyd.subjectsDir, this.sessf, this.tracer, lower(this.tracer)));
             % E1to4/fdgv1e1to4r1.4dfp.hdr  
             this.testObj.rnumber = 2;
             this.verifyEqual(this.testObj.tracerRevision, ...
-                sprintf('%s/%s/V%i/%s_V%i-AC/E1to4/%sv%ie1to4r2.4dfp.hdr', ...
-                this.studyd.subjectsDir, this.sessf, this.vnum, this.tracer, this.vnum, ...
-                lower(this.tracer), this.vnum));
+                sprintf('%s/%s/%s-AC/E1to4/%se1to4r2.4dfp.hdr', ...
+                this.studyd.subjectsDir, this.sessf, this.tracer, lower(this.tracer)));
             % E1to4/fdgv1e1to4r2.4dfp.hdr  
         end
         function test_resolveTagFrame(this)
             this.testObj.attenuationCorrected = true;
             this.verifyEqual(this.testObj.resolveTagFrame(24, 'reset', false), ...
-                sprintf('op_%sv%er1_frame24', lower(this.tracer), this.vnum));
+                sprintf('op_%sr1_frame24', lower(this.tracer)));
             this.verifyEqual(this.testObj.resolveTagFrame(24, 'reset', true), ...
-                sprintf('op_%sv%ir1_frame24', lower(this.tracer), this.vnum));
+                sprintf('op_%sr1_frame24', lower(this.tracer)));
         end
         function test_tracerResolved(this)
             this.testObj.attenuationCorrected = true;
             this.verifyEqual(this.testObj.tracerResolved, ...
-                sprintf('%s/%s/V%i/%s_V%i-AC/%sv%ir1_op_%sv%ir1.4dfp.hdr', ...
-                this.studyd.subjectsDir, this.sessf, this.vnum, this.tracer, this.vnum, ...
-                lower(this.tracer), this.vnum, lower(this.tracer), this.vnum));
+                sprintf('%s/%s/%s-AC/%sr1_op_%sr1.4dfp.hdr', ...
+                this.studyd.subjectsDir, this.sessf, this.tracer, lower(this.tracer), lower(this.tracer)));
             % fdgv1r1_op_fdgv1r1.4dfp.hdr
             this.testObj.epoch = 1;            
             this.verifyEqual(this.testObj.tracerResolved, ...
-                sprintf('%s/%s/V%i/%s_V%i-AC/E1/%sv%ie1r1_op_%sv%ie1r1.4dfp.hdr', ...
-                this.studyd.subjectsDir, this.sessf, this.vnum, this.tracer, this.vnum, ...
-                lower(this.tracer), this.vnum, lower(this.tracer), this.vnum));
+                sprintf('%s/%s/%s-AC/E1/%se1r1_op_%se1r1.4dfp.hdr', ...
+                this.studyd.subjectsDir, this.sessf, this.tracer, lower(this.tracer), lower(this.tracer)));
             % E1/fdgv1e1r1_op_fdgv1e1r1.4dfp.hdr
             this.testObj.epoch = 1; 
             this.testObj.resolveTag = this.testObj.resolveTagFrame(24, 'reset', true);  
             this.verifyEqual(this.testObj.tracerResolved, ...
-                sprintf('%s/%s/V%i/%s_V%i-AC/E1/%sv%ie1r1_op_%sv%ie1r1_frame24.4dfp.hdr', ...
-                this.studyd.subjectsDir, this.sessf, this.vnum, this.tracer, this.vnum, ...
-                lower(this.tracer), this.vnum, lower(this.tracer), this.vnum));
+                sprintf('%s/%s/%s-AC/E1/%se1r1_op_%se1r1_frame24.4dfp.hdr', ...
+                this.studyd.subjectsDir, this.sessf, this.tracer, lower(this.tracer), lower(this.tracer)));
             % E1/fdgv1e1r1_op_fdgv1e1r1_frame24.4dfp.hdr  
             this.testObj.epoch = 1:4;
             this.testObj.resolveTag = this.testObj.resolveTagFrame(4, 'reset', true);              
             this.verifyEqual(this.testObj.tracerResolved, ...
-                sprintf('%s/%s/V%i/%s_V%i-AC/E1to4/%sv%ie1to4r1_op_%sv%ie1to4r1_frame4.4dfp.hdr', ...
-                this.studyd.subjectsDir, this.sessf, this.vnum, this.tracer, this.vnum, ...
-                lower(this.tracer), this.vnum, lower(this.tracer), this.vnum));
+                sprintf('%s/%s/%s-AC/E1to4/%se1to4r1_op_%se1to4r1_frame4.4dfp.hdr', ...
+                this.studyd.subjectsDir, this.sessf, this.tracer, lower(this.tracer), lower(this.tracer)));
             % E1to4/fdgv1e1to4r1_op_fdgv1e1to4r1_frame4.4dfp.hdr 
             this.testObj.rnumber = 2;
             this.verifyEqual(this.testObj.tracerResolved, ...
-                sprintf('%s/%s/V%i/%s_V%i-AC/E1to4/%sv%ie1to4r2_op_%sv%ie1to4r1_frame4.4dfp.hdr', ...
-                this.studyd.subjectsDir, this.sessf, this.vnum, this.tracer, this.vnum, ...
-                lower(this.tracer), this.vnum, lower(this.tracer), this.vnum));
+                sprintf('%s/%s/%s-AC/E1to4/%se1to4r2_op_%se1to4r1_frame4.4dfp.hdr', ...
+                this.studyd.subjectsDir, this.sessf, this.tracer, lower(this.tracer), lower(this.tracer)));
             % E1to4/fdgv1e1to4r2_op_fdgv1e1to4r1_frame4.4dfp.hdr 
         end
         function test_tracerResolvedFinal(this)
             this.testObj.attenuationCorrected = true;
             this.verifyEqual(this.testObj.tracerResolvedFinal, ...
-                sprintf('%s/%s/V%i/%s_V%i-AC/%sv%ir1_op_%sv%ie1to4r1_frame4.4dfp.hdr', ...
-                this.studyd.subjectsDir, this.sessf, this.vnum, this.tracer, this.vnum, ...
-                lower(this.tracer), this.vnum, lower(this.tracer), this.vnum));
+                sprintf('%s/%s/%s-AC/%sr1_op_%se1to4r1_frame4.4dfp.hdr', ...
+                this.studyd.subjectsDir, this.sessf, this.tracer, lower(this.tracer), lower(this.tracer)));
             % fdgv1r1_op_fdgv1e1to4r1_frame4.4dfp.hdr
             this.testObj.epoch = 1;
             this.verifyEqual(this.testObj.tracerResolvedFinal, ...
-                sprintf('%s/%s/V%i/%s_V%i-AC/E1/%sv%ie1r1_op_%sv%ie1to4r1_frame4.4dfp.hdr', ...
-                this.studyd.subjectsDir, this.sessf, this.vnum, this.tracer, this.vnum, ...
-                lower(this.tracer), this.vnum, lower(this.tracer), this.vnum));
+                sprintf('%s/%s/%s-AC/E1/%se1r1_op_%se1to4r1_frame4.4dfp.hdr', ...
+                this.studyd.subjectsDir, this.sessf, this.tracer, lower(this.tracer), lower(this.tracer)));
             % E1/fdgv1e1r1_op_fdgv1e1to4r1_frame4.4dfp.hdr            
         end
         function test_fdg(this)
@@ -254,14 +241,11 @@ classdef Test_SessionData < matlab.unittest.TestCase
 		function setupSessionData(this)
             this.studyd = mlraichle.StudyData;
             this.sessp  = fullfile(this.studyd.subjectsDir, this.sessf, '');
-            this.vnum   = 1;
-            this.vloc   = fullfile(this.sessp, sprintf('V%i', this.vnum), '');
  			this.testObj_  = mlraichle.SessionData( ...
                 'studyData', this.studyd, ...
                 'sessionPath', this.sessp, ...
                 'snumber', 1, ...
-                'tracer', this.tracer, ...
-                'vnumber', this.vnum);
+                'tracer', this.tracer);
  		end
 	end
 

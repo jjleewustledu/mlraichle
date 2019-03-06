@@ -63,17 +63,15 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             jobs   = cell(length(dth.dns), 2);
             c      = myparcluster;
             for d = 1:length(dth.dns)
-                for v = ip.Results.vs
-                    for p = 1:length(parcs)  
-                        datobj = struct('sessionFolder', dthDns{d}, 'vnumber', v, 'sessionDate', ip.Results.sessionDate, 'parcellation', parcs{p});
-                        try
-                            pwd1 = pushd(fullfile(dthDns{d}, sprintf('V%i', v), ''));
-                            %CHPC4FdgKinetics.pushData0(datobj);
-                            jobs{d,v} = c.batch(@mlraichle.FDGKineticsParc.godo3, 1, {datobj});
-                            popd(pwd1);
-                        catch ME
-                            dispwarning(ME);                        
-                        end
+                for p = 1:length(parcs)  
+                    datobj = struct('sessionFolder', dthDns{d}, 'sessionDate', ip.Results.sessionDate, 'parcellation', parcs{p});
+                    try
+                        pwd1 = pushd(fullfile(dthDns{d}, ''));
+                        %CHPC4FdgKinetics.pushData0(datobj);
+                        jobs{d,v} = c.batch(@mlraichle.FDGKineticsParc.godo3, 1, {datobj});
+                        popd(pwd1);
+                    catch ME
+                        dispwarning(ME);                        
                     end
                 end
             end
@@ -100,17 +98,15 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             parcs  = FDGKineticsParc.PARCS;
             jobs = cell(length(dth.dns), 2);
             for d = 1:length(dth.dns)
-                for v = ip.Results.vs
-                    for p = 1:length(parcs)
-                        datobj = struct('sessionFolder', dthDns{d}, 'vnumber', v, 'sessionDate', ip.Results.sessionDate, 'parcellations', parcs{p});
-                        try
-                            pwd1 = pushd(fullfile(dthDns{d}, sprintf('V%i', v), ''));
-                            jobs{d,v} = FDGKineticsParc.godo3(datobj);
-                            saveFigures(sprintf('fig_%s', datestr(now,30)));                       
-                            popd(pwd1);                    
-                        catch ME
-                            dispwarning(ME);                        
-                        end
+                for p = 1:length(parcs)
+                    datobj = struct('sessionFolder', dthDns{d}, 'sessionDate', ip.Results.sessionDate, 'parcellations', parcs{p});
+                    try
+                        pwd1 = pushd(fullfile(dthDns{d},  ''));
+                        jobs{d} = FDGKineticsParc.godo3(datobj);
+                        saveFigures(sprintf('fig_%s', datestr(now,30)));                       
+                        popd(pwd1);                    
+                    catch ME
+                        dispwarning(ME);                        
                     end
                 end
             end
@@ -127,13 +123,10 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             dth    = mlsystem.DirTool('HYGLY2*');
             for d = 1:length(dth.dns)
                 datobj.sessionFolder = dth.dns{d};
-                for v = 1:2
-                    datobj.vnumber = v;
-                    for p = 1:length(parcs)
-                        datobj.parcellation = parcs{p};
-                        sessd = SessionData.struct2sessionData(datobj);
-                        FDGKineticsParc.godoPlots(sessd);
-                    end
+                for p = 1:length(parcs)
+                    datobj.parcellation = parcs{p};
+                    sessd = SessionData.struct2sessionData(datobj);
+                    FDGKineticsParc.godoPlots(sessd);
                 end
             end
             popd(pwd0);
@@ -151,28 +144,25 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             dth    = mlsystem.DirTool('HYGLY2*');
             for d = 1:length(dth.dns)
                 datobj.sessionFolder = dth.dns{d};
-                for v = 1:2
-                    datobj.vnumber = v;
-                    for p = 1:length(parcs)
-                        datobj.parcellation = parcs{p};
-                        pwd1 = pushd(fullfile(dth.dns{d}, sprintf('V%i', v), ''));
-                        sessd = SessionData.struct2sessionData(datobj);
-                        if (ip.Results.pullData0)
-                            CHPC4FdgKinetics.pullData0(sessd);
-                        end
-                        this = FDGKineticsParc.load(sprintf('mlraichle_FDGKineticsParc_%s.mat', datobj.parcellation));
-                        if (isempty(this.sessionData.bloodGlucoseAndHct)) %% KLUDGE:   not sure why this is not in this.
-                            this.sessionData.bloodGlucoseAndHct = BloodGlucoseAndHct( ...
-                                fullfile(this.sessionData.subjectsDir, this.sessionData.bloodGlucoseAndHctXlsx));
-                        end
-                        row = 2*d + v + 2*length(dth.dns)*(p-1);
-                        try
-                            this.writetable('fqfp', fqfp, 'Range', sprintf('A%i:V%i', row, row), 'writeHeader', 1==d&&1==v&&1==p);
-                        catch ME
-                            handwarning(ME);
-                        end
-                        popd(pwd1);
+                for p = 1:length(parcs)
+                    datobj.parcellation = parcs{p};
+                    pwd1 = pushd(fullfile(dth.dns{d}, ''));
+                    sessd = SessionData.struct2sessionData(datobj);
+                    if (ip.Results.pullData0)
+                        CHPC4FdgKinetics.pullData0(sessd);
                     end
+                    this = FDGKineticsParc.load(sprintf('mlraichle_FDGKineticsParc_%s.mat', datobj.parcellation));
+                    if (isempty(this.sessionData.bloodGlucoseAndHct)) %% KLUDGE:   not sure why this is not in this.
+                        this.sessionData.bloodGlucoseAndHct = BloodGlucoseAndHct( ...
+                            fullfile(this.sessionData.subjectsDir, this.sessionData.bloodGlucoseAndHctXlsx));
+                    end
+                    row = 2*d + 2*length(dth.dns)*(p-1);
+                    try
+                        this.writetable('fqfp', fqfp, 'Range', sprintf('A%i:V%i', row, row), 'writeHeader', 1==d && 1==p);
+                    catch ME
+                        handwarning(ME);
+                    end
+                    popd(pwd1);
                 end
             end
             popd(pwd0);

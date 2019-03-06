@@ -11,22 +11,22 @@ classdef AifDx
  	end
 
 	methods (Static)
-        function tbl = aiftbl(subjid, v)
+        function tbl = aiftbl(subjid, ~)
             tbl = readtable(fullfile( ...
                 mlraichle.RaichleRegistry.instance.subjectsDir, ...
                 upper(subjid), ...
                 'Vall', ...
-                sprintf('mlsiemens_Herscovitch1985_constructTracerState_aif_fdgv%ir1.csv', v)));
+                'mlsiemens_Herscovitch1985_constructTracerState_aif_fdgr1.csv'));
             t   = tbl.times(1:end);
             s   = tbl.specificActivity(1:end); % Bq/mL
             tbl = table(t, s, 'VariableNames', {'times' 'specificActivity'});
         end
-        function tbl = tactbl(subjid, v)
+        function tbl = tactbl(subjid, ~)
             tbl = readtable(fullfile( ...
                 mlraichle.RaichleRegistry.instance.subjectsDir, ...
                 upper(subjid), ...
                 'Vall', ...
-                sprintf('mlsiemens_Herscovitch1985_plotScannerWholebrain_fdgv%ir1_fdgv%ir1.csv', v, v)));
+                'mlsiemens_Herscovitch1985_plotScannerWholebrain_fdgr1_fdgr1.csv'));
             t   = tbl.times(end-19:end);
             s   = tbl.specificActivity(end-19:end); % Bq/mL
             tbl = table(t, s, 'VariableNames', {'times' 'specificActivity'});

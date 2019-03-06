@@ -11,7 +11,6 @@ classdef HerscovitchContext < mlraichle.SessionData
         INV_EFF_TWILITE
         o2Content
         resamplerType
-        vnumberRef
     end
 
 	methods 
@@ -48,28 +47,21 @@ classdef HerscovitchContext < mlraichle.SessionData
         function g = get.resamplerType(this)
             g = this.resamplerType_;
         end
-        function g = get.vnumberRef(this)
-            g = this.vnumberRef_;
-        end
         
         %%
         
         function obj  = MaskOpFdg(this)
             obj = mlfourd.ImagingContext( ...
-                fullfile(this.vallLocation, ...
-                         sprintf('aparcAseg_op_fdgv%ir1_mskb.4dfp.hdr', this.vnumberRef)));
+                fullfile(this.vallLocation, 'aparcAseg_op_fdgr1_mskb.4dfp.hdr'));
         end
         function obj  = T1001OpFdg(this)
             obj = mlfourd.ImagingContext( ...
-                fullfile(this.vallLocation, ...
-                         sprintf('T1001r1_op_fdgv%ir1.4dfp.hdr', this.vnumberRef)));
+                fullfile(this.vallLocation, 'T1001r1_op_fdgr1.4dfp.hdr'));
         end
         
         function obj  = tracerResolvedFinal(this, varargin)            
             fqfn = sprintf('%s_%s%s', ...
-                this.tracerRevision('typ', 'fqfp'), ...
-                sprintf('op_fdgv%ir1', this.vnumberRef), ...
-                this.filetypeExt);
+                this.tracerRevision('typ', 'fqfp'), 'op_fdgr1', this.filetypeExt);
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerResolvedFinalOnAtl(this, varargin)
@@ -93,10 +85,10 @@ classdef HerscovitchContext < mlraichle.SessionData
             addParameter(ip, 'rLabel', sprintf('r%i', this.rnumber), @ischar);
             parse(ip, varargin{:});
             
-            [ipr,schar] = this.iprLocation(varargin{:});
+            ipr = this.iprLocation(varargin{:});
             fqfn = fullfile( ...
                 this.vallLocation, ...
-                sprintf('%s%sv%i%s%s%s', lower(ipr.tracer), schar, this.vnumber, this.epochTag, ip.Results.rLabel, this.filetypeExt));
+                sprintf('%s%s%s%s', lower(ipr.tracer), this.epochTag, ip.Results.rLabel, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerRevisionSumt(this, varargin)
@@ -125,11 +117,8 @@ classdef HerscovitchContext < mlraichle.SessionData
             ip.KeepUnmatched = true;
             ip.PartialMatching = false;
             addParameter(ip, 'resamplerType', 'VoxelResampler', @ischar);
-            addParameter(ip, 'vnumberRef', 1, @isnumeric);
             parse(ip, varargin{:});
-            this.resamplerType_ = ip.Results.resamplerType;
-            this.vnumberRef_ = ip.Results.vnumberRef;
-            
+            this.resamplerType_ = ip.Results.resamplerType;            
             this.attenuationCorrected = true;
  		end
  	end 
@@ -138,7 +127,6 @@ classdef HerscovitchContext < mlraichle.SessionData
     
     properties (Access = protected)
         resamplerType_
-        vnumberRef_
     end
     
     methods (Access = protected)
@@ -161,11 +149,11 @@ classdef HerscovitchContext < mlraichle.SessionData
             end
             if (ip.Results.avg)
                 fqfn = fullfile(this.vallLocation, ...
-                    sprintf('%sv%i_op_%s_avg%s', map, this.vnumber, this.fdgRefRevision('typ', 'fp'), ...
+                    sprintf('%s_op_%s_avg%s', map, this.fdgRefRevision('typ', 'fp'), ...
                     this.filetypeExt));
             else
                 fqfn = fullfile(this.vallLocation, ...
-                    sprintf('%s%sv%i_op_%s%s', map, sstr, this.vnumber, this.fdgRefRevision('typ', 'fp'), ...
+                    sprintf('%s%s_op_%s%s', map, sstr, this.fdgRefRevision('typ', 'fp'), ...
                     this.filetypeExt));
             end
             obj  = this.fqfilenameObject(fqfn, varargin{:});
