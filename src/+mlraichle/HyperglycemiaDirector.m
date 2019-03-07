@@ -1219,7 +1219,6 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             this  = HyperglycemiaDirector('sessionData', sessd);
             switch (lower(ip.Results.kind))
                 case 'ct'
-                    this.sessionData_.modality = 'ct';
                     this  = this.instanceSortDownloadCT(downloadPath);
                 case 'freesurfer'
                     this  = this.instanceSortDownloadFreesurfer(downloadPath);

@@ -40,12 +40,6 @@ classdef Test_StudyDataSingleton < matlab.unittest.TestCase
             this.verifyClass(this.testObj.sessionData, 'mlraichle.SessionData');
             this.verifyEqual(this.testObj.sessionData.sessionPath, this.aSessionPath('HYGLY09'));
         end
-        function test_sessionData_sessionDataComposite_(this)
-            cc = this.testObj.sessionData;
-            this.verifyClass(cc, 'mlpatterns.CellComposite');
-            this.verifyEqual(cc{1}.sessionPath, this.aSessionPath('HYGLY08'));
-            this.verifyEqual(length(cc), length(this.testObj.subjectsDirFqdns));
-        end
         function test_sessionData_sessionPath(this)
             sessPth = this.aSessionPath('HYGLY24');
             sessd = this.testObj.sessionData('sessionPath', sessPth);
