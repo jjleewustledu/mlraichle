@@ -39,7 +39,7 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                 disp(s{j});
                 fprintf('\n');
             end
-            save(sprintf('mlraichle_T4ResolveBuilder_parHello_s_%s.mat', datestr(now, 30)), 's');
+            save(sprintf('mlraichle_T4ResolveBuilder_parHello_s_%s.mat', mydatetimestr(now)), 's');
         end
         function these = parTriggeringOnConvertedNAC(varargin)
 
@@ -93,7 +93,7 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                     handwarning(ME);
                 end
             end
-            save(sprintf('mlraichle_T4ResolveBuilder_parTriggerOnConvertedNAC_these_%s.mat', datestr(now, 30)), 'these');
+            save(sprintf('mlraichle_T4ResolveBuilder_parTriggerOnConvertedNAC_these_%s.mat', mydatetimestr(now)), 'these');
         end
         function these = parTriggeringOnConvertedNAC2(varargin)
             
@@ -146,7 +146,7 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                     handwarning(ME);
                 end
             end
-            save(sprintf('mlraichle_T4ResolveBuilder_parTriggerOnConvertedNAC2_these_%s.mat', datestr(now, 30)), 'these');
+            save(sprintf('mlraichle_T4ResolveBuilder_parTriggerOnConvertedNAC2_these_%s.mat', mydatetimestr(now)), 'these');
         end
         function         serialT4ResolveConvertedNAC(varargin)
             
@@ -184,7 +184,7 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                             'tracer',      tracer);
                         this = T4ResolveBuilder('sessionData', sessd);
                         this = this.resolveConvertedNAC;
-                        save(sprintf('mlraichle_T4ResolveBuilder_serialConvertedNAC_this_%s.mat', datestr(now, 30)), 'this');
+                        save(sprintf('mlraichle_T4ResolveBuilder_serialConvertedNAC_this_%s.mat', mydatetimestr(now)), 'this');
                     catch ME
                         handwarning(ME);
                     end
@@ -222,7 +222,7 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                             'tracer',      mlraichle.T4ResolveUtilities.tracerPrefix(eTracer.dns{iTracer}));
                         this = T4ResolveBuilder('sessionData', sessd);
                         this = this.resolveConvertedNAC;                                     
-                        save(sprintf('mlraichle_T4ResolveBuilder_serialConvertedNAC2_this_%s.mat', datestr(now, 30)), 'this');
+                        save(sprintf('mlraichle_T4ResolveBuilder_serialConvertedNAC2_this_%s.mat', mydatetimestr(now)), 'this');
                     catch ME
                         handwarning(ME);
                     end
@@ -279,7 +279,7 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
                     handwarning(ME);
                 end
             end
-            save(sprintf('mlraichle_T4ResolveBuilder_serialTriggeringOnConvertedNAC_these_%s.mat', datestr(now, 30)), 'these');
+            save(sprintf('mlraichle_T4ResolveBuilder_serialTriggeringOnConvertedNAC_these_%s.mat', mydatetimestr(now)), 'these');
         end
         function this  = repairTriggeringOnConvertedNAC(varargin)
 

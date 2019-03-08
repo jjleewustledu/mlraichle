@@ -103,7 +103,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                     try
                         pwd1 = pushd(fullfile(dthDns{d},  ''));
                         jobs{d} = FDGKineticsParc.godo3(datobj);
-                        saveFigures(sprintf('fig_%s', datestr(now,30)));                       
+                        saveFigures(sprintf('fig_%s', mydatetimestr(now)));                       
                         popd(pwd1);                    
                     catch ME
                         dispwarning(ME);                        
@@ -140,7 +140,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             parcs  = FDGKineticsParc.PARCS;
             studyd = StudyData;
             pwd0   = pushd(studyd.subjectsDir);
-            fqfp   = fullfile(pwd0, sprintf('mlraiche_FDGKineticsParc_goWritetable_%s', datestr(now, 30)));
+            fqfp   = fullfile(pwd0, sprintf('mlraiche_FDGKineticsParc_goWritetable_%s', mydatetimestr(now)));
             dth    = mlsystem.DirTool('HYGLY2*');
             for d = 1:length(dth.dns)
                 datobj.sessionFolder = dth.dns{d};

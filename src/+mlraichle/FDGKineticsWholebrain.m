@@ -91,7 +91,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
 
                     FDGKineticsWholebrain.godoMasksOnly(datobj);
                     jobs{d,v} = FDGKineticsWholebrain.godo3(datobj);
-                    saveFigures(sprintf('fig_%s', datestr(now,30)));
+                    saveFigures(sprintf('fig_%s', mydatetimestr(now)));
 
                     popd(pwd1);                    
                 catch ME
@@ -120,7 +120,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
             import mlraichle.*;
             studyd = StudyData;
             pwd0   = pushd(studyd.subjectsDir);
-            fqfp   = fullfile(pwd0, sprintf('mlraiche_FDGKineticsWholebrain_goWritetable_%s', datestr(now, 30)));
+            fqfp   = fullfile(pwd0, sprintf('mlraiche_FDGKineticsWholebrain_goWritetable_%s', mydatetimestr(now)));
             dth    = mlsystem.DirTool('HYGLY2*');
             for d = 1:length(dth.dns)
                 datobj.sessionFolder = dth.dns{d};
