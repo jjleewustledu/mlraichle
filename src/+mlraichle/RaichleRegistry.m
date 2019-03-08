@@ -1,4 +1,4 @@
-classdef RaichleRegistry < handle
+classdef RaichleRegistry < mlnipet.Resources
 	%% RAICHLEREGISTRY 
 
 	%  $Revision$
@@ -13,103 +13,19 @@ classdef RaichleRegistry < handle
     end
     
     properties (Dependent)
-        dicomExtension
-        projectsPath
-        rawdataDir
-        subjectsPath
-        subjectsDir
-        subjectsFolder
-        testSessionPath
-        YeoDir
+        ppgRawdataDir
     end
     
     methods 
         
         %% GET
         
-        function g = get.dicomExtension(~)
-            g = '.dcm';
-        end
-        function x = get.projectsPath(this)
-            x = this.projectsPath_;
-        end
-        function     set.projectsPath(this, x)
-            assert(ischar(x));
-            this.projectsPath_ = x;
-        end
-        function x = get.rawdataDir(~)
+        function x = get.ppgRawdataDir(~)
             x = fullfile(getenv('PPG'), 'rawdata', '');
-        end
-        function x = get.subjectsPath(this)
-            x = this.subjectsDir;
-        end
-        function     set.subjectsPath(this, x)
-            this.subjectsDir = x;
-        end
-        function x = get.subjectsDir(this)
-            x = this.subjectsDir_;
-        end
-        function     set.subjectsDir(this, x)
-            assert(ischar(x));
-            this.subjectsDir_ = x;
-        end
-        function x = get.subjectsFolder(this)
-            x = mybasename(this.subjectsDir_);
-        end
-        function     set.subjectsFolder(this, x)
-            assert(ischar(x));
-            this.subjectsDir_ = fullfile(fileparts(this.subjectsDir_), x, '');
-        end
-        function x = get.testSessionPath(~)
-            x = fullfile(getenv('MLUNIT_TEST_PATH'), 'HYGLY28', '');
-        end
-        function x = get.YeoDir(this)
-            x = this.subjectsDir;
-        end        
+        end      
         
         %%
         
-        function       diaryOff(~)
-            diary off;
-        end
-        function       diaryOn(this, varargin)
-            ip = inputParser;
-            addOptional(ip, 'path', this.subjectsDir, @isdir);
-            parse(ip, varargin{:});
-            
-            diary(fullfile(ip.Results.path, sprintf('%s_diary_%s.log', mfilename, datestr(now, 30))));
-        end
-        function tf  = isChpcHostname(~)
-            [~,hn] = mlbash('hostname');
-            tf = lstrfind(hn, 'gpu') || lstrfind(hn, 'node') || lstrfind(hn, 'login');
-        end
-        function loc = loggingLocation(this, varargin)
-            ip = inputParser;
-            addParameter(ip, 'type', 'path', @isLocationType);
-            parse(ip, varargin{:});
-            
-            switch (ip.Results.type)
-                case 'folder'
-                    [~,loc] = fileparts(this.subjectsDir);
-                case 'path'
-                    loc = this.subjectsDir;
-                otherwise
-                    error('mlpipeline:unsupportedSwitchCase', ...
-                          'StudyData.loggingLocation.ip.Results.type->%s', ip.Results.type);
-            end
-        end
-        function loc = saveWorkspace(this, varargin)
-            ip = inputParser;
-            addOptional(ip, 'path', this.subjectsDir, @isdir);
-            parse(ip, varargin{:});
-            
-            loc = fullfile(ip.Results.path, sprintf('%s_workspace_%s.mat', mfilename, datestr(now, 30)));
-            if (this.isChpcHostname)
-                save(loc, '-v7.3');
-                return
-            end
-            save(loc);
-        end
     end
     
     methods (Static)
@@ -133,16 +49,12 @@ classdef RaichleRegistry < handle
         end
     end  
     
-    %% PRIVATE
+    %% PROTECTED
     
-    properties (Access = 'private')
-        projectsPath_
-        subjectsDir_
-    end
-    
-	methods (Access = 'private')		  
+	methods (Access = protected)		  
  		function this = RaichleRegistry(varargin)
-            this.projectsPath_ = getenv('SINGULARITY_HOME');
+            this = this@mlnipet.Resources(varargin{:});
+            this.projectsPath_ = getenv('PPG_SUBJECTS_DIR');
             this.subjectsDir_ = getenv('PPG_SUBJECTS_DIR');
  		end
     end 
