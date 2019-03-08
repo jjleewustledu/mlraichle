@@ -103,7 +103,7 @@ classdef SessionData < mlnipet.ResolvingSessionData
             end
             this.sessionDate_ = s;
         end
-        function g = get.tauIndices(this)
+        function g    = get.tauIndices(this)
             pris = mlfourd.ImagingContext2(this.tracerPristine('typ','fqfn'));
             g = [];
             if (lexist_4dfp(pris.fqfileprefix))
@@ -183,16 +183,6 @@ classdef SessionData < mlnipet.ResolvingSessionData
                 
         %% IPETData
         
-        function obj  = adhocTimings(this, varargin)
-            %% ADHOCTIMINGS 
-            %  @deprecated
-            
-            ipr = this.iprLocation(varargin{:});
-            fqfn = fullfile( ...
-                this.subjectsDir, ...
-                sprintf('%s-%s-timings.txt', ipr.tracer, this.attenuationTag));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
-        end
         function obj  = arterialSamplerCalCrv(this, varargin)
             [pth,fp] = this.arterialSamplerCrv(varargin{:});
             fqfn = fullfile(pth, [fp '_cal.crv']);
@@ -206,9 +196,6 @@ classdef SessionData < mlnipet.ResolvingSessionData
         end
         function obj  = CCIRRadMeasurements(this)
             obj = mldata.CCIRRadMeasurements.date2filename(this.datetime);
-        end
-        function obj  = petfov(this, varargin)
-            obj = this.mrObject('AIFFOV%s%s', varargin{:});
         end
         function [dt0_,date_] = readDatetime0(this)
             try
