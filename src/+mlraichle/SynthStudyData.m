@@ -34,7 +34,7 @@ classdef SynthStudyData < mlraichle.StudyData
 
  			this = this@mlraichle.StudyData(varargin{:});
             inst = mlraichle.RaichleRegistry.instance;
-            inst.subjectsFolder = 'jjleeSynth';
+            inst.subjectsDir = fullfile(getenv('PPG'), 'jjleeSynth', '');
  		end
  	end 
 
