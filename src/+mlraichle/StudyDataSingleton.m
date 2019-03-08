@@ -10,9 +10,10 @@ classdef StudyDataSingleton < handle & mlpipeline.StudyDataSingleton
         
     properties (Dependent)
         dicomExtension
-        rawdataDir
+        ppgRawdataDir
+        projectsDir
         subjectsDir
-        subjectsFolder
+        YeoDir
     end
 
     methods (Static)
@@ -33,16 +34,19 @@ classdef StudyDataSingleton < handle & mlpipeline.StudyDataSingleton
         %% GET
         
         function g = get.dicomExtension(~)
-            g = '.dcm';
+            d = mlraichle.RaichleRegistry.instance.dicomExtension;
         end
-        function d = get.rawdataDir(~)
+        function d = get.ppgRawdataDir(~)
             d = mlraichle.RaichleRegistry.instance.subjectsDir;
+        end
+        function g = get.projectsDir(~)
+            g = mlraichle.RaichleRegistry.instance.projectsDir;
         end
         function g = get.subjectsDir(~)
             g = mlraichle.RaichleRegistry.instance.subjectsDir;
         end
-        function g = get.subjectsFolder(this)
-            g = basename(this.subjectsDir);
+        function g = get.YeoDir(~)
+            g = mlraichle.RaichleRegistry.instance.YeoDir;
         end
         
         %%
