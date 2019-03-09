@@ -339,9 +339,6 @@ classdef StudyDirector
                 'snumber', sc, ...
                 'tracer', tracer, ...
                 'ac', ipr.ac);
-            if (~isempty(ipr.tauIndices))
-                sessd.tauIndices = ipr.tauIndices;
-            end
             if (~isempty(ipr.fractionalImageFrameThresh))
                 sessd.fractionalImageFrameThresh = ipr.fractionalImageFrameThresh;
             end
