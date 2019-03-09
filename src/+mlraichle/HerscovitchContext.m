@@ -33,7 +33,7 @@ classdef HerscovitchContext < mlraichle.SessionData
             %  pre-3/2016:  mean := 409, covar := 0.0336;
             %  post-3/2016: mean := 216, covar := 0.0862.            
             
-            % if (this.sessionDate < datetime(2017,4,1,'TimeZone', 'America/Chicago'))
+            % if (this.datetime < datetime(2017,4,1,'TimeZone', 'America/Chicago'))
             %     g = 409; 
             % else
             %     g = 216; % [invEffMMR] = 1.

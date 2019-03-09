@@ -6,7 +6,11 @@ classdef SessionData < mlnipet.ResolvingSessionData
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
- 	%% It was developed on Matlab 9.0.0.307022 (R2016a) Prerelease for MACI64.
+ 	%% It was developed on Matlab 9.0.0.307022 (R2016a) Prerelease for MACI64.    
+    
+    properties (Constant)
+        STUDY_CENSUS_XLSX_FN = 'census 2018may31.xlsx'
+    end
     
     properties
         filetypeExt = '.4dfp.hdr'
@@ -19,7 +23,6 @@ classdef SessionData < mlnipet.ResolvingSessionData
         builder
         doseAdminDatetimeTag
         indicesLogical
-        sessionDate
         studyCensus
         tauIndices % use to exclude late frames from builders of AC; e.g., taus := taus(tauIndices)
     end
@@ -87,21 +90,8 @@ classdef SessionData < mlnipet.ResolvingSessionData
             g = true;
             return
         end
-        function g    = get.sessionDate(this)
-            g = this.sessionDate_;
-            if (isempty(g))
-                g = this.readDatetime0;
-            end
-            if (isempty(g.TimeZone))
-                g.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
-            end
-        end
-        function this = set.sessionDate(this, s)
-            assert(isdatetime(s));
-            if (isempty(s.TimeZone))
-                s.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
-            end
-            this.sessionDate_ = s;
+        function g    = get.studyCensus(this)
+            g = mlraichle.StudyCensus(this.STUDY_CENSUS_XLSX_FN', 'sessionData', this);
         end
         function g    = get.tauIndices(this)
             pris = mlfourd.ImagingContext2(this.tracerPristine('typ','fqfn'));
@@ -197,33 +187,6 @@ classdef SessionData < mlnipet.ResolvingSessionData
         function obj  = CCIRRadMeasurements(this)
             obj = mldata.CCIRRadMeasurements.date2filename(this.datetime);
         end
-        function [dt0_,date_] = readDatetime0(this)
-            try
-                frame0 = this.frame;
-                this.frame = nan;
-                dcm = this.tracerListmodeDcm;
-                this.frame = frame0;
-                lp = mlio.LogParser.load(dcm);
-                [dateStr,idx] = lp.findNextCell('%study date (yyyy:mm:dd):=', 1);
-                 timeStr      = lp.findNextCell('%study time (hh:mm:ss GMT+00:00):=', idx);
-                dateNames     = regexp(dateStr, '%study date \(yyyy\:mm\:dd\)\:=(?<Y>\d\d\d\d)\:(?<M>\d+)\:(?<D>\d+)', 'names');
-                timeNames     = regexp(timeStr, '%study time \(hh\:mm\:ss GMT\+00\:00\)\:=(?<H>\d+)\:(?<MI>\d+)\:(?<S>\d+)', 'names');
-                Y  = str2double(dateNames.Y);
-                M  = str2double(dateNames.M);
-                D  = str2double(dateNames.D);
-                H  = str2double(timeNames.H);
-                MI = str2double(timeNames.MI);
-                S  = str2double(timeNames.S);
-
-                dt0_ = datetime(Y,M,D,H,MI,S,'TimeZone','Etc/GMT');
-                dt0_.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
-                date_ = datetime(Y,M,D);
-            catch ME 
-                dispwarning(ME, 'mlraichle:RuntimeWarning', ...
-                    'SessionData.readDatetime0');
-                [dt0_,date_] = readDatetime0@mlpipeline.SessionData(this);
-            end
-        end
         function loc  = tracerRawdataLocation(this, varargin)
             %% Siemens legacy
             ipr = this.iprLocation(varargin{:});
@@ -241,65 +204,6 @@ classdef SessionData < mlnipet.ResolvingSessionData
                          sprintf('%s-%s', ipr.tracer,  this.convertedTag), ...
                          sprintf('%s-LM-00', ipr.tracer), ''));
         end
-        function obj  = tracerResolvedFinal(this, varargin)
-            if (this.attenuationCorrected)
-                switch (this.tracer) % KLUDGE
-                    case 'FDG'                         
-                        rEpoch = 1:this.supEpoch; % KLUDGE within KLUDGE
-                        rFrame = this.supEpoch;
-                    case 'OC'
-                        rEpoch = 1:3;
-                        rFrame = 3;
-                    case {'HO' 'OO'}
-                        rEpoch = 1:3;
-                        rFrame = 3;
-                    otherwise
-                        error('mlraichle:unsupportedSwitchCase', ...
-                              'SessionData.tracerResolvedFinal.this.tracer->%s', this.tracer);
-                end
-            else
-                switch (this.tracer) % KLUDGE
-                    case 'FDG' 
-                        if (strcmp(this.sessionFolder, 'HYGLY25'))
-                            rEpoch = 1:this.supEpoch; % KLUDGE within KLUDGE
-                            rFrame = this.supEpoch;
-                        else
-                            rEpoch = 1:9;
-                            rFrame = 9;
-                        end
-                    case {'HO' 'OO' 'OC'}
-                        rEpoch = 1:2;
-                        rFrame = 2;
-                    otherwise
-                        error('mlraichle:unsupportedSwitchCase', ...
-                              'SessionData.tracerResolvedFinal.this.tracer->%s', this.tracer);
-                end                
-            end
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'resolvedEpoch', rEpoch, @isnumeric); 
-            addParameter(ip, 'resolvedFrame', rFrame, @isnumeric); 
-            parse(ip, varargin{:});
-            
-            % this.rnumber = 2; % POSSIBLE BUG
-            sessd1 = this;
-            sessd1.rnumber = 1;
-            if (this.attenuationCorrected)
-                sessd1.epoch = ip.Results.resolvedEpoch;
-                fqfn = sprintf('%s_%s%s', ...
-                    this.tracerRevision('typ', 'fqfp'), ...
-                    sessd1.resolveTagFrame(ip.Results.resolvedFrame), this.filetypeExt);
-                obj  = this.fqfilenameObject(fqfn, varargin{:});
-            else
-                this.epoch = ip.Results.resolvedEpoch;
-                sessd1.epoch = ip.Results.resolvedEpoch;
-                fqfn = sprintf('%s_%s%s', ...
-                    this.tracerRevision('typ', 'fqfp'), ...
-                    sessd1.resolveTagFrame(ip.Results.resolvedFrame), this.filetypeExt);
-                obj  = this.fqfilenameObject(fqfn, varargin{:});
-            end
-        end
         function obj  = tracerResolvedFinalOnAtl(this, varargin)
             fqfn = fullfile(this.sessionPath, ...
                 sprintf('%s_on_%s_%i%s', this.tracerResolvedFinal('typ', 'fp'), this.studyAtlas.fileprefix, this.atlVoxelSize, this.filetypeExt));
@@ -313,10 +217,6 @@ classdef SessionData < mlnipet.ResolvingSessionData
             %this.rnumber = 2;
             fqfn = fullfile(this.sessionPath, ...
                 sprintf('%sr2_op_%s%s', this.tracerResolvedFinal('typ', 'fp'), this.fdgACRevision('typ', 'fp'), this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
-        end
-        function obj  = tracerResolvedFinalSumt(this, varargin)
-            fqfn = sprintf('%s_sumt%s', this.tracerResolvedFinal('typ', 'fqfp'), this.filetypeExt);
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerResolvedFinalSumtOpFdg(this, varargin)
@@ -499,8 +399,6 @@ classdef SessionData < mlnipet.ResolvingSessionData
         
  		function this = SessionData(varargin)
  			this = this@mlnipet.ResolvingSessionData(varargin{:});
-            
-            setenv('CCIR_RAD_MEASUREMENTS_DIR', fullfile(getenv('HOME'), 'Documents', 'private', ''));
         end
     end
     
@@ -508,7 +406,6 @@ classdef SessionData < mlnipet.ResolvingSessionData
     
     properties (Access = protected)        
         builder_
-        sessionDate_
     end
     
     methods (Access = protected)
