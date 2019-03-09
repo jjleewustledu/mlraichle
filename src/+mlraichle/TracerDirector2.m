@@ -6,6 +6,11 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.4.0.813654 (R2018a) for MACI64.  Copyright 2018 John Joowon Lee.
  	
+    properties (Constant)
+        FAST_FILESYSTEM = '/home2/jjlee'
+        DEBUG = true
+    end
+    
 	properties (Dependent)
         anatomy 	
         outputDir
@@ -47,7 +52,8 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             %  @return this.sessionData.attenuationCorrection == false.
                       
             import mlraichle.TracerDirector2;
-            this = TracerDirector2(mlpet.TracerResolveBuilder(varargin{:}));   
+            this = TracerDirector2(mlpet.TracerResolveBuilder(varargin{:}));
+            this.fastFilesystemSetup;
             if (~this.sessionData.attenuationCorrected)
                 TracerDirector2.prepareFreesurferData(varargin{:});
                 TracerDirector2.constructUmaps(varargin{:});
@@ -55,6 +61,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             else
                 this = this.instanceConstructResolvedAC;
             end
+            this.fastFilesystemTeardown;
         end   
         function objs = migrateResolvedToVall(varargin)
             import mlraichle.TracerDirector2;
@@ -203,7 +210,8 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             
             import mlfourd.ImagingContext2;
             import mlpet.Resources;
-            pwd0 = pushd(this.sessionData.sessionPath);   
+            pwd0 = pushd(this.sessionData.sessionPath);  
+            
             this.builder_ = this.builder.prepareMprToAtlasT4;
             ctm  = this.builder.buildCTMasked2;
             ctm  = this.builder.rescaleCT(ctm);
@@ -260,7 +268,6 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             popd(pwd0);            
         end
         function this = instanceConstructResolvedAC(this)
-            pwd0 = pushd(this.sessionData.tracerLocation);  
             mlnipet.NipetBuilder.CreatePrototypeAC(this.sessionData);
             this          = this.prepareFourdfpTracerImages;   
             this.builder_ = this.builder_.reconstituteFramesAC;
@@ -271,10 +278,12 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             this.builder_ = this.builder_.reconstituteFramesAC2;
             this.builder_ = this.builder_.sumProduct;
             this.builder_.logger.save; 
-            save('mlraichle.TracerDirector_instanceConstructResolvedAC.mat');   
-            this.builder_.markAsFinished;
-            %this.builder_.deleteWorkFiles;
-            popd(pwd0);
+            if (this.DEBUG)
+                save('mlraichle.TracerDirector_instanceConstructResolvedAC.mat');
+            else                
+                this.builder_.deleteWorkFiles;
+                this.builder_.markAsFinished;
+            end
         end
         function this = instanceConstructResolvedNAC(this)
             mlnipet.NipetBuilder.CreatePrototypeNAC(this.sessionData);
@@ -287,10 +296,76 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             this.builder_ = this.builder_.aufbauUmaps;     
             this.builder_.logger.save;       
             p = this.flipKLUDGE____(this.builder_.product); % KLUDGE:  bug at interface with NIPET
-            p.save;            
-            save('mlraichle.TracerDirector2_instanceConstructResolvedNAC.mat');
-            this.builder_.markAsFinished;
-            %this.builder_.deleteWorkFiles;
+            p.save;
+            if (this.DEBUG)
+                save('mlraichle.TracerDirector2_instanceConstructResolvedNAC.mat');
+            else
+                this.builder_.deleteWorkFiles;
+                this.builder_.markAsFinished;
+            end
+        end
+        function pwdLast = fastFilesystemSetup(this)
+            slowd = this.sessionData.tracerPath;
+            if (~isdir(this.FAST_FILESYSTEM))
+                pwdLast = pushd(slowd);
+                return
+            end
+            
+            pwdLast = pwd;
+            fastd = fullfile(this.FAST_FILESYSTEM, slowd, '');
+            fastdParent = fileparts(fastd);
+            slowdParent = fileparts(slowd);
+            try
+                mlbash(sprintf('mkdir -p %s', fastd));
+                mlbash(sprintf('rsync -rav %s/* %s', slowd, fastd))
+                mlbash(sprintf('if [[ -e %s/ct ]];      then rm  %s/ct; fi', fastdParent, fastdParent));
+                mlbash(sprintf('if [[ -e %s/mri ]];     then rm  %s/mri; fi', fastdParent, fastdParent));
+                mlbash(sprintf('if [[ -e %s/rawdata ]]; then rm  %s/rawdata; fi', fastdParent, fastdParent));
+                mlbash(sprintf('if [[ -e %s/SCANS ]];   then rm  %s/SCANS; fi', fastdParent, fastdParent));
+                mlbash(sprintf('if [[ -e %s/umaps ]];   then rm  %s/umaps; fi', fastdParent, fastdParent));
+                mlbash(sprintf('ln -s  %s/ct %s/ct', slowdParent, fastdParent));
+                mlbash(sprintf('ln -s  %s/mri %s/mri', slowdParent, fastdParent));
+                mlbash(sprintf('ln -s  %s/rawdata %s/rawdata', slowdParent, fastdParent));
+                mlbash(sprintf('ln -s  %s/SCANS %s/SCANS', slowdParent, fastdParent));
+                mlbash(sprintf('ln -s  %s/umaps %s/umaps', slowdParent, fastdParent));
+                cd(fastd);
+            catch ME
+                handexcept(ME);
+            end
+            
+            % redirect projectsDir
+            inst = mlraichle.RaichleRegistry.instance;
+            inst.projectsDir = fullfile(this.FAST_FILESYSTEM, getenv('PPG_SUBJECTS_DIR'));
+            inst.subjectsDir = fullfile(this.FAST_FILESYSTEM, getenv('PPG_SUBJECTS_DIR'));
+            
+        end
+        function pwdLast = fastFilesystemTeardown(this)
+            slowd = this.sessionData.tracerPath;
+            if (~isdir(this.FAST_FILESYSTEM))
+                pwdLast = popd(slowd);
+                return
+            end
+            
+            pwdLast = pwd;   
+            fastd = fullfile(this.FAST_FILESYSTEM, slowd, '');  
+            fastdParent = fileparts(fastd);    
+            try
+                mlbash(sprintf('rm  %s/ct', fastdParent));
+                mlbash(sprintf('rm  %s/mri', fastdParent));
+                mlbash(sprintf('rm  %s/rawdata', fastdParent));
+                mlbash(sprintf('rm  %s/SCANS', fastdParent));
+                mlbash(sprintf('rm  %s/umaps', fastdParent));
+                mlbash(sprintf('rsync -rav %s/* %s', fastd, slowd))
+                mlbash(sprintf('rm -rf %s', fastdParent))
+                cd(slowd);
+            catch ME
+                handexcept(ME);
+            end
+            
+            % redirect projectsDir
+            inst = mlraichle.RaichleRegistry.instance;
+            inst.projectsDir = fullfile(getenv('PPG_SUBJECTS_DIR'));
+            inst.subjectsDir = fullfile(getenv('PPG_SUBJECTS_DIR'));
         end
         function this = prepareFourdfpTracerImages(this)
             %% copies reduced-FOV NIfTI tracer images to this.sessionData.tracerLocation in 4dfp format.
