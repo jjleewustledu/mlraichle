@@ -47,7 +47,7 @@ classdef StudyCensus < mlio.AbstractXlsxIO & mlpipeline.IStudyCensus
         end
         function g = get.row(this)
             assert(~isempty(this.sessionData), 'please assign sessionData before requesting a row');
-            sdate_ = this.sessionData.sessionDate;
+            sdate_ = this.sessionData.datetime;
             [~,g] = max(this.censusTable.date == datetime(sdate_.Year, sdate_.Month, sdate_.Day) > 0);
             assert(strcmpi(this.censusTable.subjectID(g), this.sessionData.sessionFolder));
             if (~isempty(this.censusTable.v_(g)))
