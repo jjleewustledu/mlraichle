@@ -54,8 +54,10 @@ classdef RaichleRegistry < mlnipet.Resources
 	methods (Access = protected)		  
  		function this = RaichleRegistry(varargin)
             this = this@mlnipet.Resources(varargin{:});
-            this.projectsPath_ = getenv('PPG_SUBJECTS_DIR');
-            this.subjectsDir_ = getenv('PPG_SUBJECTS_DIR');
+            this.projectsDir_ = getenv('PPG_SUBJECTS_DIR');
+            this.subjectsDir_ = getenv('PPG_SUBJECTS_DIR');            
+            setenv('CCIR_RAD_MEASUREMENTS_DIR',  ...
+                   fullfile(getenv('HOME'), 'Documents', 'private', ''));
  		end
     end 
 
