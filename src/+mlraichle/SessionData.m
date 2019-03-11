@@ -219,6 +219,13 @@ classdef SessionData < mlnipet.ResolvingSessionData
                 sprintf('%sr2_op_%s%s', this.tracerResolvedFinal('typ', 'fp'), this.fdgACRevision('typ', 'fp'), this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
+        function obj  = tracerResolvedFinalAvgtOpFdg(this, varargin)
+            fn = this.tracerResolvedFinalAvgt('typ', 'fn');
+            if (~strcmpi(this.tracer, 'FDG'))
+                fn = sprintf('%sr2_op_%s', this.tracerResolvedFinalAvgt('typ', 'fp'), this.fdgACRevision('typ', 'fn')); 
+            end
+            obj  = this.fqfilenameObject(fullfile(this.sessionPath, fn), varargin{:});
+        end
         function obj  = tracerResolvedFinalSumtOpFdg(this, varargin)
             fn = this.tracerResolvedFinalSumt('typ', 'fn');
             if (~strcmpi(this.tracer, 'FDG'))

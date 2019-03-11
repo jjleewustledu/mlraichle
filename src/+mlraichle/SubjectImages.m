@@ -476,10 +476,10 @@ classdef SubjectImages
         end  
         function front = frontOfFileprefix(this, fps, varargin) 
             %  @param fps is cell (recursive) or char (base-case).
-            %  @param optional sumt is boolean.
+            %  @param optional avgt is boolean.
             
             ip = inputParser;
-            addOptional(ip, 'sumt', false, @islogical);
+            addOptional(ip, 'avgt', false, @islogical);
             parse(ip, varargin{:});
             
             fps = mybasename(fps);
@@ -494,7 +494,7 @@ classdef SubjectImages
                 front = fps;
                 return
             end
-            if (~ip.Results.sumt)
+            if (~ip.Results.avgt)
                 front = fps(1:loc-1);
                 return
             end
@@ -562,24 +562,24 @@ classdef SubjectImages
         function [sessd,acopy] = refreshTracerResolvedFinal(this, sessd, sessdRef, varargin)
             %  @param sessionData.
             %  @param sessionData of reference.
-            %  @param optional sumt is boolean.
+            %  @param optional avgt is boolean.
             %  @return sessionData has refreshed supEpoch, checked against the filesystem.
             %  @return acopy created at this.frontOfFileprefixR1(sessd.tracerResolvedFinal('typ','fp')).
             
             ip = inputParser;
-            addOptional(ip, 'sumt', false, @islogical);
+            addOptional(ip, 'avgt', false, @islogical);
             parse(ip, varargin{:});
-            if (~ip.Results.sumt)
+            if (~ip.Results.avgt)
                 meth = 'tracerResolvedFinal';
             else
-                meth = 'tracerResolvedFinalSumt';
+                meth = 'tracerResolvedFinalAvgt';
                 mlfourdfp.T4ResolveBuilder.ensureSumtSaved(sessd.(meth));
             end
             
             [sessd,sessdRef] = this.ensureRefreshedTracerResolvedFinal(sessd, sessdRef, meth); 
             ensuredir(sessdRef.vallLocation);
             pwd0 = pushd(sessdRef.vallLocation);
-            acopy = this.frontOfFileprefixR1(sessd.(meth)('typ','fqfp'), ip.Results.sumt);
+            acopy = this.frontOfFileprefixR1(sessd.(meth)('typ','fqfp'), ip.Results.avgt);
             if (~lexist_4dfp(acopy))
                 this.buildVisitor_.copy_4dfp(sessd.(meth)('typ','fqfp'), acopy);
             end
@@ -767,11 +767,11 @@ classdef SubjectImages
         end
         function imgs = sourceImages(this, tracer, varargin)
             %  @param tracer is char.
-            %  @param optional sumt is boolean.
+            %  @param optional avgt is boolean.
             %  @return imgs = cell(1, N(available images)) of char in location acopy from this.refreshTracerResolvedFinal.
             
             ip = inputParser;
-            addOptional(ip, 'sumt', false, @islogical);
+            addOptional(ip, 'avgt', false, @islogical);
             parse(ip, varargin{:});
             
             sessd = this.sessionData_;
@@ -795,7 +795,7 @@ classdef SubjectImages
                             sessd.snumber = ...
                                 str2double(this.census_.t4ResolvedCompleteWithAC{i}(found{i}(j)+1));
                         end
-                        [sessd,acopy] = this.refreshTracerResolvedFinal(sessd, sessd.reference, ip.Results.sumt);
+                        [sessd,acopy] = this.refreshTracerResolvedFinal(sessd, sessd.reference, ip.Results.avgt);
                         imgs{k} = acopy; %#ok<AGROW>
                         k = k + 1;
                     catch ME

@@ -59,7 +59,7 @@ classdef HerscovitchContext < mlraichle.SessionData
                 fullfile(this.vallLocation, 'T1001r1_op_fdgr1.4dfp.hdr'));
         end
         
-        function obj  = tracerResolvedFinal(this, varargin)            
+        function obj  = tracerResolvedFinal(this, varargin)
             fqfn = sprintf('%s_%s%s', ...
                 this.tracerRevision('typ', 'fqfp'), 'op_fdgr1', this.filetypeExt);
             obj  = this.fqfilenameObject(fqfn, varargin{:});
@@ -71,6 +71,10 @@ classdef HerscovitchContext < mlraichle.SessionData
         end
         function obj  = tracerResolvedFinalSumt(this, varargin)
             fqfn = sprintf('%s_sumt%s', this.tracerResolvedFinal('typ', 'fqfp'), this.filetypeExt);
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = tracerResolvedFinalAvgt(this, varargin)
+            fqfn = sprintf('%s_avgt%s', this.tracerResolvedFinal('typ', 'fqfp'), this.filetypeExt);
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerResolvedSubj(this, varargin)
@@ -89,6 +93,10 @@ classdef HerscovitchContext < mlraichle.SessionData
             fqfn = fullfile( ...
                 this.vallLocation, ...
                 sprintf('%s%s%s%s', lower(ipr.tracer), this.epochTag, ip.Results.rLabel, this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = tracerRevisionAvgt(this, varargin)
+            fqfn = sprintf('%s_avgt%s', this.tracerRevision('typ', 'fqfp'), this.filetypeExt);
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerRevisionSumt(this, varargin)

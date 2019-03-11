@@ -610,7 +610,7 @@ classdef TracerDirector < mlpet.TracerDirector
                     if (isnan(ct.v_(d)))
                         continue
                     end
-                    dt = mlsystem.DirTool([sd.tracerResolvedFinalSumt('typ','fqfp') '*_this_2018*T*.mat']);
+                    dt = mlsystem.DirTool([sd.tracerResolvedFinalAvgt('typ','fqfp') '*_this_2018*T*.mat']);
                     if (isempty(dt.fqfns))
                         continue
                     end
@@ -990,7 +990,7 @@ classdef TracerDirector < mlpet.TracerDirector
                 mlbash(sprintf('fslview_deprecated %s_b75.4dfp.img -b 0,%g %s.4dfp.img -t %g -l Cool', ...
                     sd.tracerResolvedFinal('typ','fp'), ...
                     bval, ...
-                    sd.tracerResolvedFinalSumt('typ','fp'), ...
+                    sd.tracerResolvedFinalAvgt('typ','fp'), ...
                     tval));
                 popd(pwd0);
             catch ME                
@@ -1027,7 +1027,7 @@ classdef TracerDirector < mlpet.TracerDirector
                         if (isdir(sd_.tracerLocation))
                             try
                                 assertExistResolved(sd_);
-                                cella = [cella sd_.tracerResolvedFinalSumt('typ','fn.4dfp.img')]; %#ok<AGROW>
+                                cella = [cella sd_.tracerResolvedFinalAvgt('typ','fn.4dfp.img')]; %#ok<AGROW>
                             catch ME_                
                                 dispwarning(ME_);
                             end    
@@ -1038,7 +1038,7 @@ classdef TracerDirector < mlpet.TracerDirector
                             if (isdir(sd_.tracerLocation))
                                 try
                                     assertExistResolved(sd_);
-                                    cella = [cella sd_.tracerResolvedFinalSumt('typ','fn.4dfp.img')]; %#ok<AGROW>
+                                    cella = [cella sd_.tracerResolvedFinalAvgt('typ','fn.4dfp.img')]; %#ok<AGROW>
                                 catch ME_
                                     dispwarning(ME_);
                                 end
@@ -1049,7 +1049,7 @@ classdef TracerDirector < mlpet.TracerDirector
             end            
             function assertExistResolved(sd_)
                 assertExistFourdfp(sd_.tracerResolvedFinal('typ','fqfp'));
-                assertExistFourdfp(sd_.tracerResolvedFinalSumt('typ','fqfp'));
+                assertExistFourdfp(sd_.tracerResolvedFinalAvgt('typ','fqfp'));
             end
             function assertExistFourdfp(fqfp)
                 assert(lexist_4dfp(fqfp, 'file'), ...
@@ -1091,7 +1091,7 @@ classdef TracerDirector < mlpet.TracerDirector
             sd.rnumber = 1;
             pwd0 = pushd(fullfile(sd.tracerLocation, ''));
             try
-                if (~lexist(sd.tracerRevisionSumt, 'file'))
+                if (~lexist(sd.tracerRevisionAvgt, 'file'))
                     this.builder_ = this.builder_.packageProduct(sd.tracerRevision);
                     this.builder_ = this.builder_.avgtProduct;
                 end
@@ -1116,7 +1116,7 @@ classdef TracerDirector < mlpet.TracerDirector
                 fullfile(sd.tracerLocation, sprintf('brainmaskr1r2_to_op_fdgv%ir1_t4', sd.vnumber)), ...
                                             sprintf('fdgv%ir1_to_brainmask_t4', sd.vnumber));            
             t4_ = fv.t4_mul(t4_, 'T1001_to_TRIO_Y_NDC_t4', 'urgentCheckFdg_to_TRIO_Y_NDC_t4');
-            fp_ = fv.t4img_4dfp(t4_, sd.tracerResolvedFinalSumt('typ','fqfp'), 'out', 'urgentCheckFdgOnAtl', 'options', '-O111');
+            fp_ = fv.t4img_4dfp(t4_, sd.tracerResolvedFinalAvgt('typ','fqfp'), 'out', 'urgentCheckFdgOnAtl', 'options', '-O111');
             fqfp_ = fullfile(sd.sessionPath, fp_);
             popd(pwd0);
         end
@@ -1151,7 +1151,7 @@ classdef TracerDirector < mlpet.TracerDirector
             sd = this.sessionData;
             
             c = {};
-            t4 = sprintf('%sr0_to_%s_t4', sd.tracerResolvedFinalSumt('typ','fp'), cRB.resolveTag);
+            t4 = sprintf('%sr0_to_%s_t4', sd.tracerResolvedFinalAvgt('typ','fp'), cRB.resolveTag);
             outfile = [ic.fileprefix 'op_TRIO_Y_NDC']; 
             if (lexist(strrep(t4,'r0','r2'), 'file') && ~lexist_4dfp(outfile))
                 try
