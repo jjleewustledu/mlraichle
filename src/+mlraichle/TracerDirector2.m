@@ -57,11 +57,13 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             if (~this.sessionData.attenuationCorrected)
                 TracerDirector2.prepareFreesurferData(varargin{:});
                 TracerDirector2.constructUmaps(varargin{:});
-                this = this.instanceConstructResolvedNAC;
+                this = this.instanceConstructResolvedNAC;                
+                this.fastFilesystemTeardownWithAC(true); % intermediate artifacts
             else
                 this = this.instanceConstructResolvedAC;
             end
             this.fastFilesystemTeardown;
+            this.fastFilesystemTeardownProject;
         end   
         function objs = migrateResolvedToVall(varargin)
             import mlraichle.TracerDirector2;
@@ -340,7 +342,13 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             
         end
         function pwdLast = fastFilesystemTeardown(this)
-            slowd = this.sessionData.tracerPath;
+            pwdLast = this.fastFilesystemTeardownWithAC(this.sessionData.attenuationCorrected);
+        end
+        function pwdLast = fastFilesystemTeardownWithAC(this, ac)
+            assert(islogical(ac));
+            this.sessionData.attenuationCorrected = ac;
+            slowd = fullfile(getenv('PPG_SUBJECTS_DIR'), ...
+                             this.sessionData.projectFolder, this.sessionData.sessionFolder, this.sessionData.tracerFolder, '');
             if (~isdir(this.FAST_FILESYSTEM))
                 pwdLast = popd(slowd);
                 return
@@ -348,15 +356,9 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             
             pwdLast = pwd;   
             fastd = fullfile(this.FAST_FILESYSTEM, slowd, '');  
-            fastdParent = fileparts(fastd);    
             try
-                mlbash(sprintf('rm  %s/ct', fastdParent));
-                mlbash(sprintf('rm  %s/mri', fastdParent));
-                mlbash(sprintf('rm  %s/rawdata', fastdParent));
-                mlbash(sprintf('rm  %s/SCANS', fastdParent));
-                mlbash(sprintf('rm  %s/umaps', fastdParent));
-                mlbash(sprintf('rsync -rav %s/* %s', fastd, slowd))
-                mlbash(sprintf('rm -rf %s', fastdParent))
+                mlbash(sprintf('rsync -rav %s/* %s', fastd, slowd))             
+                mlbash(sprintf('rm -rf %s', fastd))
                 cd(slowd);
             catch ME
                 handexcept(ME);
@@ -366,6 +368,16 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             inst = mlraichle.RaichleRegistry.instance;
             inst.projectsDir = fullfile(getenv('PPG_SUBJECTS_DIR'));
             inst.subjectsDir = fullfile(getenv('PPG_SUBJECTS_DIR'));
+        end
+        function fastFilesystemTeardownProject(this)            
+            try
+                fastProjPath = fullfile(this.FAST_FILESYSTEM, ...
+                                        getenv('PPG_SUBJECTS_DIR'), ...
+                                        this.sessionData.projectFolder, '');
+                mlbash(sprintf('rm -rf %s', fastProjPath))
+            catch ME
+                handexcept(ME);
+            end
         end
         function this = prepareFourdfpTracerImages(this)
             %% copies reduced-FOV NIfTI tracer images to this.sessionData.tracerLocation in 4dfp format.
