@@ -7,7 +7,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
  	%% It was developed on Matlab 9.4.0.813654 (R2018a) for MACI64.  Copyright 2018 John Joowon Lee.
  	
     properties (Constant)
-        FAST_FILESYSTEM = '/home2/jjlee'
+        FAST_FILESYSTEM = '/fast_filesystem_disabled'
         DEBUG = true
     end
     

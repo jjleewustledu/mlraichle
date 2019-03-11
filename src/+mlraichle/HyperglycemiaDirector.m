@@ -1262,14 +1262,10 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                                 'snumber', iscan, ...
                                 'tracer', tracers{itrac}, ...
                                 'ac', ipr.ac, ...
-                                'supEpoch', ipr.supEpoch);                                
-                            if (~isempty(ipr.tauIndices))
-                                sessd.tauIndices = ipr.tauIndices;
-                            end
-
+                                'supEpoch', ipr.supEpoch, ...
+                                'tauIndices', ipr.tauIndices);                                
                             if (isdir(sessd.tracerRawdataLocation))
                                 % there exist spurious tracerLocations; select those with corresponding raw data
-
                                 mlraichle.TracerDirector.avgTracerRevision1( ...
                                     'sessionData', sessd, varargin{:});
                             end
@@ -1315,14 +1311,10 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                                 'snumber', iscan, ...
                                 'tracer', tracers{itrac}, ...
                                 'ac', ipr.ac, ...
-                                'supEpoch', ipr.supEpoch);                                
-                            if (~isempty(ipr.tauIndices))
-                                sessd.tauIndices = ipr.tauIndices;
-                            end
-
+                                'supEpoch', ipr.supEpoch, ...
+                                'tauIndices', ipr.tauIndices);                                
                             if (isdir(sessd.tracerRawdataLocation))
                                 % there exist spurious tracerLocations; select those with corresponding raw data
-
                                 mlraichle.TracerDirector.avgTracerResolvedFinal( ...
                                     'sessionData', sessd, varargin{:});
                             end

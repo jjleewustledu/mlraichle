@@ -15,7 +15,6 @@ classdef SessionData < mlnipet.ResolvingSessionData
     properties
         filetypeExt = '.4dfp.hdr'
         fullFov = [344 344 127];
-        tauMultiplier = 1 % 1,2,4,8,16
         atlVoxelSize = 333
     end
     
@@ -25,6 +24,7 @@ classdef SessionData < mlnipet.ResolvingSessionData
         indicesLogical
         studyCensus
         tauIndices % use to exclude late frames from builders of AC; e.g., taus := taus(tauIndices)
+        tauMultiplier
     end
     
     methods (Static)
@@ -94,15 +94,10 @@ classdef SessionData < mlnipet.ResolvingSessionData
             g = mlraichle.StudyCensus(this.STUDY_CENSUS_XLSX_FN', 'sessionData', this);
         end
         function g    = get.tauIndices(this)
-            pris = mlfourd.ImagingContext2(this.tracerPristine('typ','fqfn'));
-            g = [];
-            if (lexist_4dfp(pris.fqfileprefix))
-                sz = mlfourdfp.FourdfpVisitor.size_4dfp(pris);
-                g  = 1:sz(4);                
-                if (length(g) > 73) %% KLUDGE
-                    g = 1:73;
-                end                
-            end
+            g = this.tauIndices_;
+        end 
+        function g    = get.tauMultiplier(this)
+            g = this.tauMultiplier_;
         end 
         
         %% IMRData
@@ -406,6 +401,13 @@ classdef SessionData < mlnipet.ResolvingSessionData
         
  		function this = SessionData(varargin)
  			this = this@mlnipet.ResolvingSessionData(varargin{:});
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'tauIndices', [], @isnumeric);
+            addParameter(ip, 'tauMultiplier', 1, @(x) isnumeric(x) && x >= 1);
+            parse(ip, varargin{:});
+            this.tauIndices_ = ip.Results.tauIndices;
+            this.tauMultiplier_ = ip.Results.tauMultiplier;
         end
     end
     
@@ -413,6 +415,8 @@ classdef SessionData < mlnipet.ResolvingSessionData
     
     properties (Access = protected)        
         builder_
+        tauIndices_
+        tauMultiplier_
     end
     
     methods (Access = protected)
@@ -420,44 +424,31 @@ classdef SessionData < mlnipet.ResolvingSessionData
             if (~this.attenuationCorrected)
                 switch (upper(this.tracer))
                     case 'FDG'
-                        g = [30,30,30,30,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
-                        % length -> 65 <- 30*10 + 55*60
-                    case {'OC' 'CO'}
-                        g = [30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30];
-                        % length -> 14
-                    case 'OO'
-                        g = [30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30];
-                        % length -> 10
-                    case 'HO'
-                        g = [30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30];
-                        % length -> 10
+                        g = [30,32,33,35,37,40,43,46,49,54,59,65,72,82,94,110,132,165,218,315,535,1354];
+                        % length == 22, dur == 3600
+                    case {'OC' 'CO' 'OO' 'HO'}
+                        g = [10,11,11,12,13,14,15,16,18,20,22,25,29,34,41,52,70,187];
+                        % length == 18, dur = 600
                     otherwise
-                        error('mlraichle:unsupportedSwitchcase', 'NAC:SessionData.taus.this.tracer->%s', this.tracer);
+                        error('mlraichle:IndexError', 'NAC:SessionData.alternativeTaus.this.tracer->%s', this.tracer);
                 end
             else            
                 switch (upper(this.tracer))
                     case 'FDG'
-                        g = [10,10,10,10,10,10,10,10,10,10,10,10,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60];
-                        % length -> 73 <- 12*10 + 6*30 + 55*60
-                    case {'OC' 'CO'}
-                        g = [3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,6,6,6,6,6,7,7,7,7,8,8,8,9,9,10,10,11,12,13,13,15,16,17,19,21,24,27,32,38,47,62,88] ;
-                        % g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
-                        % length -> 70 <- 40*3 + 30*10
-                    case 'OO'
-                        g = [3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,6,6,6,6,6,7,7,7,7,8,8,8,9,9,10,10,11,12,13,13,15,16,17,19,21,24,27,32,38,47,62,88];
-                        % g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
-                        % length -> 58 <- 40*3 + 18*10
+                        g = [10,10,10,11,11,11,11,11,12,12,12,12,13,13,13,13,14,14,14,15,15,15,16,16,17,17,18,18,19,19,20,21,21,22,23,24,25,26,27,28,30,31,33,35,37,39,42,45,49,53,58,64,71,80,92,107,128,159,208,295,485,1097];
+                        % length ==62, dur == 3887
                     case 'HO'
                         g = [3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,6,6,6,6,6,7,7,7,7,8,8,8,9,9,10,10,11,12,13,13,15,16,17,19,21,24,27,32,38,47,62,88];
-                        % g = [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10];
-                        % length -> 58
+                        % length == 60, dur == 684
+                    case {'OC' 'CO' 'OO'}
+                        g = [5,5,5,5,6,6,6,6,6,7,7,7,7,8,8,9,9,9,10,11,11,12,13,14,15,16,18,20,22,25,29,34,41,52,69,103];
+                        % length == 36, dur ==636
                     otherwise
-                        error('mlraichle:unsupportedSwitchcase', 'AC:SessionData.taus.this.tracer->%s', this.tracer);
+                        error('mlraichle:IndexError', 'AC:SessionData.alternativeTaus.this.tracer->%s', this.tracer);
                 end
             end
-            ti = this.tauIndices;
-            if (~isempty(ti))
-                g = g(ti);
+            if (~isempty(this.tauIndices))
+                g = g(this.tauIndices);
             end
             if (this.tauMultiplier > 1)
                 g = this.multiplyTau(g);
@@ -524,11 +515,9 @@ classdef SessionData < mlnipet.ResolvingSessionData
             ti = 1;
             a  = 1;
             b  = this.tauMultiplier;
-            while (ti <= N1)
-                
-                tau1(ti) = sum(tau(a:b));
-                
-                ti =     ti + 1;
+            while (ti <= N1)                
+                tau1(ti) = sum(tau(a:b));                
+                ti = ti + 1;
                 a  = min(a  + this.tauMultiplier, length(tau));
                 b  = min(b  + this.tauMultiplier, length(tau));
                 if (a > length(tau) || b > length(tau)); break; end
