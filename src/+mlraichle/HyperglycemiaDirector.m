@@ -1228,7 +1228,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             end
             cd(pwd0);
         end     
-        function those = sumTracerRevision1Par(varargin)
+        function those = avgTracerRevision1Par(varargin)
             import mlsystem.* mlraichle.*;
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -1270,7 +1270,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                             if (isdir(sessd.tracerRawdataLocation))
                                 % there exist spurious tracerLocations; select those with corresponding raw data
 
-                                mlraichle.TracerDirector.sumTracerRevision1( ...
+                                mlraichle.TracerDirector.avgTracerRevision1( ...
                                     'sessionData', sessd, varargin{:});
                             end
                         catch ME
@@ -1281,7 +1281,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                 popd(pwds);
             end 
         end 
-        function those = sumTracerResolvedFinalPar(varargin)
+        function those = avgTracerResolvedFinalPar(varargin)
             import mlsystem.* mlraichle.*;
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -1323,7 +1323,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
                             if (isdir(sessd.tracerRawdataLocation))
                                 % there exist spurious tracerLocations; select those with corresponding raw data
 
-                                mlraichle.TracerDirector.sumTracerResolvedFinal( ...
+                                mlraichle.TracerDirector.avgTracerResolvedFinal( ...
                                     'sessionData', sessd, varargin{:});
                             end
                         catch ME

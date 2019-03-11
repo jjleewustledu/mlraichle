@@ -278,7 +278,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             this.builder_ = this.builder_.partitionMonolith;
             this.builder_ = this.builder_.motionCorrectFrames;            
             this.builder_ = this.builder_.reconstituteFramesAC2;
-            this.builder_ = this.builder_.sumProduct;
+            this.builder_ = this.builder_.avgtProduct;
             this.builder_.logger.save; 
             if (this.DEBUG)
                 save('mlraichle.TracerDirector_instanceConstructResolvedAC.mat');

@@ -338,9 +338,9 @@ classdef TracerDirector < mlpet.TracerDirector
             sd = this.sessionData;
             sd.tracer = 'FDG';
             sources = { sd.cbfOpFdg sd.cbvOpFdg sd.oefOpFdg sd.cmro2OpFdg sd.cmrglcOpFdg sd.ogiOpFdg sd.agiOpFdg };
-            if (~lexist(sd.tracerResolvedFinalSumt, 'file'))
+            if (~lexist(sd.tracerResolvedFinalAvgt, 'file'))
                 this.builder_ = this.builder_.packageProduct(sd.tracerResolvedFinal);
-                this.builder_ = this.builder_.sumProduct;
+                this.builder_ = this.builder_.avgtProduct;
             end
             
             bv = this.builder_.buildVisitor;
@@ -350,7 +350,7 @@ classdef TracerDirector < mlpet.TracerDirector
             bv.ensureLocalFourdfp(intermediary); 
             this.builder_ = this.builder_.packageProduct(intermediary); % build everything resolved to intermediary
             this.builder_ = this.builder_.resolveModalitiesToProduct( ...
-                thus.sessionData.tracerResolvedFinalSumt, varargin{:});
+                thus.sessionData.tracerResolvedFinalAvgt, varargin{:});
             
             cRB = this.builder_.compositeResolveBuilder;
             for is = 1:length(sources)
@@ -982,9 +982,9 @@ classdef TracerDirector < mlpet.TracerDirector
                 end
                 assert(lexist(sd.tracerResolvedFinal('typ','fn'), 'file'), ...
                     'mlraichle.TracerDirector.reviewACAlignment.fatalError');
-                if (~lexist(sd.tracerResolvedFinalSumt, 'file'))
+                if (~lexist(sd.tracerResolvedFinalAvgt, 'file'))
                     this.builder_ = this.builder_.packageProduct(sd.tracerResolvedFinal);
-                    this.builder_ = this.builder_.sumProduct;
+                    this.builder_ = this.builder_.avgtProduct;
                 end
                 fv.imgblur_4dfp(sd.tracerResolvedFinal('typ','fp'), 7.5);
                 mlbash(sprintf('fslview_deprecated %s_b75.4dfp.img -b 0,%g %s.4dfp.img -t %g -l Cool', ...
@@ -1057,7 +1057,7 @@ classdef TracerDirector < mlpet.TracerDirector
                     'TracerDirector.reviewTracerAlignments:  missing %s', fqfp);
             end    
         end
-        function this  = sumTracerResolvedFinal(varargin)
+        function this  = avgTracerResolvedFinal(varargin)
             
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -1069,16 +1069,16 @@ classdef TracerDirector < mlpet.TracerDirector
             sd = this.sessionData;
             pwd0 = pushd(fullfile(sd.tracerLocation, ''));
             try
-                if (~lexist(sd.tracerResolvedFinalSumt, 'file'))
+                if (~lexist(sd.tracerResolvedFinalAvgt, 'file'))
                     this.builder_ = this.builder_.packageProduct(sd.tracerResolvedFinal);
-                    this.builder_ = this.builder_.sumProduct;
+                    this.builder_ = this.builder_.avgtProduct;
                 end
             catch ME
                 handwarning(ME);
             end
             popd(pwd0);
         end
-        function this  = sumTracerRevision1(varargin)
+        function this  = avgTracerRevision1(varargin)
             
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -1093,7 +1093,7 @@ classdef TracerDirector < mlpet.TracerDirector
             try
                 if (~lexist(sd.tracerRevisionSumt, 'file'))
                     this.builder_ = this.builder_.packageProduct(sd.tracerRevision);
-                    this.builder_ = this.builder_.sumProduct;
+                    this.builder_ = this.builder_.avgtProduct;
                 end
             catch ME
                 handwarning(ME);
@@ -1144,7 +1144,7 @@ classdef TracerDirector < mlpet.TracerDirector
     
     methods
         function c = localResolvedOpAtlas(this, cRB, ic)
-            %  TODO:  refactor with localTracerResolvedFinalSumt
+            %  TODO:  refactor with localTracerResolvedFinalAvgt
             
             assert(isa(cRB, 'mlfourdfp.CompositeT4ResolveBuilder'));
             assert(lexist_4dfp(ic.fileprefix));
