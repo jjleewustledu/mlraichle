@@ -387,6 +387,9 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             ensuredir(this.sessionData.tracerRevision('typ', 'path'));
             if (~lexist_4dfp(this.sessionData.tracerRevision('typ', 'fqfp')))
                 ic2 = ImagingContext2(this.sessionData.tracerNipet('typ', '.nii.gz'));
+                ic2.addLog( ...
+                    sprintf('mlraichle.TracerDirector2.prepareFourdfpTracerImages.sessionData.tracerListmodeDcm->%s', ...
+                    this.sessionData.tracerListmodeDcm));
                 ic2 = this.flipKLUDGE____(ic2); % KLUDGE:  bug at interface with NIPET
                 ic2.saveas(this.sessionData.tracerRevision('typ', '.4dfp.hdr'));
             end
