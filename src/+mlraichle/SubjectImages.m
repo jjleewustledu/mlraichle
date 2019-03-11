@@ -724,7 +724,7 @@ classdef SubjectImages
                 this.lnsLegacies(nn.fileprefix);
             end          
         end
-        function fn   = saveThis(this, varargin) %#ok<INUSL>
+        function fn   = saveThis(this, varargin) 
             ip = inputParser;
             addOptional(ip, 'client', '', @ischar);
             parse(ip, varargin{:});
