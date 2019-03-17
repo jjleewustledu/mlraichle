@@ -8,7 +8,6 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
  	
     properties (Constant)
         FAST_FILESYSTEM = '/fast_filesystem_disabled'
-        DEBUG = true
     end
     
 	properties (Dependent)
@@ -280,7 +279,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             this.builder_ = this.builder_.reconstituteFramesAC2;
             this.builder_ = this.builder_.avgtProduct;
             this.builder_.logger.save; 
-            if (this.DEBUG)
+            if (mlraichle.RaichleRegistry.instance.debug)
                 save('mlraichle.TracerDirector_instanceConstructResolvedAC.mat');
             else                
                 this.builder_.deleteWorkFiles;
@@ -299,7 +298,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             this.builder_.logger.save;       
             p = this.flipKLUDGE____(this.builder_.product); % KLUDGE:  bug at interface with NIPET
             p.save;
-            if (this.DEBUG)
+            if (mlraichle.RaichleRegistry.instance.debug)
                 save('mlraichle.TracerDirector2_instanceConstructResolvedNAC.mat');
             else
                 this.builder_.deleteWorkFiles;
