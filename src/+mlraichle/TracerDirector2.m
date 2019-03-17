@@ -55,7 +55,6 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             this.fastFilesystemSetup;
             if (~this.sessionData.attenuationCorrected)
                 TracerDirector2.prepareFreesurferData(varargin{:});
-                %TracerDirector2.constructUmaps(varargin{:});
                 this = this.instanceConstructResolvedNAC;                
                 this.fastFilesystemTeardownWithAC(true); % intermediate artifacts
             else
