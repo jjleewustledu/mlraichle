@@ -54,7 +54,6 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             this = TracerDirector2(mlpet.TracerResolveBuilder(varargin{:}));
             this.fastFilesystemSetup;
             if (~this.sessionData.attenuationCorrected)
-                TracerDirector2.prepareFreesurferData(varargin{:});
                 this = this.instanceConstructResolvedNAC;                
                 this.fastFilesystemTeardownWithAC(true); % intermediate artifacts
             else
@@ -212,6 +211,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             import mlpet.Resources;
             pwd0 = pushd(this.sessionData.sessionPath);  
             
+            TracerDirector2.prepareFreesurferData(varargin{:});
             this.builder_ = this.builder.prepareMprToAtlasT4;
             ctm  = this.builder.buildCTMasked2;
             ctm  = this.builder.rescaleCT(ctm);
