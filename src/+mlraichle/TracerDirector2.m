@@ -273,8 +273,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             this.builder_ = this.builder_.reconstituteFramesAC;
             this.sessionData.frame = nan;
             this.builder_.sessionData.frame = nan;
-            this.builder_ = this.builder_.partitionMonolith;
-            this.builder_ = this.builder_.motionCorrectFrames;            
+            this.builder_ = this.tryMotionCorrectFrames(this.builder_);  
             this.builder_ = this.builder_.reconstituteFramesAC2;
             this.builder_ = this.builder_.avgtProduct;
             this.builder_.logger.save; 
@@ -289,8 +288,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             mlnipet.NipetBuilder.CreatePrototypeNAC(this.sessionData);
             this          = this.prepareFourdfpTracerImages;
             this.builder_ = this.builder_.prepareMprToAtlasT4;
-            this.builder_ = this.builder_.partitionMonolith; 
-            [this.builder_,epochs,reconstituted] = this.builder_.motionCorrectFrames;
+            [this.builder_,epochs,reconstituted] = this.tryMotionCorrectFrames(this.builder_);          
             reconstituted = reconstituted.motionCorrectCTAndUmap;             
             this.builder_ = reconstituted.motionUncorrectUmap(epochs);     
             this.builder_ = this.builder_.aufbauUmaps;     
@@ -367,7 +365,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             inst.projectsDir = fullfile(getenv('PPG_SUBJECTS_DIR'));
             inst.subjectsDir = fullfile(getenv('PPG_SUBJECTS_DIR'));
         end
-        function fastFilesystemTeardownProject(this)            
+        function fastFilesystemTeardownProject(this)
             try
                 fastProjPath = fullfile(this.FAST_FILESYSTEM, ...
                                         getenv('PPG_SUBJECTS_DIR'), ...
@@ -393,7 +391,39 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             end
             this.builder_ = this.builder_.packageProduct( ...
                 ImagingContext2(this.sessionData.tracerRevision('typ', '.4dfp.hdr')));
-        end    
+        end
+        function [bldr,epochs,reconstituted] = tryMotionCorrectFrames(this, bldr)
+            %% TRYMOTIONCORRECTFRAMES will partition monolithic image into epochs, 
+            %  then motion-correct frames within each epoch.
+            %  Stale Epoch folders can correct motion-correction, so for thrown MException, 
+            %  removing Epoch folders and try again
+            %  @param TracerResolveBuilder
+            %  @return TracerResolveBuilder, TracerResolveBuilder.^(SessionData.supEpoch), ImagingContext2
+            
+            epochs = [];
+            reconstituted = [];
+            if (this.sessionData.attenuationCorrected)
+                try
+                    this.builder_ = this.builder_.partitionMonolith;
+                    this.builder_ = this.builder_.motionCorrectFrames;
+                catch ME
+                    handwarning(ME);
+                    this.deleteEpochs__;
+                    this.builder_ = this.builder_.partitionMonolith;
+                    this.builder_ = this.builder_.motionCorrectFrames;
+                end
+            else
+                try
+                    this.builder_ = this.builder_.partitionMonolith;
+                    [this.builder_,epochs,reconstituted] = this.builder_.motionCorrectFrames;
+                catch ME
+                    handwarning(ME);
+                    this.deleteEpochs__;
+                    this.builder_ = this.builder_.partitionMonolith;
+                    [this.builder_,epochs,reconstituted] = this.builder_.motionCorrectFrames;
+                end
+            end
+        end
 		  
  		function this = TracerDirector2(varargin)
  			%% TRACERDIRECTOR2
@@ -419,6 +449,16 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
     end
     
     methods (Access = protected)
+        function deleteEpochs__(this)
+            for e = 1:this.sessionData.supEpoch
+                deleteExisting(fullfile(this.sessionData.tracerPath, sprintf('E%i', e), ''));
+            end
+        end
+        function deleteExisting__(~)
+            deleteExisting('*_b75.4dfp.*');
+            deleteExisting('*_g11.4dfp.*');
+            deleteExisting('*_mskt.4dfp.*');
+        end
         function deleteRNumber__(this, sess_, r)
             pwd_ = pushd(sess_.tracerLocation);
             dt = mlsystem.DirTool('*_t4');
@@ -437,11 +477,6 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             %movefile('*.log', 'Log');
             moveExisting('*.mat0', 'Log');
             moveExisting('*.sub', 'Log');
-        end
-        function deleteExisting__(~)
-            deleteExisting('*_b75.4dfp.*');
-            deleteExisting('*_g11.4dfp.*');
-            deleteExisting('*_mskt.4dfp.*');
         end
     end
     
