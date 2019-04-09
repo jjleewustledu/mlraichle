@@ -64,7 +64,9 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
         end   
         function objs = migrateResolvedToVall(varargin)
             import mlraichle.TracerDirector2;
-            import mlfourd.ImagingContext2;
+            import mlfourd.ImagingContext2;            
+            import mlraichle.TracerDirector2.migrationTeardown;
+            
             this = TracerDirector2(mlpet.TracerResolveBuilder(varargin{:}));  
             sess = this.sessionData;
             src  = sess.sessionPath;
@@ -80,6 +82,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             fv = mlfourdfp.FourdfpVisitor;
             
             %% migrate PET without flipping
+            
             tags = {'' '_sumt'};
             fps = {};
             dest_fqfp0 = {};
@@ -117,16 +120,17 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             
             %% clean up
             
-            fps1 = fps{1};
-            tmp = protectFiles;
-            deleteFiles;   
-            unprotectFiles(tmp);
-            popd(pwd0);
-            
+            migrationTeardown(fps, logs, dest_fqfp0, dest);
+            popd(pwd0);            
             res.keepForensics = true;
             objs = {dest ct4rb};
-            
-            function tmp = protectFiles
+        end
+        function tmp  = migrationTeardown(fps, logs, dest_fqfp0, dest)
+            tmp = protectFiles(fps, fps{1}, logs);
+            deleteFiles(dest_fqfp0, fps{1}, fps, dest);   
+            unprotectFiles(tmp);
+                        
+            function tmp = protectFiles(fps, fps1, logs)
                 
                 % in tempFilepath
                 tmp = tempFilepath('protectFiles');
@@ -145,11 +149,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
                 moveExisting('*.sub',  logs);
                 moveExisting('*.log',  logs);  
             end
-            function unprotectFiles(tmp)
-                movefile(fullfile(tmp, '*'), pwd);
-                rmdir(tmp);
-            end
-            function deleteFiles
+            function deleteFiles(dest_fqfp0, fps1, fps, dest)
                 assert(lstrfind(dest_fqfp0{end}, '_sumt'));
                 deleteExisting([dest_fqfp0{end} 'r1.4dfp.*']);
                 deleteExisting([dest_fqfp0{end} 'r1_op_' fps1 '.4dfp.*']);
@@ -163,7 +163,11 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
                 deleteExisting('*_mskt.4dfp.*');
                 deleteExisting('*_g11.4dfp.*');       
             end
-        end      
+            function unprotectFiles(tmp)
+                movefile(fullfile(tmp, '*'), pwd);
+                rmdir(tmp);
+            end
+        end
         function lst  = prepareFreesurferData(varargin)
             %% PREPAREFREESURFERDATA prepares session & visit-specific copies of data enumerated by this.freesurferData.
             %  @param named sessionData is an mlraichle.SessionData.
