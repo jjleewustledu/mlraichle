@@ -205,27 +205,52 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             popd(pwd0);
         end
         function this = constructUmaps(varargin)
-            import mlraichle.TracerDirector2;    
-            this = TracerDirector2(mlfourdfp.CarneyUmapBuilder2(varargin{:}));
-            if (this.builder.isfinished)
+            import mlraichle.TracerDirector2;
+            import mlfourd.ImagingContext2;
+            import mlpet.Resources;                       
+            switch TracerDirector2.umapType(varargin{:})
+                case 'ct'                    
+                    this = TracerDirector2(mlfourdfp.CarneyUmapBuilder2(varargin{:}));
+                    TracerDirector2.prepareFreesurferData(varargin{:});
+                    this.builder_ = this.builder.prepareMprToAtlasT4;
+                case 'an'
+                    this = TracerDirector2(mlfourdfp.AnUmapBuilder(varargin{:}));
+                case 'ute'
+                    this = TracerDirector2(mlfourdfp.UTEUmapBuilder(varargin{:}));
+                case 'mrac_hires'
+                    this = TracerDirector2(mlfourdfp.MRACUmapBuilder(varargin{:}));
+                    TracerDirector2.prepareFreesurferData(varargin{:});
+                    this.builder_ = this.builder.prepareMprToAtlasT4;
+                otherwise
+                    error('mlraichle:ValueError', 'TracerDirector2.constructUmaps')
+            end
+            if this.builder.isfinished
                 return
             end 
             
-            import mlfourd.ImagingContext2;
-            import mlpet.Resources;
-            pwd0 = pushd(this.sessionData.sessionPath);  
-            
-            TracerDirector2.prepareFreesurferData(varargin{:});
-            this.builder_ = this.builder.prepareMprToAtlasT4;
-            ctm  = this.builder.buildCTMasked2;
-            ctm  = this.builder.rescaleCT(ctm);
-            umap = this.builder.assembleCarneyUmap(ctm);
+            pwd0 = pushd(this.sessionData.sessionPath);
+            umap = this.builder.buildUmap;
             umap = ImagingContext2([umap '.4dfp.hdr']);
             umap = umap.blurred(Resources.instance.pointSpread);
             umap.save;
             this.builder_ = this.builder.packageProduct(umap);
             this.builder.teardownBuildUmaps;
             popd(pwd0);
+        end
+        function t    = umapType(varargin)
+            ip = inputParser;
+            addParameter(ip, 'sessionData', [], @(x) ~isempty(x));
+            parse(ip, varargin{:});             
+            pth = fileparts(ip.Results.sessionData.sessionPath);
+            if lstrfind(pth, 'CCIR_00754') || lstrfind(pth, 'CCIR_00559')
+                t = 'ct';
+                return
+            end
+            if lstrfind(pth, 'CCIR_00993')
+                t = 'mrac_hires';
+                return
+            end
+            t = '';
         end
     end
     
