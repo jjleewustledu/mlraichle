@@ -218,7 +218,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
                 case 'ute'
                     this = TracerDirector2(mlfourdfp.UTEUmapBuilder(varargin{:}));
                 case 'mrac_hires'
-                    this = TracerDirector2(mlfourdfp.MRACUmapBuilder(varargin{:}));
+                    this = TracerDirector2(mlfourdfp.MRACHiresUmapBuilder(varargin{:}));
                     TracerDirector2.prepareFreesurferData(varargin{:});
                     this.builder_ = this.builder.prepareMprToAtlasT4;
                 otherwise
