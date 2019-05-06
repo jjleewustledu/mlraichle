@@ -14,7 +14,6 @@ classdef SessionData < mlnipet.ResolvingSessionData
     
     properties
         filetypeExt = '.4dfp.hdr'
-        fullFov = [344 344 127];
         atlVoxelSize = 333
     end
     
