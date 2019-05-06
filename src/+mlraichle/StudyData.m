@@ -11,7 +11,7 @@ classdef StudyData < handle & mlpipeline.StudyData
     
     properties (Dependent)
         dicomExtension
-        ppgRawdataDir
+        rawdataDir
         projectsDir
         subjectsDir
         YeoDir
@@ -24,8 +24,8 @@ classdef StudyData < handle & mlpipeline.StudyData
         function g = get.dicomExtension(~)
             d = mlraichle.RaichleRegistry.instance.dicomExtension;
         end
-        function d = get.ppgRawdataDir(~)
-            d = mlraichle.RaichleRegistry.instance.ppgRawdataDir;
+        function d = get.rawdataDir(~)
+            d = mlraichle.RaichleRegistry.instance.rawdataDir;
         end
         function g = get.projectsDir(~)
             g = mlraichle.RaichleRegistry.instance.projectsDir;
@@ -48,12 +48,11 @@ classdef StudyData < handle & mlpipeline.StudyData
             if (isempty(this.subjectsDir))
                 f = {};
                 return
-            end
-            
+            end            
             dt = mlsystem.DirTools(this.subjectsDir);
             f = {};
             for di = 1:length(dt.dns)
-                if (strncmp(dt.dns{di}, 'NP', 2) || strncmp(dt.dns{di}, 'HY', 2))
+                if (strncmp(dt.dns{di}, 'sub-', 4))
                     f = [f dt.fqdns(di)]; %#ok<AGROW>
                 end
             end

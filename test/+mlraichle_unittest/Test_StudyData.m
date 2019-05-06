@@ -23,8 +23,8 @@ classdef Test_StudyData < matlab.unittest.TestCase
             this.verifyEqual(this.testObj.dicomExtension, '.dcm');            
         end
         function test_rawdataDir(this)
-            this.verifyEqual(this.testObj.ppgRawdataDir, ...
-                lraichle.RaichleRegistry.instance.ppgRawdataDir);
+            this.verifyEqual(this.testObj.rawdataDir, ...
+                lraichle.RaichleRegistry.instance.rawdataDir);
         end
         function test_subjectsDir(this)
             this.verifyEqual(this.testObj.subjectsDir, ...

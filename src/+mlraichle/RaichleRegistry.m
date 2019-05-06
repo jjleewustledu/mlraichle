@@ -13,14 +13,14 @@ classdef RaichleRegistry < mlnipet.Resources
     end
     
     properties (Dependent)
-        ppgRawdataDir
+        rawdataDir
     end
     
     methods 
         
         %% GET
         
-        function x = get.ppgRawdataDir(~)
+        function x = get.rawdataDir(~)
             x = fullfile(getenv('PPG'), 'rawdata', '');
         end      
         

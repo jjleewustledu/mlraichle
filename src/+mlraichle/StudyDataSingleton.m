@@ -10,7 +10,7 @@ classdef StudyDataSingleton < handle & mlpipeline.StudyDataSingleton
         
     properties (Dependent)
         dicomExtension
-        ppgRawdataDir
+        rawdataDir
         projectsDir
         subjectsDir
         YeoDir
@@ -36,7 +36,7 @@ classdef StudyDataSingleton < handle & mlpipeline.StudyDataSingleton
         function g = get.dicomExtension(~)
             d = mlraichle.RaichleRegistry.instance.dicomExtension;
         end
-        function d = get.ppgRawdataDir(~)
+        function d = get.rawdataDir(~)
             d = mlraichle.RaichleRegistry.instance.subjectsDir;
         end
         function g = get.projectsDir(~)
@@ -70,24 +70,11 @@ classdef StudyDataSingleton < handle & mlpipeline.StudyDataSingleton
             this.sessionDataComposite_ = mlpatterns.CellComposite({ ...
                 mlraichle.SessionData('studyData', this, varargin{:})});
         end
-        function a    = seriesDicomAsterisk(this, fqdn)
-            assert(isdir(fqdn));
-            assert(isdir(fullfile(fqdn, 'DICOM')));
-            a = fullfile(fqdn, 'DICOM', ['*' this.dicomExtension]);
+        function        seriesDicomAsterisk(~, varargin)
+            error('pythonic:NotImplementedError', 'mlraichle.StudyDataSingleton.seriesDicomAsterisk')
         end
-        function f    = subjectsDirFqdns(this)
-            if (isempty(this.subjectsDir))
-                f = {};
-                return
-            end
-            
-            dt = mlsystem.DirTools(this.subjectsDir);
-            f = {};
-            for di = 1:length(dt.dns)
-                if (strncmp(dt.dns{di}, 'NP', 2) || strncmp(dt.dns{di}, 'HY', 2))
-                    f = [f dt.fqdns(di)]; %#ok<AGROW>
-                end
-            end
+        function        subjectsDirFqdns(~)
+            error('pythonic:NotImplementedError', 'mlraichle.StudyDataSingleton.subjectsDirFqdns')
         end
     end
     
