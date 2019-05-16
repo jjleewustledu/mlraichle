@@ -48,11 +48,11 @@ classdef Test_T4ResolveBuilder < matlab.unittest.TestCase
         end
         function test_runSingleOnConvertedNAC_HYGLY(this)
             mlraichle.T4ResolveBuilder.runSingleOnConvertedNAC( ...
-                'sessionFolder', this.hygly, 'visitFolder', 'V2', 'tracerFolder', 'FDG_V2-NAC', 'indicesLogical', [zeros(1,12) ones(1,60)], 'NRevisions', 2);
+                'sessionFolder', this.hygly, 'visitFolder', 'V2', 'scanFolder', 'FDG_V2-NAC', 'indicesLogical', [zeros(1,12) ones(1,60)], 'NRevisions', 2);
         end
         function test_runSingleOnConvertedNAC_HYGLY_small(this)
             mlraichle.T4ResolveBuilder.runSingleOnConvertedNAC( ...
-                'sessionFolder', this.hygly, 'visitFolder', 'V1', 'tracerFolder', 'FDG_V1-NAC', 'indicesLogical', this.testingFrames, 'NRevisions', 2);
+                'sessionFolder', this.hygly, 'visitFolder', 'V1', 'scanFolder', 'FDG_V1-NAC', 'indicesLogical', this.testingFrames, 'NRevisions', 2);
         end
         function test_buildUmapFrames(this)
             cd(fullfile(this.sessd.sessionPath, 'V1', 'FDG_V1-AC', ''));

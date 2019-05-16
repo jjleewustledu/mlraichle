@@ -332,7 +332,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             end
         end
         function pwdLast = fastFilesystemSetup(this)
-            slowd = this.sessionData.tracerPath;
+            slowd = this.sessionData.scanPath;
             if (~isdir(this.FAST_FILESYSTEM))
                 pwdLast = pushd(slowd);
                 return
@@ -362,8 +362,8 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             
             % redirect projectsDir
             inst = mlraichle.RaichleRegistry.instance;
-            inst.projectsDir = fullfile(this.FAST_FILESYSTEM, getenv('PPG_SUBJECTS_DIR'));
-            inst.subjectsDir = fullfile(this.FAST_FILESYSTEM, getenv('PPG_SUBJECTS_DIR'));
+            inst.projectsDir = fullfile(this.FAST_FILESYSTEM, getenv('SUBJECTS_DIR'));
+            inst.subjectsDir = fullfile(this.FAST_FILESYSTEM, getenv('SUBJECTS_DIR'));
             
         end
         function pwdLast = fastFilesystemTeardown(this)
@@ -372,8 +372,8 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
         function pwdLast = fastFilesystemTeardownWithAC(this, ac)
             assert(islogical(ac));
             this.sessionData.attenuationCorrected = ac;
-            slowd = fullfile(getenv('PPG_SUBJECTS_DIR'), ...
-                             this.sessionData.projectFolder, this.sessionData.sessionFolder, this.sessionData.tracerFolder, '');
+            slowd = fullfile(getenv('SUBJECTS_DIR'), ...
+                             this.sessionData.projectFolder, this.sessionData.sessionFolder, this.sessionData.scanFolder, '');
             if (~isdir(this.FAST_FILESYSTEM))
                 pwdLast = popd(slowd);
                 return
@@ -391,13 +391,13 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             
             % redirect projectsDir
             inst = mlraichle.RaichleRegistry.instance;
-            inst.projectsDir = fullfile(getenv('PPG_SUBJECTS_DIR'));
-            inst.subjectsDir = fullfile(getenv('PPG_SUBJECTS_DIR'));
+            inst.projectsDir = fullfile(getenv('SUBJECTS_DIR'));
+            inst.subjectsDir = fullfile(getenv('SUBJECTS_DIR'));
         end
         function fastFilesystemTeardownProject(this)
             try
                 fastProjPath = fullfile(this.FAST_FILESYSTEM, ...
-                                        getenv('PPG_SUBJECTS_DIR'), ...
+                                        getenv('SUBJECTS_DIR'), ...
                                         this.sessionData.projectFolder, '');
                 mlbash(sprintf('rm -rf %s', fastProjPath))
             catch ME
@@ -480,7 +480,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
     methods (Access = protected)
         function deleteEpochs__(this)
             for e = 1:this.sessionData.supEpoch
-                deleteExisting(fullfile(this.sessionData.tracerPath, sprintf('E%i', e), ''));
+                deleteExisting(fullfile(this.sessionData.scanPath, sprintf('E%i', e), ''));
             end
         end
         function deleteExisting__(~)
