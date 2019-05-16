@@ -1,4 +1,4 @@
-classdef SessionData < mlnipet.ResolvingSessionData
+classdef SessionData < mlnipet.BidsSessionData
 	%% SESSIONDATA  
 
 	%  $Revision$
@@ -14,12 +14,11 @@ classdef SessionData < mlnipet.ResolvingSessionData
     
     properties
         filetypeExt = '.4dfp.hdr'
-        atlVoxelSize = 333
     end
     
 	properties (Dependent)   
+        atlVoxelSize
         builder
-        doseAdminDatetimeTag
         indicesLogical
         studyCensus
         tauIndices % use to exclude late frames from builders of AC; e.g., taus := taus(tauIndices)
@@ -52,38 +51,15 @@ classdef SessionData < mlnipet.ResolvingSessionData
         
         %% GET, SET
         
+        function g    = get.atlVoxelSize(this)
+            g = this.studyData.atlVoxelSize;
+        end
         function g    = get.builder(this)
             g = this.builder_;
         end
         function this = set.builder(this, s)
             assert(isa(s, 'mlpipeline.IBuilder'));
             this.builder_ = s;
-        end
-        function g    = get.doseAdminDatetimeTag(this)
-            switch (this.tracer)
-                case 'OC'
-                    if (1 == this.snumber)
-                        g = 'C[15O]';
-                        return
-                    end
-                    g = sprintf('C[15O]_%i', this.snumber-1);
-                case 'OO'
-                    if (1 == this.snumber)
-                        g = 'O[15O]';
-                        return
-                    end
-                    g = sprintf('O[15O]_%i', this.snumber-1);
-                case 'HO'
-                    if (1 == this.snumber)
-                        g = 'H2[15O]';
-                        return
-                    end
-                    g = sprintf('H2[15O]_%i', this.snumber-1);
-                case 'FDG'
-                    g = '[18F]DG';
-                otherwise                    
-                    error('mlraichle:unsupportedSwitchcase', 'SessionData.doseAdminDatetimeTag');
-            end
         end
         function g    = get.indicesLogical(this) %#ok<MANU>
             g = true;
@@ -370,17 +346,7 @@ classdef SessionData < mlnipet.ResolvingSessionData
         end
                 
         %%  
-         
-        function loc  = vallLocation(this, varargin)
-            %  @override
-            
-            ip = inputParser;
-            addParameter(ip, 'typ', 'path', @ischar);
-            parse(ip, varargin{:});
-            
-            loc = locationType(ip.Results.typ, ...
-                fullfile(this.sessionPath, 'Vall'));
-        end       
+                
         function obj  = mrObject(this, varargin)
             %  @override
             
@@ -399,7 +365,10 @@ classdef SessionData < mlnipet.ResolvingSessionData
         end       
         
  		function this = SessionData(varargin)
- 			this = this@mlnipet.ResolvingSessionData(varargin{:});
+ 			this = this@mlnipet.BidsSessionData(varargin{:});
+            if (isempty(this.subjectData_))
+                this.subjectData_ = mlraichle.SubjectData();
+            end
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'tauIndices', [], @isnumeric);
