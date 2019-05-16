@@ -10,6 +10,7 @@ classdef StudyData < handle & mlpipeline.StudyData
     
     
     properties (Dependent)
+        atlVoxelSize
         dicomExtension
         rawdataDir
         projectsDir
@@ -21,11 +22,14 @@ classdef StudyData < handle & mlpipeline.StudyData
         
         %% GET
         
-        function g = get.dicomExtension(~)
-            d = mlraichle.RaichleRegistry.instance.dicomExtension;
+        function g = get.atlVoxelSize(~)
+            g = mlraichle.RaichleRegistry.instance.atlVoxelSize;            
         end
-        function d = get.rawdataDir(~)
-            d = mlraichle.RaichleRegistry.instance.rawdataDir;
+        function g = get.dicomExtension(~)
+            g = mlraichle.RaichleRegistry.instance.dicomExtension;
+        end
+        function g = get.rawdataDir(~)
+            g = mlraichle.RaichleRegistry.instance.rawdataDir;
         end
         function g = get.projectsDir(~)
             g = mlraichle.RaichleRegistry.instance.projectsDir;
@@ -37,7 +41,7 @@ classdef StudyData < handle & mlpipeline.StudyData
             g = mlraichle.RaichleRegistry.instance.YeoDir;
         end
         
-        %%
+        %% LEGACY
         
         function a    = seriesDicomAsterisk(this, fqdn)
             assert(isdir(fqdn));
@@ -58,8 +62,34 @@ classdef StudyData < handle & mlpipeline.StudyData
             end
         end
         
+        %%
+        
  		function this = StudyData(varargin)
  			this = this@mlpipeline.StudyData(varargin{:});
+            ip = inputParser;
+            addParameter(ip, 'dicomExtension', '', @ischar);
+            addParameter(ip, 'rawdataDir', '', @ischar);
+            addParameter(ip, 'projectsDir', '', @ischar);
+            addParameter(ip, 'subjectsDir', '', @ischar);
+            addParameter(ip, 'YeoDir', '', @ischar);
+            parse(ip, varargin{:});
+            
+            inst = mlraichle.RaichleRegistry.instance();
+            if ~isempty(ip.Results.dicomExtension)
+                inst.dicomExtension = ip.Results.dicomExtension;
+            end
+            if ~isempty(ip.Results.rawdataDir)
+                inst.rawdataDir = ip.Results.rawdataDir;
+            end
+            if ~isempty(ip.Results.projectsDir)
+                inst.projectsDir = ip.Results.projectsDir;
+            end
+            if ~isempty(ip.Results.subjectsDir)
+                inst.subjectsDir = ip.Results.subjectsDir;
+            end
+            if ~isempty(ip.Results.YeoDir)
+                inst.YeoDir = ip.Results.YeoDir;
+            end
         end        
     end  
 
