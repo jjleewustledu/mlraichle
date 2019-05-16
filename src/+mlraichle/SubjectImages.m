@@ -625,7 +625,7 @@ classdef SubjectImages
             %  @param imgsSumt = cell(Nvisits, Nscans) of char fqfp.
             %  @return this.cRB_ := compositeT4ResolveBuilder.resolved.
             %  @return this.t4s_ := compositeT4ResolveBuilder.t4s.  See also
-            %  mlfourdfp.AbstractT4ResolveBuilder.catchT4s.
+            %  mlfourdfp.AbstractT4ResolveBuilder.cacheT4s.
             %  @return this.product := compositeT4ResolveBuilder.product.
             %  @return this.areAligned := true.
             
@@ -665,7 +665,7 @@ classdef SubjectImages
             %  @param imgsSumt = cell(Nvisits, Nscans) of char fqfp.
             %  @return this.cRB_ := compositeT4ResolveBuilder.resolved.
             %  @return this.t4s_ := compositeT4ResolveBuilder.t4s.  See also
-            %  mlfourdfp.AbstractT4ResolveBuilder.catchT4s.
+            %  mlfourdfp.AbstractT4ResolveBuilder.cacheT4s.
             %  @return this.product := compositeT4ResolveBuilder.product.
             %  @return this.areAligned := true.
             
