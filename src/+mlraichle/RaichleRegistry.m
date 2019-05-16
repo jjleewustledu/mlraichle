@@ -10,6 +10,7 @@ classdef RaichleRegistry < mlnipet.Resources
  	
     properties 
         comments
+        atlVoxelSize = 222
     end
     
     properties (Dependent)
@@ -23,9 +24,6 @@ classdef RaichleRegistry < mlnipet.Resources
         function x = get.rawdataDir(~)
             x = fullfile(getenv('PPG'), 'rawdata', '');
         end      
-        
-        %%
-        
     end
     
     methods (Static)
