@@ -51,7 +51,7 @@ classdef HyperglycemiaBidsDirector < mlpipeline.AbstractBidsDirector
             ipr = adjustParameters(ip.Results);
             tracers = ensureCell(ipr.tracer);         
             
-            dtprj = DirTools(fullfile(RaichleRegistry.instance.subjectsDir, ipr.projectsExpr));
+            dtprj = DirTools(fullfile(RaichleRegistry.instance.projectsDir, ipr.projectsExpr));
             for iprj = 1:length(dtprj.fqdns)
 
                 dtses = DirTools(fullfile(dtprj.fqdns{iprj}, ipr.sessionsExpr));

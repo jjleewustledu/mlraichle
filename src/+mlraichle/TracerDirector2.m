@@ -362,7 +362,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             
             % redirect projectsDir
             inst = mlraichle.RaichleRegistry.instance;
-            inst.projectsDir = fullfile(this.FAST_FILESYSTEM, getenv('SUBJECTS_DIR'));
+            inst.projectsDir = fullfile(this.FAST_FILESYSTEM, getenv('PROJECTS_DIR'));
             inst.subjectsDir = fullfile(this.FAST_FILESYSTEM, getenv('SUBJECTS_DIR'));
             
         end
@@ -372,8 +372,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
         function pwdLast = fastFilesystemTeardownWithAC(this, ac)
             assert(islogical(ac));
             this.sessionData.attenuationCorrected = ac;
-            slowd = fullfile(getenv('SUBJECTS_DIR'), ...
-                             this.sessionData.projectFolder, this.sessionData.sessionFolder, this.sessionData.scanFolder, '');
+            slowd = fullfile(this.sessionData.projectPath, this.sessionData.sessionFolder, this.sessionData.scanFolder, '');
             if (~isdir(this.FAST_FILESYSTEM))
                 pwdLast = popd(slowd);
                 return
@@ -391,7 +390,7 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             
             % redirect projectsDir
             inst = mlraichle.RaichleRegistry.instance;
-            inst.projectsDir = fullfile(getenv('SUBJECTS_DIR'));
+            inst.projectsDir = fullfile(getenv('PROJECTS_DIR'));
             inst.subjectsDir = fullfile(getenv('SUBJECTS_DIR'));
         end
         function fastFilesystemTeardownProject(this)

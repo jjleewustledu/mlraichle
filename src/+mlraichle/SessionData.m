@@ -33,11 +33,12 @@ classdef SessionData < mlnipet.BidsSessionData
             end
             
             import mlraichle.*;
+            assert(isfield(sessObj, 'projectFolder'))
             assert(isfield(sessObj, 'sessionFolder'));
             assert(isfield(sessObj, 'sessionDate'));
             assert(isfield(sessObj, 'parcellation'));
             studyd = StudyData;
-            sessp = fullfile(studyd.subjectsDir, sessObj.sessionFolder, '');
+            sessp = fullfile(studyd.projectsDir, sessObj.projectFolder, sessObj.sessionFolder, '');
             sessd = SessionData('studyData', studyd, 'sessionPath', sessp, ...
                                 'tracer', 'FDG', 'ac', true, 'sessionDate', sessObj.sessionDate);  
             if ( isfield(sessObj, 'parcellation') && ...

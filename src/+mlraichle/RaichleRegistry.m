@@ -9,12 +9,13 @@ classdef RaichleRegistry < mlnipet.Resources
  	%% It was developed on Matlab 8.5.0.197613 (R2015a) for MACI64.
  	
     properties 
-        comments
-        atlVoxelSize = 222
     end
     
     properties (Dependent)
         rawdataDir
+        projectsDir
+        subjectsDir
+        YeoDir
     end
     
     methods 
@@ -23,7 +24,24 @@ classdef RaichleRegistry < mlnipet.Resources
         
         function x = get.rawdataDir(~)
             x = fullfile(getenv('PPG'), 'rawdata', '');
-        end      
+        end  
+        function g = get.projectsDir(~)
+            g = getenv('PROJECTS_DIR');
+        end        
+        function     set.projectsDir(~, s)
+            assert(isdir(s));
+            setenv('PROJECTS_DIR', s);
+        end
+        function g = get.subjectsDir(~)
+            g = getenv('SUBJECTS_DIR');
+        end        
+        function     set.subjectsDir(~, s)
+            assert(isdir(s));
+            setenv('SUBJECTS_DIR', s);
+        end
+        function g = get.YeoDir(this)
+            g = this.subjectsDir;
+        end    
     end
     
     methods (Static)
