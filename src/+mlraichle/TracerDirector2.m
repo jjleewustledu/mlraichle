@@ -466,7 +466,9 @@ classdef TracerDirector2 < mlpipeline.AbstractDirector
             parse(ip, varargin{:});
             
             this.builder_ = ip.Results.builder;
-            this.anatomy_ = ip.Results.anatomy;
+            this.anatomy_ = ip.Results.anatomy;            
+            assert(isfile(this.sessionData.tracerListmodeJson), ...
+                'mlraichle:AssertionError', 'TracerDirector2.ctor cannot find %s', this.sessionData.tracerListmodeJson);
  		end
     end 
     
