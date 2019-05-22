@@ -1,4 +1,4 @@
-classdef TracerDirector < mlpet.TracerDirector
+classdef TracerDirector < mlsiemens.CommonTracerDirector
 	%% TRACERDIRECTOR  
 
 	%  $Revision$
@@ -16,7 +16,7 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:});  
+            mlraichle.TracerDirector.prepareFreesurferData(varargin{:});  
             import mlraichle.*;
             census = StudyCensus('sessionData', ip.Results.sessionData);
  			obj  = SubjectImages('sessionData', ip.Results.sessionData, 'census', census);
@@ -66,7 +66,7 @@ classdef TracerDirector < mlpet.TracerDirector
             try
                 mlbash(sprintf('rm %s/.*_isfinished.touch', logfold));
             catch ME %#ok<NASGU>
-                fprintf('mlpet.TracerDirector.cleanLocalLogs found no .*_isfinished.touch files to clean.\n');
+                fprintf('mlraichle.TracerDirector.cleanLocalLogs found no .*_isfinished.touch files to clean.\n');
             end
         end
         function out   = cleanMore(varargin)
@@ -255,7 +255,7 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'target', '', @ischar);
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:})
+            mlraichle.TracerDirector.prepareFreesurferData(varargin{:})
             
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));    
@@ -279,7 +279,7 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'target', '', @ischar);
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:})
+            mlraichle.TracerDirector.prepareFreesurferData(varargin{:})
             
             this = TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:})); 
@@ -402,7 +402,7 @@ classdef TracerDirector < mlpet.TracerDirector
             %  sequentially run FDG NAC, 15O NAC, then all tracers AC.
             %  @return this.sessionData.attenuationCorrection == false.
             
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:});            
+            mlraichle.TracerDirector.prepareFreesurferData(varargin{:});            
             this = mlraichle.TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:}));   
             this = this.instanceConstructResolved;
@@ -432,7 +432,7 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'target', '', @ischar);
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:})
+            mlraichle.TracerDirector.prepareFreesurferData(varargin{:})
             
             this = TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:})); 
@@ -465,7 +465,7 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'target', '', @ischar);
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:})
+            mlraichle.TracerDirector.prepareFreesurferData(varargin{:})
             
             this = TracerDirector( ...
                 mlpet.TracerResolveBuilder(varargin{:})); 
@@ -1175,7 +1175,7 @@ classdef TracerDirector < mlpet.TracerDirector
             parse(ip, varargin{:});
             
             try
-                mlpet.TracerDirector.prepareFreesurferData(varargin{:})
+                mlraichle.TracerDirector.prepareFreesurferData(varargin{:})
             
                 sessd = this.sessionData;
                 chpc = mlpet.CHPC4TracerDirector( ...
@@ -1201,7 +1201,7 @@ classdef TracerDirector < mlpet.TracerDirector
  			%% TRACERDIRECTOR
  			%  Usage:  this = TracerDirector()
 
- 			this = this@mlpet.TracerDirector(varargin{:});
+ 			this = this@mlsiemens.CommonTracerDirector(varargin{:});
  		end
     end 
     
@@ -1298,7 +1298,7 @@ classdef TracerDirector < mlpet.TracerDirector
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:});
             
-            mlpet.TracerDirector.prepareFreesurferData(varargin{:})            
+            mlraichle.TracerDirector.prepareFreesurferData(varargin{:})            
             mlraichle.UmapDirector.constructUmaps('sessionData', ip.Results.sessionData);
             
             this = mlraichle.TracerDirector( ...

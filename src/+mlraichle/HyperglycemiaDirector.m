@@ -1118,7 +1118,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
         
         function those = prepareFreesurferData(varargin)
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
-                'mlpet.TracerDirector.prepareFreesurferData', varargin{:});
+                'mlraichle.TracerDirector.prepareFreesurferData', varargin{:});
         end        
         function those = pullFromRemote(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            

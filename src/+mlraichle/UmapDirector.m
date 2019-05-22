@@ -49,7 +49,7 @@ classdef UmapDirector < mlpipeline.AbstractDirector
             sess = ip.Results.sessionData;
             sess.attenuationCorrected = false;
             
-            lst  = mlpet.TracerDirector.prepareFreesurferData(varargin{:});
+            lst  = mlraichle.TracerDirector.prepareFreesurferData(varargin{:});
             pwd0 = pushd(sess.sessionPath);
             fv   = mlfourdfp.FourdfpVisitor;
             try
