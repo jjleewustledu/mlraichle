@@ -86,7 +86,6 @@ classdef SessionData < mlnipet.CommonSessionData
                         ipr.name, ipr.tag, ipr.dest, ipr.destVnumber, ipr.destRnumber, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
-
         
         %% Metabolism
         
