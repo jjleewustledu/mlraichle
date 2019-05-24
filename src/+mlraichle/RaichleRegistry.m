@@ -1,4 +1,4 @@
-classdef RaichleRegistry < mlnipet.Resources
+classdef RaichleRegistry < handle & mlnipet.Resources
 	%% RAICHLEREGISTRY 
 
 	%  $Revision$
@@ -9,6 +9,8 @@ classdef RaichleRegistry < mlnipet.Resources
  	%% It was developed on Matlab 8.5.0.197613 (R2015a) for MACI64.
  	
     properties 
+        noclobber = true
+        umapType = 'ct'
     end
     
     properties (Dependent)
