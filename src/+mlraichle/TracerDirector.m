@@ -1027,7 +1027,7 @@ classdef TracerDirector < mlsiemens.CommonTracerDirector
                         if (isdir(sd_.tracerLocation))
                             try
                                 assertExistResolved(sd_);
-                                cella = [cella sd_.tracerResolvedFinalAvgt('typ','fn.4dfp.img')]; %#ok<AGROW>
+                                cella = [cella sd_.tracerResolvedFinalAvgt('typ','4dfp.img')]; %#ok<AGROW>
                             catch ME_                
                                 dispwarning(ME_);
                             end    
@@ -1038,7 +1038,7 @@ classdef TracerDirector < mlsiemens.CommonTracerDirector
                             if (isdir(sd_.tracerLocation))
                                 try
                                     assertExistResolved(sd_);
-                                    cella = [cella sd_.tracerResolvedFinalAvgt('typ','fn.4dfp.img')]; %#ok<AGROW>
+                                    cella = [cella sd_.tracerResolvedFinalAvgt('typ','4dfp.img')]; %#ok<AGROW>
                                 catch ME_
                                     dispwarning(ME_);
                                 end
