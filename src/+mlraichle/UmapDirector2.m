@@ -16,14 +16,13 @@ classdef UmapDirector2 < mlpipeline.AbstractDirector
             end 
             
             import mlfourd.ImagingContext2;
-            import mlpet.Resources;
             pwd0 = pushd(this.sessionData.sessionPath);   
             this.builder_ = this.builder.prepareMprToAtlasT4;
             ctm  = this.builder.buildCTMasked2;
             ctm  = this.builder.rescaleCT(ctm);
             umap = this.builder.assembleCarneyUmap(ctm);
             umap = ImagingContext2([umap '.4dfp.hdr']);
-            umap = umap.blurred(Resources.instance.pointSpread);
+            umap = umap.blurred(mlnipet.ResourcesRegistry.instance().petPointSpread);
             umap.save;
             this.builder_ = this.builder.packageProduct(umap);
             this.builder.teardownBuildUmaps;
