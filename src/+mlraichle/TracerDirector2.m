@@ -13,9 +13,8 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
     methods (Static)
         function this = constructUmaps(varargin)
             import mlraichle.TracerDirector2;
-            import mlfourd.ImagingContext2;
-            import mlpet.Resources;                       
-            switch TracerDirector2.umapType(varargin{:})
+            import mlfourd.ImagingContext2;           
+            switch mlraichle.StudyRegistry.instance().umapType
                 case 'ct'                    
                     this = TracerDirector2(mlfourdfp.CarneyUmapBuilder2(varargin{:}));
                     TracerDirector2.prepareFreesurferData(varargin{:});
@@ -42,26 +41,11 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             pwd0 = pushd(this.sessionData.sessionPath);
             umap = this.builder.buildUmap;
             umap = ImagingContext2([umap '.4dfp.hdr']);
-            umap = umap.blurred(Resources.instance.pointSpread);
+            umap = umap.blurred(mlnipet.ResourcesRegistry.instance().petPointSpread);
             umap.save;
             this.builder_ = this.builder.packageProduct(umap);
             this.builder.teardownBuildUmaps;
             popd(pwd0);
-        end
-        function t    = umapType(varargin)
-            ip = inputParser;
-            addParameter(ip, 'sessionData', [], @(x) ~isempty(x));
-            parse(ip, varargin{:});             
-            pth = fileparts(ip.Results.sessionData.sessionPath);
-            if lstrfind(pth, 'CCIR_00754') || lstrfind(pth, 'CCIR_00559')
-                t = 'ct';
-                return
-            end
-            if lstrfind(pth, 'CCIR_00993')
-                t = 'mrac_hires';
-                return
-            end
-            t = '';
         end
         function objs = migrateResolvedToVall(varargin)
             import mlraichle.TracerDirector2
@@ -80,7 +64,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             ensuredir(dest);
             logs = fullfile(dest, 'Log', '');
             ensuredir(logs);
-            res = mlnipet.Resources.instance;
+            res = mlpipeline.ResourcesRegistry.instance();
             res.keepForensics = false;
             fv = mlfourdfp.FourdfpVisitor;
             
