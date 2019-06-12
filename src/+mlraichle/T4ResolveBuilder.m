@@ -238,8 +238,8 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             parse(ip, varargin{:});
             tag    = ip.Results.tag;
 
-             eSess = mlsystem.DirTool(mlraichle.RaichleRegistry.instance.subjectsDir);
-             cd(mlraichle.RaichleRegistry.instance.subjectsDir);
+             eSess = mlsystem.DirTool(mlraichle.StudyRegistry.instance.subjectsDir);
+             cd(mlraichle.StudyRegistry.instance.subjectsDir);
              eSessFqdns = eSess.fqdns;
              T4ResolveBuilder.printv('serialTriggeringOnConvertedNAC.eSessFqdns->\n%s\n', cell2str(eSessFqdns));
              these = cell(length(eSessFqdns), 2);
@@ -292,7 +292,7 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             parse(ip, varargin{:});
             tag    = ip.Results.tag;
 
-            eSess = mlsystem.DirTool(mlraichle.RaichleRegistry.instance.subjectsDir);
+            eSess = mlsystem.DirTool(mlraichle.StudyRegistry.instance.subjectsDir);
             eSessFqdns = eSess.fqdns;
             T4ResolveBuilder.printv('repairTriggeringOnConvertedNAC.eSessFqdns->\n%s\n', cell2str(eSessFqdns));
             for iSess = 1:length(eSessFqdns)
@@ -355,7 +355,7 @@ classdef T4ResolveBuilder < mlfourdfp.T4ResolveBuilder
             for f = 1:length(files)                
                 try
                     [~,r] = mlbash(sprintf('scp -qr %s %s:%s', ...
-                        fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, sessFold, visit, files{f}), ...
+                        fullfile(mlraichle.StudyRegistry.instance.subjectsDir, sessFold, visit, files{f}), ...
                         MMRResolveBuilder.CLUSTER_HOSTNAME, ...
                         fullfile(MMRResolveBuilder.CLUSTER_SUBJECTS_DIR, sessFold, visit, '')));
                     fprintf('mlfourdfp.MMRResolveBuilder.scp:  %s\n', r);

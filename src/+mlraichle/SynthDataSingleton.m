@@ -21,7 +21,7 @@ classdef SynthDataSingleton < mlraichle.StudyDataSingleton
             this = instance_;
         end
         function d    = subjectsDir
-            d = fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, 'Test', '');
+            d = fullfile(mlraichle.StudyRegistry.instance.subjectsDir, 'Test', '');
         end
     end
     

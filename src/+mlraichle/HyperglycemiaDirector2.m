@@ -71,7 +71,7 @@ classdef HyperglycemiaDirector2
 
             pwd0 = pwd;
             import mlraichle.*;
-            sessp = fullfile(RaichleRegistry.instance.subjectsDir, sessionFolder, '');
+            sessp = fullfile(StudyRegistry.instance.subjectsDir, sessionFolder, '');
             if (~isdir(sessp))
                 mlfourdfp.FourdfpVisitor.mkdir(sessp);
             end

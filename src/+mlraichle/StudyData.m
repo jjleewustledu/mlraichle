@@ -10,7 +10,7 @@ classdef StudyData < handle & mlpipeline.StudyData
         
     methods
  		function this = StudyData(varargin)
- 			this = this@mlpipeline.StudyData(mlraichle.RaichleRegistry.instance(), varargin{:});
+ 			this = this@mlpipeline.StudyData(mlraichle.StudyRegistry.instance(), varargin{:});
         end        
     end  
 

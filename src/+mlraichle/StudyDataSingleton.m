@@ -9,7 +9,6 @@ classdef StudyDataSingleton < handle & mlpipeline.StudyDataSingleton
  	%% It was developed on Matlab 9.0.0.307022 (R2016a) Prerelease for MACI64.
         
     properties (Dependent)
-        dicomExtension
         rawdataDir
         projectsDir
         subjectsDir
@@ -33,20 +32,17 @@ classdef StudyDataSingleton < handle & mlpipeline.StudyDataSingleton
         
         %% GET
         
-        function g = get.dicomExtension(~)
-            d = mlraichle.RaichleRegistry.instance.dicomExtension;
-        end
         function d = get.rawdataDir(~)
-            d = mlraichle.RaichleRegistry.instance.subjectsDir;
+            d = mlraichle.StudyRegistry.instance.subjectsDir;
         end
         function g = get.projectsDir(~)
-            g = mlraichle.RaichleRegistry.instance.projectsDir;
+            g = mlraichle.StudyRegistry.instance.projectsDir;
         end
         function g = get.subjectsDir(~)
-            g = mlraichle.RaichleRegistry.instance.subjectsDir;
+            g = mlraichle.StudyRegistry.instance.subjectsDir;
         end
         function g = get.YeoDir(~)
-            g = mlraichle.RaichleRegistry.instance.YeoDir;
+            g = mlraichle.StudyRegistry.instance.YeoDir;
         end
         
         %%

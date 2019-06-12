@@ -55,6 +55,8 @@ classdef SubjectData < mlnipet.SubjectData
             end
         end
         function sub  = subjectID_to_sub(~, sid)
+            %% abbreviates sub-CNDA01_S12345 -> sub-S12345
+            
             split = strsplit(sid, '_');
             sub = ['sub-' split{2}];
         end
@@ -65,7 +67,7 @@ classdef SubjectData < mlnipet.SubjectData
 
  			this = this@mlnipet.SubjectData(varargin{:});
             
-            this.registry_ = mlraichle.RaichleRegistry.instance;
+            this.registry_ = mlraichle.StudyRegistry.instance;
             this.subjectsStruct_ = jsondecode( ...
                 fileread(fullfile(this.subjectsDir, 'construct_ct.json')));
             this.projectData_ = mlraichle.ProjectData();

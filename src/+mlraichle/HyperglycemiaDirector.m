@@ -165,7 +165,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, ipr.sessionsExpr));
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess}; %#ok<*PFBNS>
                 pwds = pushd(sessp);
@@ -242,7 +242,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, ipr.sessionsExpr));
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
@@ -299,7 +299,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, ipr.sessionsExpr));
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
@@ -334,7 +334,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, ipr.sessionsExpr));
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
@@ -392,7 +392,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, ipr.sessionsExpr));
             disp(dtsess);
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
@@ -424,7 +424,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, ipr.sessionsExpr));
             disp(dtsess);
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
@@ -456,7 +456,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, ipr.sessionsExpr));
             disp(dtsess);
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
@@ -488,7 +488,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, ipr.sessionsExpr));
             disp(dtsess);
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
@@ -520,7 +520,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, ipr.sessionsExpr));
             disp(dtsess);
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
@@ -552,7 +552,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, ipr.sessionsExpr));
             disp(dtsess);
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
@@ -635,7 +635,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, sessExpr));
             dtsessFqdns = dtsess.fqdns;
             parfor idtsess = 1:length(dtsessFqdns)
                 sessp = dtsessFqdns{idtsess};
@@ -678,7 +678,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, sessExpr));
             dtsessFqdns = dtsess.fqdns;
             parfor idtsess = 1:length(dtsessFqdns)
                 sessp = dtsessFqdns{idtsess};
@@ -721,7 +721,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, sessExpr));
             dtsessFqdns = dtsess.fqdns;
             for idtsess = 1:length(dtsessFqdns)
                 sessp = dtsessFqdns{idtsess};
@@ -764,7 +764,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, sessExpr));
             dtsessFqdns = dtsess.fqdns;
             for idtsess = 1:length(dtsessFqdns)
                 sessp = dtsessFqdns{idtsess};
@@ -1211,7 +1211,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
 
             pwd0 = pwd;
             import mlraichle.*;
-            sessp = fullfile(RaichleRegistry.instance.subjectsDir, sessionFolder, '');
+            sessp = fullfile(StudyRegistry.instance.subjectsDir, sessionFolder, '');
             if (~isdir(sessp))
                 mlfourdfp.FourdfpVisitor.mkdir(sessp);
             end
@@ -1245,7 +1245,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, ipr.sessionsExpr));
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
@@ -1294,7 +1294,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, ipr.sessionsExpr));
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);
@@ -1337,7 +1337,7 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(RaichleRegistry.instance.subjectsDir, ipr.sessionsExpr));
+                fullfile(StudyRegistry.instance.subjectsDir, ipr.sessionsExpr));
             
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};

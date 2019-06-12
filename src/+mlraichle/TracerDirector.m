@@ -71,7 +71,7 @@ classdef TracerDirector < mlsiemens.CommonTracerDirector
         end
         function out   = cleanMore(varargin)
             %% cleanMore
-            %  @param works in mlraichle.RaichleRegistry.instance.subjectsDir
+            %  @param works in mlraichle.StudyRegistry.instance.subjectsDir
             %  @return deletes from the filesystem:  *-sino.s[.hdr]
                       
             ip = inputParser;
@@ -149,7 +149,7 @@ classdef TracerDirector < mlsiemens.CommonTracerDirector
         end
         function out   = cleanSinograms(varargin)
             %% cleanSinograms
-            %  @param works in mlraichle.RaichleRegistry.instance.subjectsDir
+            %  @param works in mlraichle.StudyRegistry.instance.subjectsDir
             %  @return deletes from the filesystem:  *-sino.s[.hdr]
                       
             ip = inputParser;

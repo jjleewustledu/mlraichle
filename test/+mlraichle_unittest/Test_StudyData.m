@@ -20,15 +20,14 @@ classdef Test_StudyData < matlab.unittest.TestCase
 	methods (Test)
         function test_instance(this)
             this.verifyClass(this.testObj, 'mlraichle.StudyData');
-            this.verifyEqual(this.testObj.dicomExtension, '.dcm');            
         end
         function test_rawdataDir(this)
             this.verifyEqual(this.testObj.rawdataDir, ...
-                lraichle.RaichleRegistry.instance.rawdataDir);
+                lraichle.StudyRegistry.instance.rawdataDir);
         end
         function test_subjectsDir(this)
             this.verifyEqual(this.testObj.subjectsDir, ...
-                mlraichle.RaichleRegistry.instance.subjectsDir);
+                mlraichle.StudyRegistry.instance.subjectsDir);
         end
         function test_replaceSessionData(this)
             this.testObj = this.testObj.replaceSessionData('sessionPath', this.aSessionPath('HYGLY09'));
@@ -39,7 +38,6 @@ classdef Test_StudyData < matlab.unittest.TestCase
 %             cc = this.testObj.sessionData;
 %             this.verifyClass(cc, 'mlpatterns.CellComposite');
 %             this.verifyEqual(cc{1}.sessionPath, this.aSessionPath('HYGLY08'));
-%             this.verifyEqual(length(cc), length(this.testObj.subjectsDirFqdns));
         end
         function test_sessionData_sessionPath(this)
             sessPth = this.aSessionPath('HYGLY24');
@@ -85,7 +83,7 @@ classdef Test_StudyData < matlab.unittest.TestCase
 
  	methods (TestClassSetup)
 		function setupStudyDataSingletons(this) %#ok<MANU>
-            assert(isdir(mlraichle.RaichleRegistry.instance.subjectsDir), 'network filesystem missing?')
+            assert(isdir(mlraichle.StudyRegistry.instance.subjectsDir), 'network filesystem missing?')
  		end
 	end
 
@@ -106,7 +104,7 @@ classdef Test_StudyData < matlab.unittest.TestCase
     
     methods (Access = private)
         function pth = aSessionPath(~, fold)
-            pth = fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, fold, '');
+            pth = fullfile(mlraichle.StudyRegistry.instance.subjectsDir, fold, '');
         end
     end
 

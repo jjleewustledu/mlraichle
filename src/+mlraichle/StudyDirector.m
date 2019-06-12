@@ -54,7 +54,7 @@ classdef StudyDirector
             tracers = ensureCell(ipr.tracer);
             factoryMethod = ipr.factoryMethod;
             
-            dtsess = DirTools(fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
+            dtsess = DirTools(fullfile(StudyRegistry.instance.subjectsDir, sessExpr));
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwdsess = pushd(sessp);
@@ -116,7 +116,7 @@ classdef StudyDirector
             varargin2 = varargin(2:end);
             
             those = {};
-            dtsess = DirTools(fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
+            dtsess = DirTools(fullfile(StudyRegistry.instance.subjectsDir, sessExpr));
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess}; %#ok<PFBNS>
                 pwdsess = pushd(sessp);
@@ -174,7 +174,7 @@ classdef StudyDirector
             varargin2 = varargin(2:end);
             
             those = {};
-            dtsess = DirTools(fullfile(RaichleRegistry.instance.subjectsDir, sessExpr));
+            dtsess = DirTools(fullfile(StudyRegistry.instance.subjectsDir, sessExpr));
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwdsess = pushd(sessp);
@@ -248,7 +248,7 @@ classdef StudyDirector
             
             those = {};
             dtsess = DirTools( ...
-                fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, sessExpr));
+                fullfile(mlraichle.StudyRegistry.instance.subjectsDir, sessExpr));
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwds = pushd(sessp);                  

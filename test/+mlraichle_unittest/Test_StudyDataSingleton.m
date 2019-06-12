@@ -19,16 +19,15 @@ classdef Test_StudyDataSingleton < matlab.unittest.TestCase
 
 	methods (Test)
         function test_instance(this)
-            this.verifyClass(this.testObj, 'mlraichle.StudyDataSingleton');
-            this.verifyEqual(this.testObj.dicomExtension, '.dcm');            
+            this.verifyClass(this.testObj, 'mlraichle.StudyDataSingleton');        
         end
         function test_rawdataDir(this)
             this.verifyEqual(this.testObj.rawdataDir, ...
-                lraichle.RaichleRegistry.instance.rawdataDir);
+                lraichle.StudyRegistry.instance.rawdataDir);
         end
         function test_subjectsDir(this)
             this.verifyEqual(this.testObj.subjectsDir, ...
-                mlraichle.RaichleRegistry.instance.subjectsDir);
+                mlraichle.StudyRegistry.instance.subjectsDir);
         end
         function test_register(this)
             sdss = mlpipeline.StudyDataSingletons.instance;
@@ -102,7 +101,7 @@ classdef Test_StudyDataSingleton < matlab.unittest.TestCase
     
     methods (Access = private)
         function pth = aSessionPath(~, fold)
-            pth = fullfile(mlraichle.RaichleRegistry.instance.subjectsDir, fold, '');
+            pth = fullfile(mlraichle.StudyRegistry.instance.subjectsDir, fold, '');
         end
     end
 
