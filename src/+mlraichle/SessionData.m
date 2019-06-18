@@ -1,4 +1,4 @@
-classdef SessionData < mlnipet.CommonSessionData
+classdef SessionData < mlnipet.ResolvingSessionData
 	%% SESSIONDATA  
 
 	%  $Revision$
@@ -36,15 +36,16 @@ classdef SessionData < mlnipet.CommonSessionData
     end
 
     methods
-        
-        %% GET, SET
-        
         function g    = getStudyCensus(this)
             g = mlraichle.StudyCensus(this.STUDY_CENSUS_XLSX_FN', 'sessionData', this);
-        end 
-        
-        %% 
-        
+        end        
+        function this = manageLegacyStudyData(this, studyd)
+            assert(isa(studyd, 'mlraichle.StudyData'))
+            if isempty(this.subjectData_)
+                this.subjectData_ = mlraichle.SubjectData();
+            end
+            this.subjectData_.studyData = studyd;
+        end
         function obj  = mprForReconall(this, varargin)
             obj = this.fqfilenameObject( ...
                 fullfile(this.sessionPath, ['mpr' this.filetypeExt]), varargin{:});            
@@ -142,12 +143,12 @@ classdef SessionData < mlnipet.CommonSessionData
             obj = this.visitMapOnAtl('agi', varargin{:});
         end
                 
-        %%      
+        %% 
         
       	function this = SessionData(varargin)
- 			this = this@mlnipet.CommonSessionData(varargin{:});
-            if (isempty(this.subjectData_))
-                this.subjectData_ = mlraichle.SubjectData();
+ 			this = this@mlnipet.ResolvingSessionData(varargin{:});
+            if isempty(this.studyData_)
+                this.studyData_ = mlraichle.StudyData();
             end
         end
     end

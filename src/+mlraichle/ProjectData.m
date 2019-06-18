@@ -7,9 +7,6 @@ classdef ProjectData < mlnipet.ProjectData
  	%% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
  	
 	methods 
-        function g = getProjectFolder(this, s)
-            g = this.session2projectMap_(s);
-        end
         function p = session2project(this, s)
             %% e.g.:  {'CNDA_E1234','ses-E1234'} -> 'CCIR_00123'
             
@@ -22,10 +19,19 @@ classdef ProjectData < mlnipet.ProjectData
 		  
  		function this = ProjectData(varargin)
  			%% PROJECTDATA
- 			%  @param .
+ 			%  @param sessionStr is char.
+            %  See also mlraichle.ProjectData.session2project.
 
  			this = this@mlnipet.ProjectData(varargin{:});
-            this = this.aufbauMap;
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionStr', '', @ischar)
+            parse(ip, varargin{:})
+            
+            if ~isempty(ip.Results.sessionStr)
+                this.projectFolder_ = this.session2project(ip.results.sessionStr);
+            end
+            this = this.aufbauMap; % session2projectMap_
  		end
     end 
     
