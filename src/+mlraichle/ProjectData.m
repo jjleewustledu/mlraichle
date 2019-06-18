@@ -6,7 +6,24 @@ classdef ProjectData < mlnipet.ProjectData
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
  	
+    properties (Dependent)
+        jsonDir	
+        projectsDir
+    end
+    
 	methods 
+        
+        %% GET
+        
+        function g    = get.jsonDir(~)
+            g = mlraichle.StudyRegistry.instance().subjectsDir;
+        end        
+        function g    = get.projectsDir(~)
+            g = mlraichle.StudyRegistry.instance().projectsDir;
+        end
+        
+        %% 
+        
         function p = session2project(this, s)
             %% e.g.:  {'CNDA_E1234','ses-E1234'} -> 'CCIR_00123'
             
@@ -28,10 +45,10 @@ classdef ProjectData < mlnipet.ProjectData
             addParameter(ip, 'sessionStr', '', @ischar)
             parse(ip, varargin{:})
             
-            if ~isempty(ip.Results.sessionStr)
-                this.projectFolder_ = this.session2project(ip.results.sessionStr);
-            end
             this = this.aufbauMap; % session2projectMap_
+            if ~isempty(ip.Results.sessionStr)
+                this.projectFolder_ = this.session2project(ip.Results.sessionStr);
+            end
  		end
     end 
     
