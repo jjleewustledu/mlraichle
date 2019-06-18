@@ -8,7 +8,8 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 8.5.0.197613 (R2015a) for MACI64.
  	
-    properties
+    properties (Dependent)
+        rawdataDir
     end
     
     methods (Static)
@@ -32,6 +33,15 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
             end
         end
     end  
+    
+    methods
+        
+        %% GET
+        
+        function x = get.rawdataDir(~)
+            x = fullfile(getenv('PPG'), 'rawdata', '');
+        end
+    end
     
     %% PRIVATE
     

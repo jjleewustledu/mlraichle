@@ -73,12 +73,6 @@ classdef Test_StudyDataSingleton < matlab.unittest.TestCase
             this.verifyEqual(testObj_CC.sessionData.length, 3);
             this.verifyEqual(testObj_CC.sessionData{3}.sessionPath, this.aSessionPath('HYGLY09'));
         end
-        function test_saveWorkspace(this)
-            this.assertFalse(this.testObj.isChpcHostname);
-            loc = this.testObj.saveWorkspace;
-            this.verifyTrue(lexist(loc, 'file'));
-            delete(loc);
-        end
 	end
 
  	methods (TestClassSetup)
