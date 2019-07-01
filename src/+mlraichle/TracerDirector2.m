@@ -50,8 +50,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
         function objs = migrateResolvedToVall(varargin)
             import mlraichle.TracerDirector2
             import mlfourd.ImagingContext2           
-            import mlraichle.TracerDirector2.migrationTeardown
-            import mlraichle.TracerDirector2.CHART_TAG
+            import mlraichle.TracerDirector2.*
             import mlsystem.DirTool
             
             this = TracerDirector2(mlpet.TracerResolveBuilder(varargin{:}));  
