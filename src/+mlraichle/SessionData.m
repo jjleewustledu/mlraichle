@@ -150,6 +150,16 @@ classdef SessionData < mlnipet.ResolvingSessionData
             if isempty(this.studyData_)
                 this.studyData_ = mlraichle.StudyData();
             end
+            if isempty(this.projectData_)
+                this.projectData_ = mlraichle.ProjectData('sessionStr', this.sessionFolder);
+            end
+            
+            %% taus
+            
+            if (~isempty(this.scanFolder_) && lexist(this.jsonFilename, 'file'))
+                j = jsondecode(fileread(this.jsonFilename));
+                this.taus_ = j.taus';
+            end
         end
     end
     
