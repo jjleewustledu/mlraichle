@@ -7,11 +7,29 @@ classdef Json
     %  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlraichle/src/+mlraichle.
     %% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
     
-    properties
-        
+    properties (Constant)
+        filenameConstructed = 'constructed_20190716.json'
     end
     
     methods (Static)
+        
+        function S = loadConstructed()
+            datapath = fullfile(getenv('HOME'), 'MATLAB-Drive', 'mlraichle', 'data', '');
+            S = jsondecode(fileread(fullfile(datapath, mlraichle.Json.filenameConstructed)));
+        end
+        function saveConstructed(S)
+            assert(isstruct(S))
+            
+            datapath = fullfile(getenv('HOME'), 'MATLAB-Drive', 'mlraichle', 'data', '');
+            fid = fopen(fullfile(datapath, mlraichle.Json.filenameConstructed), 'w');
+            fprintf(fid, jsonencode(S));
+            fclose(fid);            
+        end
+        function [j559,j754] = hand_curated()
+            datapath = fullfile(getenv('HOME'), 'MATLAB-Drive', 'mlraichle', 'data', '');
+            load(fullfile(datapath, 'j559.mat'), 'j559')
+            load(fullfile(datapath, 'j754.mat'), 'j754')
+        end
         
         function S = json_for_construct_ct(j754, j559)
             % @param j754 is a hand-curated struct
