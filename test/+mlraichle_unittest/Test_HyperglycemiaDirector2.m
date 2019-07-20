@@ -56,25 +56,25 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
         end
         function test_constructResolvedNAC1(this)
             td = this.scanPath;
-            td = td.prepareFourdfpTracerImages;
+            td = td.packageTracerResolvedR1;
             disp(td);
         end  
         function test_constructResolvedNAC2(this)
             td = this.scanPath;
-            td = td.prepareFourdfpTracerImages;
+            td = td.packageTracerResolvedR1;
             td = td.setBuilder__(td.builder.prepareMprToAtlasT4);
             disp(td);            
         end  
         function test_constructResolvedNAC3(this)
             td = this.scanPath;
-            td = td.prepareFourdfpTracerImages;
+            td = td.packageTracerResolvedR1;
             td = td.setBuilder__(td.builder.prepareMprToAtlasT4);
             td = td.setBuilder__(td.builder.partitionMonolith); 
             disp(td);
         end  
         function test_constructResolvedNAC4(this)
             td = this.scanPath;
-            td = td.prepareFourdfpTracerImages;
+            td = td.packageTracerResolvedR1;
             td = td.setBuilder__(td.builder.prepareMprToAtlasT4);
             td = td.setBuilder__(td.builder.partitionMonolith); 
             [bldr,epochs,reconstituted] = td.builder.motionCorrectFrames; td = td.setBuilder__(bldr);
@@ -86,7 +86,7 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
         end  
         function test_constructResolvedNAC5(this)
             td = this.scanPath;
-            td = td.prepareFourdfpTracerImages;
+            td = td.packageTracerResolvedR1;
             td = td.setBuilder__(td.builder.prepareMprToAtlasT4);
             td = td.setBuilder__(td.builder.partitionMonolith); 
             [bldr,epochs,reconstituted] = td.builder.motionCorrectFrames; td = td.setBuilder__(bldr); %#ok<ASGLU>
