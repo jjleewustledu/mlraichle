@@ -66,7 +66,7 @@ classdef StudyCurator
     end
     
 	methods 
-        function curate0(this)
+        function curate00(this)
             import mlraichle.StudyCurator.*
             import mlfourd.ImagingContext2
 
@@ -78,9 +78,16 @@ classdef StudyCurator
             this.stageTracers;
             popd(pwd0)            
         end
-        function curate(this)
+        function curate0(this)
             pwd0 = pushd(this.subPath);
             this.stageTracersOnMNI152
+            this.stageFreeSurferObjects   
+            popd(pwd0)  
+        end
+        function curate(this)
+            pwd0 = pushd(this.subPath);
+            this.stageTracers
+            this.stageT4s
             this.stageFreeSurferObjects   
             popd(pwd0)  
         end
@@ -95,39 +102,17 @@ classdef StudyCurator
                     return
                 end
             end
+            error('mlraichle:RuntimeError', 'StudyCurator.firstPopulatedSesPath could not find a valid session')
         end
         function pth = firstPopulatedSingularitySesPath(this)
             sesFold = basename(this.firstPopulatedSesPath);
             pth = fullfile(getenv('SINGULARITY_HOME'), this.sesFolder2project(sesFold), sesFold, '');            
         end
         function stageFreeSurferObjects(this) 
-%             
-%             pwd0 = pushd(this.subPath);
-%             deleteExisting('T1001.4dfp.*')
-%             deleteExisting('T1001r1.4dfp.*')
-%             lns_4dfp(fullfile(this.firstPopulatedSingularitySesPath, 'T1001'))
-%             lns(fullfile(this.firstPopulatedSingularitySesPath, 'T1001.nii'))          
-%             t4 = 'T1001r1_to_op_fdg_avgr1_t4';
-%             for f = {'brain' 'wmparc' 'aparcAseg' 'aparcA2009sAseg'}
-%                 try
-%                     if ~isfile([f{1} '.4dfp.hdr'])                        
-%                         lns_4dfp(fullfile(this.firstPopulatedSingularitySesPath, f{1}))                        
-%                     end
-%                     mlbash(sprintf('t4img_4dfp %s %s %s_op_fdg_avgr1 -OT1001r1_op_fdg_avgr1', t4, f{1}, f{1}))
-%                     ic2 = mlfourd.ImagingContext2([f{1} '_op_fdg_avgr1.4dfp.hdr']);
-%                     ic2.saveas(fullfile(this.subPath1, [f{1} '_on_op_fdg_avg.nii.gz']))
-%                 catch ME
-%                     handwarning(ME)
-%                 end
-%             end   
-%             
-%             popd(pwd0)
-            
-            
-            
             pwd1 = pushd(this.subPath1);
             copyfile(fullfile(this.firstPopulatedSingularitySesPath, 'T1001.nii'))
             gzip('T1001.nii')
+            deleteExisting('T1001.nii')
             mripth = this.firstPopulatedMriPath;
             mlbash(sprintf('mri_convert %s.mgz %s.nii.gz', fullfile(mripth, 'brain'), 'brain'))
             mlbash(sprintf('mri_convert %s.mgz %s.nii.gz', fullfile(mripth, 'wmparc'), 'wmparc'))
@@ -198,6 +183,16 @@ classdef StudyCurator
             
             popd(pwd0)
         end
+        function stageT4s(this)
+            pwd0 = pushd(this.subPath);
+            globbedHdr = glob('*_on_op_fdg*.4dfp.hdr');
+            for g = asrow(globbedHdr)
+                prefix = strsplit(g{1}, '_');
+                prefix = prefix{1};            
+                mlbash(sprintf('rsync -raL %s %s', 'fdg_avgr1_to_T1001r1_t4', fullfile(this.subPath1, [prefix '_to_T1001_t4'])))
+            end            
+            popd(pwd0)
+        end
 		  
  		function this = StudyCurator(varargin)
  			%% STUDYCURATOR
@@ -208,7 +203,7 @@ classdef StudyCurator
             ip = inputParser;
             addRequired(ip, 'subFolder', @ischar)
             addParameter(ip, 'sourceFolder', '/scratch/jjlee/Singularity/subjects', @isfolder)
-            addParameter(ip, 'curatedFolder', '/data/nil-bluearc/raichle/PPGdata/jjlee/subjects', @isfolder)
+            addParameter(ip, 'curatedFolder', '/data/nil-bluearc/raichle/PPGdata/jjlee/subjects2', @isfolder)
             parse(ip, varargin{:})
             ipr = ip.Results;
             this.subPath = fullfile(ipr.sourceFolder, ipr.subFolder);
