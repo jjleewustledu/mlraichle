@@ -11,6 +11,212 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
     end
     
     methods (Static)
+        function constructResolvedStudy(varargin)
+            %% CONSTRUCTRESOLVEDSTUDY supports t4_resolve for niftypet.  It provides iterators for 
+            %  project, session and tracer folders on the filesystem.
+            %  Usage:  constructResolvedStudy(<folders experssion>[, 'ignoreFinishMark', <true|false>])
+            %          e.g.:  >> constructResolvedStudy('CCIR_00123/ses-E00123/OO_DT20190101.000000-Converted-NAC')    
+            %          e.g.:  >> constructResolvedStudy('CCIR_00123/ses-E0012*/OO_DT*-Converted-NAC')
+            %  
+            %  @precondition fullfile(projectsDir, project, session, 'umapSynth_op_T1001_b43.4dfp.*') and
+            %                         projectsDir := getenv('PROJECTS_DIR')
+            %  @precondition files{.bf,.dcm} in fullfile(projectsDir, project, session, 'LM', '')
+            %  @precondition files{.bf,.dcm} in fullfile(projectsDir, project, session, 'norm', '')
+            %  @precondition FreeSurfer recon-all results in fullfile(projectsDir, project, session, 'mri', '')
+            %
+            %  @param foldersExpr is char.
+            %  @return results in fullfile(projectsDir, project, session, tracer) 
+            %          for elements of projectsExpr, sessionsExpr and tracerExpr.
+            %
+            %  N.B.:  Setting environment vars PROJECTS_DIR or SUBJECTS_DIR is not compatible with many Docker or Singularity
+            %         use cases.
+
+            import mlraichle.*; %#ok<NSTIMP>
+            import mlsystem.DirTool;
+            import mlpet.DirToolTracer;
+
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired( ip, 'foldersExpr', @ischar)
+            addParameter(ip, 'ignoreFinishMark', false, @islogical);
+            parse(ip, varargin{:});
+            ipr = TracerDirector2.adjustIprConstructResolvedStudy(ip.Results);
+
+            registry = StudyRegistry.instance();
+            for p = asrowdirs(glob(fullfile(registry.projectsDir, ipr.projectsExpr)))
+                for s = asrowdirs(glob(fullfile(p{1}, ipr.sessionsExpr)))
+                    pwd0 = pushd(s{1});
+                    for t = asrowdirs(glob(ipr.tracersExpr))
+                        try
+                            folders = fullfile(basename(p{1}), basename(s{1}), t{1});
+                            sesd = SessionData.create(folders, 'ignoreFinishMark', ipr.ignoreFinishMark);
+
+                            fprintf('constructResolvedStudy:\n');
+                            fprintf([evalc('disp(sessd)') '\n']);
+                            fprintf(['\tsessd.tracerLocation->' sesd.tracerLocation '\n']);
+
+                            warning('off', 'MATLAB:subsassigndimmismatch');
+                            TracerDirector2.constructResolved('sessionData', sesd);  
+                            warning('on',  'MATLAB:subsassigndimmismatch');
+                        catch ME
+                            dispwarning(ME)
+                            getReport(ME)
+                        end
+                    end
+                    popd(pwd0);
+                end
+            end
+        end
+        function constructSessionsStudy(varargin)
+            %% CONSTRUCTSESSIONSSTUDY
+            %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345/ses-E12345'.
+            
+            %% Version $Revision$ was created $Date$ by $Author$,
+            %% last modified $LastChangedDate$ and checked into repository $URL$,
+            %% developed on Matlab 9.5.0.1067069 (R2018b) Update 4.  Copyright 2019 John Joowon Lee.
+            
+            import mlraichle.*
+            import mlsystem.DirTool
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired( ip, 'foldersExpr', @ischar)
+            addParameter(ip, 'makeClean', false, @islogical)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            ss = strsplit(ipr.foldersExpr, '/');
+            setenv('SUBJECTS_DIR', fullfile(getenv('SINGULARITY_HOME'), ss{1}))
+            subpth = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2});
+            subd = SubjectData('subjectFolder', ss{2});
+            subid = subFolder2subID(subd, ss{2});
+            subd.aufbauSessionPath(subpth, subd.subjectsJson.(subid));
+            
+            pwd0 = pushd(subpth);
+            dt = DirTool([ss{3} '*']);
+            for ses = dt.dns
+                
+                pwd1 = pushd(ses{1});
+                if mlpet.SessionResolveBuilder.validTracerSession()
+                    sesd = SessionData( ...
+                        'studyData', StudyData(), ...
+                        'projectData', ProjectData('sessionStr', ses{1}), ...
+                        'subjectData', SubjectData('subjectFolder', ss{2}), ...
+                        'sessionFolder', ses{1}, ...
+                        'tracer', 'FDG', 'ac', true); % referenceTracer
+                    if ipr.makeClean
+                        mlpet.SessionResolveBuilder.makeClean();
+                    end
+                    srb = mlpet.SessionResolveBuilder('sessionData', sesd);;
+                    srb.align;
+                    srb.t4_mul;
+                end
+                popd(pwd1)
+            end
+            popd(pwd0)
+            
+            
+            
+            function sid = subFolder2subID(sdata, sfold)
+                json = sdata.subjectsJson;
+                for an_sid = asrow(fields(json))
+                    if lstrfind(json.(an_sid{1}).sid, sfold(5:end))
+                        sid = an_sid{1};
+                        return
+                    end
+                end
+            end
+        end
+        function constructSubjectsStudy(varargin)
+            %% CONSTRUCTSUBJECTSSTUDY 
+            %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
+            
+            %% Version $Revision$ was created $Date$ by $Author$,
+            %% last modified $LastChangedDate$ and checked into repository $URL$,
+            %% developed on Matlab 9.5.0.1067069 (R2018b) Update 4.  Copyright 2019 John Joowon Lee.
+            
+            import mlraichle.*
+            import mlsystem.DirTool
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired(ip, 'foldersExpr', @ischar)
+            addParameter(ip, 'makeClean', false, @islogical)
+            parse(ip, varargin{:})
+            ss = strsplit(ip.Results.foldersExpr, '/');
+            
+            subPath = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '');            
+            pwd0 = pushd(subPath);
+            subData = SubjectData('subjectFolder', ss{2});
+            sesFold = subData.subFolder2sesFolder(ss{2});
+            sesData = SessionData( ...
+                'studyData', StudyData(), ...
+                'projectData', ProjectData('sessionStr', sesFold), ...
+                'subjectData', subData, ...
+                'sessionFolder', sesFold, ...
+                'tracer', 'FDG', ...
+                'ac', true); % referenceTracer
+            srb = mlpet.SubjectResolveBuilder('subjectData', subData, 'sessionData', sesData);
+            if ip.Results.makeClean
+                srb.makeClean();
+            end
+            if ~srb.isfinished()
+                srb.align();
+            end
+            srb.t4_mul();
+            srb.lns_json_all();
+            copyfile('*.json', 'resampling_restricted', 'f')
+            compose_t4s();
+            lns_resampling_restricted();
+            srb.t4img_4dfp_on_T1001(fullfile(subPath, 'resampling_restricted', ''));
+            srb.copySurfer(fullfile(subPath, 'resampling_restricted', ''));
+            popd(pwd0)
+        end
+        function constructSubjectsStudy_adhoc(varargin)
+            %% CONSTRUCTSUBJECTSSTUDY_ADHOC
+            %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
+            
+            %% Version $Revision$ was created $Date$ by $Author$,
+            %% last modified $LastChangedDate$ and checked into repository $URL$,
+            %% developed on Matlab 9.5.0.1067069 (R2018b) Update 4.  Copyright 2019 John Joowon Lee.
+            
+            import mlraichle.*
+            import mlsystem.DirTool
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired(ip, 'foldersExpr', @ischar)
+            addParameter(ip, 'makeClean', false, @islogical)
+            parse(ip, varargin{:})
+            ss = strsplit(ip.Results.foldersExpr, '/');
+            
+            subPath = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '');            
+            pwd0 = pushd(subPath);
+            subData = SubjectData('subjectFolder', ss{2});
+            sesFold = subData.subFolder2sesFolder(ss{2});
+            sesData = SessionData( ...
+                'studyData', StudyData(), ...
+                'projectData', ProjectData('sessionStr', sesFold), ...
+                'subjectData', subData, ...
+                'sessionFolder', sesFold, ...
+                'tracer', 'FDG', ...
+                'ac', true); % referenceTracer
+            srb = mlpet.SubjectResolveBuilder('subjectData', subData, 'sessionData', sesData);
+%             if ip.Results.makeClean
+%                 srb.makeClean();
+%             end
+%             if ~srb.isfinished()
+%                 srb.align();
+%             end
+            srb.t4_mul();
+            srb.lns_json_all();
+            copyfile('*.json', 'resampling_restricted', 'f')
+            compose_t4s();
+            lns_resampling_restricted();
+            srb.t4img_4dfp_on_T1001(fullfile(subPath, 'resampling_restricted', ''));
+            srb.copySurfer(fullfile(subPath, 'resampling_restricted', ''));
+            popd(pwd0)
+        end
         function this = constructUmaps(varargin)
             import mlraichle.TracerDirector2;
             import mlfourd.ImagingContext2;           
@@ -19,6 +225,9 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                     this = TracerDirector2(mlfourdfp.CarneyUmapBuilder2(varargin{:}));
                     TracerDirector2.prepareFreesurferData(varargin{:});
                     this.builder_ = this.builder.prepareMprToAtlasT4;
+                    if this.builder.isfinished
+                        return
+                    end 
                 case 'ute'
                     this = TracerDirector2(mlfourdfp.UTEUmapBuilder(varargin{:}));
                     TracerDirector2.prepareFreesurferData(varargin{:});
@@ -34,9 +243,6 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                 otherwise
                     error('mlraichle:ValueError', 'TracerDirector2.constructUmaps')
             end
-            if this.builder.isfinished
-                return
-            end 
             
             pwd0 = pushd(this.sessionData.sessionPath);
             umap = this.builder.buildUmap;
@@ -117,49 +323,6 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             popd(pwd0);            
             res.keepForensics = true;
             objs = {dest ct4rb};
-        end
-        function tmp  = migrationTeardown(fps, logs, dest_fqfp0, dest)
-            tmp = protectFiles(fps, fps{1}, logs);
-            deleteFiles(dest_fqfp0, fps{1}, fps, dest);   
-            unprotectFiles(tmp);
-                        
-            function tmp = protectFiles(fps, fps1, logs)
-                
-                % in tempFilepath
-                tmp = tempFilepath('protectFiles');
-                ensuredir(tmp);                
-                for f = 1:length(fps)
-                    moveExisting([fps{f} '.4dfp.*'], tmp);
-                    moveExisting([fps{f} 'r1_b43.4dfp.*'], tmp);
-                end
-                moveExisting( 'T1001.4dfp.*', tmp);
-                moveExisting(['T1001r1_op_' fps1 '.4dfp.*'], tmp);
-                moveExisting(sprintf('T1001_to_op_%s_t4', fps1), tmp)
-                moveExisting( 'T1001_to_TRIO_Y_NDC_t4', tmp)
-
-                % in Log
-                moveExisting('*.mat0', logs);
-                moveExisting('*.sub',  logs);
-                moveExisting('*.log',  logs);  
-            end
-            function deleteFiles(dest_fqfp0, fps1, fps, dest)
-                assert(lstrfind(dest_fqfp0{end}, '_sumt'));
-                deleteExisting([dest_fqfp0{end} 'r1.4dfp.*']);
-                deleteExisting([dest_fqfp0{end} 'r1_op_' fps1 '.4dfp.*']);
-                deleteExisting([dest_fqfp0{end} 'r1_to_op_' fps1 '_t4']);
-                deleteExisting([dest_fqfp0{end} 'r1_to_T1001r1_t4']);
-                for f = 1:length(fps)
-                    deleteExisting(fullfile(dest, ['T1001r1_to_' fps{f} 'r1_t4']));
-                end
-                deleteExisting('T1001r1.4dfp.*');
-                deleteExisting('T1001r1_b43.4dfp.*');
-                deleteExisting('*_mskt.4dfp.*');
-                deleteExisting('*_g11.4dfp.*');       
-            end
-            function unprotectFiles(tmp)
-                movefile(fullfile(tmp, '*'), pwd);
-                rmdir(tmp);
-            end
         end
     end
     
