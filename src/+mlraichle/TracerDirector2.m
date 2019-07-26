@@ -137,84 +137,40 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             
             import mlraichle.*
             import mlsystem.DirTool
+            import mlpet.SubjectResolveBuilder
             
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired(ip, 'foldersExpr', @ischar)
             addParameter(ip, 'makeClean', false, @islogical)
+            addParameter(ip, 'makeAligned', true, @islogical)
             parse(ip, varargin{:})
             ss = strsplit(ip.Results.foldersExpr, '/');
             
             subPath = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '');            
             pwd0 = pushd(subPath);
-            subData = SubjectData('subjectFolder', ss{2});
-            sesFold = subData.subFolder2sesFolder(ss{2});
-            sesData = SessionData( ...
-                'studyData', StudyData(), ...
-                'projectData', ProjectData('sessionStr', sesFold), ...
-                'subjectData', subData, ...
-                'sessionFolder', sesFold, ...
-                'tracer', 'FDG', ...
-                'ac', true); % referenceTracer
-            srb = mlpet.SubjectResolveBuilder('subjectData', subData, 'sessionData', sesData);
-            if ip.Results.makeClean
-                srb.makeClean();
-            end
-            if ~srb.isfinished()
+            if ip.Results.makeAligned
+                subData = SubjectData('subjectFolder', ss{2});
+                sesFold = subData.subFolder2sesFolder(ss{2});
+                sesData = SessionData( ...
+                    'studyData', StudyData(), ...
+                    'projectData', ProjectData('sessionStr', sesFold), ...
+                    'subjectData', subData, ...
+                    'sessionFolder', sesFold, ...
+                    'tracer', 'FDG', ...
+                    'ac', true); % referenceTracer
+                srb = mlpet.SubjectResolveBuilder('subjectData', subData, 'sessionData', sesData);
+                if ip.Results.makeClean
+                    srb.makeClean();
+                end
                 srb.align();
+                srb.t4_mul();
+                srb.lns_json_all();
             end
-            srb.t4_mul();
-            srb.lns_json_all();
-            copyfile('*.json', 'resampling_restricted', 'f')
-            compose_t4s();
-            lns_resampling_restricted();
-            srb.t4img_4dfp_on_T1001(fullfile(subPath, 'resampling_restricted', ''));
-            srb.copySurfer(fullfile(subPath, 'resampling_restricted', ''));
-            popd(pwd0)
-        end
-        function constructSubjectsStudy_adhoc(varargin)
-            %% CONSTRUCTSUBJECTSSTUDY_ADHOC
-            %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
-            
-            %% Version $Revision$ was created $Date$ by $Author$,
-            %% last modified $LastChangedDate$ and checked into repository $URL$,
-            %% developed on Matlab 9.5.0.1067069 (R2018b) Update 4.  Copyright 2019 John Joowon Lee.
-            
-            import mlraichle.*
-            import mlsystem.DirTool
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addRequired(ip, 'foldersExpr', @ischar)
-            addParameter(ip, 'makeClean', false, @islogical)
-            parse(ip, varargin{:})
-            ss = strsplit(ip.Results.foldersExpr, '/');
-            
-            subPath = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '');            
-            pwd0 = pushd(subPath);
-            subData = SubjectData('subjectFolder', ss{2});
-            sesFold = subData.subFolder2sesFolder(ss{2});
-            sesData = SessionData( ...
-                'studyData', StudyData(), ...
-                'projectData', ProjectData('sessionStr', sesFold), ...
-                'subjectData', subData, ...
-                'sessionFolder', sesFold, ...
-                'tracer', 'FDG', ...
-                'ac', true); % referenceTracer
-            srb = mlpet.SubjectResolveBuilder('subjectData', subData, 'sessionData', sesData);
-%             if ip.Results.makeClean
-%                 srb.makeClean();
-%             end
-%             if ~srb.isfinished()
-%                 srb.align();
-%             end
-            srb.t4_mul();
-            srb.lns_json_all();
-            copyfile('*.json', 'resampling_restricted', 'f')
-            compose_t4s();
-            lns_resampling_restricted();
-            srb.t4img_4dfp_on_T1001(fullfile(subPath, 'resampling_restricted', ''));
-            srb.copySurfer(fullfile(subPath, 'resampling_restricted', ''));
+            SubjectResolveBuilder.compose_t4s();
+%            SubjectResolveBuilder.lns_resampling_restricted(); % breaks the registrations
+            SubjectResolveBuilder.t4img_4dfp_on_T1001(fullfile(subPath, 'resampling_restricted', ''));
+            SubjectResolveBuilder.copySurfer(fullfile(subPath, 'resampling_restricted', ''));
             popd(pwd0)
         end
         function this = constructUmaps(varargin)
