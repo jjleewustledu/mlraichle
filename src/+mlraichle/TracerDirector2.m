@@ -142,14 +142,16 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired(ip, 'foldersExpr', @ischar)
-            addParameter(ip, 'makeClean', false, @islogical)
+            addParameter(ip, 'makeClean', true, @islogical)
             addParameter(ip, 'makeAligned', true, @islogical)
+            addParameter(ip, 'compositionTarget', '', @ischar)
             parse(ip, varargin{:})
-            ss = strsplit(ip.Results.foldersExpr, '/');
+            ipr = ip.Results;
+            ss = strsplit(ipr.foldersExpr, '/');
             
             subPath = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '');            
             pwd0 = pushd(subPath);
-            if ip.Results.makeAligned
+            if ipr.makeAligned
                 subData = SubjectData('subjectFolder', ss{2});
                 sesFold = subData.subFolder2sesFolder(ss{2});
                 sesData = SessionData( ...
@@ -160,17 +162,18 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                     'tracer', 'FDG', ...
                     'ac', true); % referenceTracer
                 srb = mlpet.SubjectResolveBuilder('subjectData', subData, 'sessionData', sesData);
-                if ip.Results.makeClean
+                if ipr.makeClean
                     srb.makeClean();
                 end
                 srb.align();
                 srb.t4_mul();
                 srb.lns_json_all();
             end
-            SubjectResolveBuilder.compose_t4s();
-%            SubjectResolveBuilder.lns_resampling_restricted(); % breaks the registrations
+            SubjectResolveBuilder.lns_resampling_restricted();
+            SubjectResolveBuilder.compose_t4s('compositionTarget', ipr.compositionTarget);
             SubjectResolveBuilder.t4img_4dfp_on_T1001(fullfile(subPath, 'resampling_restricted', ''));
             SubjectResolveBuilder.copySurfer(fullfile(subPath, 'resampling_restricted', ''));
+            copyfile('*.json', 'resampling_restricted', 'f')
             popd(pwd0)
         end
         function this = constructUmaps(varargin)
