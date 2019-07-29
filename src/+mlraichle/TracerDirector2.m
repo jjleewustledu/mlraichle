@@ -38,7 +38,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired( ip, 'foldersExpr', @ischar)
-            addParameter(ip, 'ignoreFinishMark', false, @islogical);
+            addParameter(ip, 'ignoreFinishMark', true, @islogical);
             parse(ip, varargin{:});
             ipr = TracerDirector2.adjustIprConstructResolvedStudy(ip.Results);
 
@@ -81,7 +81,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired( ip, 'foldersExpr', @ischar)
-            addParameter(ip, 'makeClean', false, @islogical)
+            addParameter(ip, 'makeClean', true, @islogical)    
             parse(ip, varargin{:})
             ipr = ip.Results;
             
@@ -107,7 +107,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                     if ipr.makeClean
                         mlpet.SessionResolveBuilder.makeClean();
                     end
-                    srb = mlpet.SessionResolveBuilder('sessionData', sesd);;
+                    srb = mlpet.SessionResolveBuilder('sessionData', sesd);
                     srb.align;
                     srb.t4_mul;
                 end
