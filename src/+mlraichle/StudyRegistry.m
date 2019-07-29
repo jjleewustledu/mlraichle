@@ -10,6 +10,7 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
  	
     properties (Dependent)
         rawdataDir
+        subjectsJson
     end
     
     methods (Static)
@@ -40,6 +41,10 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
         
         function x = get.rawdataDir(~)
             x = fullfile(getenv('PPG'), 'rawdata', '');
+        end
+        function g = get.subjectsJson(~)
+            g = jsondecode( ...
+                fileread(fullfile(getenv('SUBJECTS_DIR'), 'constructed_20190725.json')));
         end
     end
     

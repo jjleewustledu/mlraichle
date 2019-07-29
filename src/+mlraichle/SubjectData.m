@@ -74,8 +74,7 @@ classdef SubjectData < mlnipet.SubjectData
  			this = this@mlnipet.SubjectData(varargin{:});
             
             this.studyRegistry_ = mlraichle.StudyRegistry.instance;
-            this.subjectsJson_ = jsondecode( ...
-                fileread(fullfile(this.subjectsDir, 'construct_ct.json')));
+            this.subjectsJson_ = this.studyRegistry_.subjectsJson;
  		end
     end     
 

@@ -8,7 +8,7 @@ classdef Json
     %% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
     
     properties (Constant)
-        filenameConstructed = 'constructed_20190716.json'
+        filenameConstructed = 'constructed_20190725.json'
     end
     
     methods (Static)
@@ -96,7 +96,7 @@ classdef Json
         
         function S = dispExperimentsForAllS()
             
-            S = jsondecode(fileread('construct_ct.json'));
+            S = jsondecode(fileread(mlraichle.Json.filenameConstructed));
             fS = sort(fields(S));
             for s = 1:length(fS)
                 if isfield(S.(fS{s}), 'sid')
@@ -127,12 +127,13 @@ classdef Json
         end
         
         function [lbl,id] = exp2sbj(e, varargin)
-            %% EXP2SBJ searches local file construct_ct.json for
+            %% EXP2SBJ searches local file mlraichle.StudyRegistry.subjectsJson for
             %  @param experiment, char or cell array of char;
             %  @returns subject label, char, and
             %  @returns subject id, char or cell array of char.
             
-            top_json = 'construct_ct.json';
+            registry = mlraichle.StudyRegistry.instance;
+            top_json = registry.subjectsJson;
             
             ip = inputParser;
             addRequired(ip, 'e', @ischar);

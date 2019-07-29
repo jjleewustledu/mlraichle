@@ -49,7 +49,7 @@ classdef Census < mlio.AbstractXlsxIO
             g = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), this.STUDY_CENSUS_XLSX_FN);
         end
         function g = get.fqfilenameJson(~)
-            g = fullfile(getenv('SUBJECTS_DIR'), 'construct_ct.json');
+            g = fullfile(getenv('SUBJECTS_DIR'), 'constructed_20190725.json');
         end
         function g = get.row(this)
             assert(~isempty(this.sessionData), 'please assign sessionData before requesting a row');
