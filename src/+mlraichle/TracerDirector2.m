@@ -176,6 +176,29 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             copyfile('*.json', 'resampling_restricted', 'f')
             popd(pwd0)
         end
+        
+        function this = constructResolved(varargin)
+            %  @param varargin for mlpet.TracerResolveBuilder.
+            %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
+            %  @return umap files generated per motionUncorrectedUmap ready
+            %  for use by TriggeringTracers.js; 
+            %  sequentially run FDG NAC, 15O NAC, then all tracers AC.
+            %  @return this.sessionData.attenuationCorrection == false.
+                      
+            this = mlraichle.TracerDirector2(mlpet.TracerResolveBuilder(varargin{:}));
+            this.fastFilesystemSetup;
+            if (~this.sessionData.attenuationCorrected)
+                if ~isfile(this.sessionData.umapSynthOpT1001)
+                    this.constructUmaps(varargin{:})
+                end
+                this = this.instanceConstructResolvedNAC;                
+                this.fastFilesystemTeardownWithAC(true); % intermediate artifacts
+            else
+                this = this.instanceConstructResolvedAC;
+            end
+            this.fastFilesystemTeardown;
+            this.fastFilesystemTeardownProject;
+        end
         function this = constructUmaps(varargin)
             import mlraichle.TracerDirector2;
             import mlfourd.ImagingContext2;           
