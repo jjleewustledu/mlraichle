@@ -85,6 +85,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             ip.KeepUnmatched = true;
             addRequired( ip, 'foldersExpr', @ischar)
             addParameter(ip, 'makeClean', true, @islogical)    
+            addParameter(ip, 'blur', [], @(x) isnumeric(x) || ischar(x) || isstring(x))
             parse(ip, varargin{:})
             ipr = ip.Results;
             
@@ -109,6 +110,8 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                         'tracer', 'FDG', 'ac', true); % referenceTracer
                     if ipr.makeClean
                         mlpet.SessionResolveBuilder.makeClean();
+                    if ~isempty(ipr.blur)
+                        sesd.tracerBlurArg = TracerDirector2.todouble(ipr.blur);
                     end
                     srb = mlpet.SessionResolveBuilder('sessionData', sesd);
                     srb.align;
@@ -148,6 +151,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             addParameter(ip, 'makeClean', true, @islogical)
             addParameter(ip, 'makeAligned', true, @islogical)
             addParameter(ip, 'compositionTarget', '', @ischar)
+            addParameter(ip, 'blur', [], @(x) isnumeric(x) || ischar(x) || isstring(x))
             parse(ip, varargin{:})
             ipr = ip.Results;
             ss = strsplit(ipr.foldersExpr, '/');
@@ -167,6 +171,8 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                 srb = mlpet.SubjectResolveBuilder('subjectData', subData, 'sessionData', sesData);
                 if ipr.makeClean
                     srb.makeClean();
+                if ~isempty(ipr.blur)
+                    sesd.tracerBlurArg = TracerDirector2.todouble(ipr.blur);
                 end
                 srb.align();
                 srb.t4_mul();
@@ -308,6 +314,17 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             popd(pwd0);            
             res.keepForensics = true;
             objs = {dest ct4rb};
+        end
+        function d = todouble(obj)
+            if isnumeric(obj)
+                d = obj;
+                return
+            end
+            if ischar(obj) || isstring(obj)
+                d = str2double(obj);
+                return
+            end
+            error('mlpet:RuntimeError', 'TracerDirector2.todouble');
         end
     end
     
