@@ -22,6 +22,7 @@ classdef SessionData < mlnipet.ResolvingSessionData
             ip = inputParser;
             addRequired(ip, 'folders', @(x) isfolder(fullfile(getenv('SINGULARITY_HOME'), x)))
             addParameter(ip, 'ignoreFinishMark', false, @islogical);
+            addParameter(ip, 'reconstructionMethod', 'NiftyPET', @ischar);
             parse(ip, varargin{:});
             ipr = adjustIpr(ip.Results);
     
@@ -32,6 +33,7 @@ classdef SessionData < mlnipet.ResolvingSessionData
                 'sessionFolder', ipr.sesfold, ...
                 'scanFolder', ipr.scnfold);
             this.ignoreFinishMark = ipr.ignoreFinishMark;            
+            this.reconstructionMethod = ipr.reconstructionMethod;
             
             function ipr = adjustIpr(ipr)
                 ss = strsplit(ipr.folders, filesep);

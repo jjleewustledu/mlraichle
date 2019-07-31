@@ -39,6 +39,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             ip.KeepUnmatched = true;
             addRequired( ip, 'foldersExpr', @ischar)
             addParameter(ip, 'ignoreFinishMark', true, @islogical);
+            addParameter(ip, 'reconstructionMethod', 'NiftyPET', @ischar);
             parse(ip, varargin{:});
             ipr = TracerDirector2.adjustIprConstructResolvedStudy(ip.Results);
 
@@ -49,7 +50,9 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                     for t = asrowdirs(glob(ipr.tracersExpr))
                         try
                             folders = fullfile(basename(p{1}), basename(s{1}), t{1});
-                            sesd = SessionData.create(folders, 'ignoreFinishMark', ipr.ignoreFinishMark);
+                            sesd = SessionData.create(folders, ...
+                                'ignoreFinishMark', ipr.ignoreFinishMark, ...
+                                'reconstructionMethod', ipr.reconstructionMethod);
 
                             fprintf('constructResolvedStudy:\n');
                             fprintf([evalc('disp(sessd)') '\n']);
