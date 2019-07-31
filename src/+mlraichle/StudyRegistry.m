@@ -9,7 +9,7 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
  	%% It was developed on Matlab 8.5.0.197613 (R2015a) for MACI64.
  	
     properties
-        ignoredExperiments = {'03056' '52823' '53317' '53343'}
+        ignoredExperiments = {'52823' '53317' '53343'}
     end
     
     properties (Dependent)
