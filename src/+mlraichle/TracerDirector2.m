@@ -79,12 +79,13 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             %% developed on Matlab 9.5.0.1067069 (R2018b) Update 4.  Copyright 2019 John Joowon Lee.
             
             import mlraichle.*
+            import mlpet.SessionResolveBuilder
             import mlsystem.DirTool
             
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired( ip, 'foldersExpr', @ischar)
-            addParameter(ip, 'makeClean', true, @islogical)    
+            addParameter(ip, 'makeClean', true, @islogical)  
             addParameter(ip, 'blur', [], @(x) isnumeric(x) || ischar(x) || isstring(x))
             parse(ip, varargin{:})
             ipr = ip.Results;
@@ -94,26 +95,23 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             subpth = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2});
             subd = SubjectData('subjectFolder', ss{2});
             subid = subFolder2subID(subd, ss{2});
-            subd.aufbauSessionPath(subpth, subd.subjectsJson.(subid));
             
             pwd0 = pushd(subpth);
             dt = DirTool([ss{3} '*']);
             for ses = dt.dns
                 
                 pwd1 = pushd(ses{1});
-                if mlpet.SessionResolveBuilder.validTracerSession()
+                if SessionResolveBuilder.validTracerSession()
                     sesd = SessionData( ...
                         'studyData', StudyData(), ...
                         'projectData', ProjectData('sessionStr', ses{1}), ...
                         'subjectData', SubjectData('subjectFolder', ss{2}), ...
                         'sessionFolder', ses{1}, ...
                         'tracer', 'FDG', 'ac', true); % referenceTracer
-                    if ipr.makeClean
-                        mlpet.SessionResolveBuilder.makeClean();
                     if ~isempty(ipr.blur)
                         sesd.tracerBlurArg = TracerDirector2.todouble(ipr.blur);
                     end
-                    srb = mlpet.SessionResolveBuilder('sessionData', sesd);
+                    srb = SessionResolveBuilder('sessionData', sesd, 'makeClean', ipr.makeClean);
                     srb.align;
                     srb.t4_mul;
                 end
@@ -159,21 +157,19 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             subPath = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '');            
             pwd0 = pushd(subPath);
             if ipr.makeAligned
-                subData = SubjectData('subjectFolder', ss{2});
-                sesFold = subData.subFolder2sesFolder(ss{2});
-                sesData = SessionData( ...
+                subd = SubjectData('subjectFolder', ss{2});
+                sesf = subd.subFolder2sesFolder(ss{2});
+                sesd = SessionData( ...
                     'studyData', StudyData(), ...
-                    'projectData', ProjectData('sessionStr', sesFold), ...
-                    'subjectData', subData, ...
-                    'sessionFolder', sesFold, ...
+                    'projectData', ProjectData('sessionStr', sesf), ...
+                    'subjectData', subd, ...
+                    'sessionFolder', sesf, ...
                     'tracer', 'FDG', ...
                     'ac', true); % referenceTracer
-                srb = mlpet.SubjectResolveBuilder('subjectData', subData, 'sessionData', sesData);
-                if ipr.makeClean
-                    srb.makeClean();
                 if ~isempty(ipr.blur)
                     sesd.tracerBlurArg = TracerDirector2.todouble(ipr.blur);
                 end
+                srb = SubjectResolveBuilder('subjectData', subd, 'sessionData', sesd, 'makeClean', ipr.makeClean);
                 srb.align();
                 srb.t4_mul();
                 srb.lns_json_all();
