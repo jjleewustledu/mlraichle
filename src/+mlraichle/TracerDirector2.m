@@ -55,7 +55,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                                 'reconstructionMethod', ipr.reconstructionMethod);
 
                             fprintf('constructResolvedStudy:\n');
-                            fprintf([evalc('disp(sessd)') '\n']);
+                            fprintf([evalc('disp(sesd)') '\n']);
                             fprintf(['\tsessd.tracerLocation->' sesd.tracerLocation '\n']);
 
                             warning('off', 'MATLAB:subsassigndimmismatch');
