@@ -8,15 +8,17 @@ classdef Json
     %% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
     
     properties (Constant)
-        filenameConstructed = 'constructed_20190725.json'
+        filenameConstructed = 'constructed_20190725.json'      
+        datapath = fullfile(getenv('HOME'), 'MATLAB-Drive', 'mlraichle', 'data', '')
     end
     
     methods (Static)
         
         function S = loadConstructed()
-            datapath = fullfile(getenv('HOME'), 'MATLAB-Drive', 'mlraichle', 'data', '');
-            S = jsondecode(fileread(fullfile(datapath, mlraichle.Json.filenameConstructed)));
+            import mlraichle.Json;
+            S = jsondecode(fileread(fullfile(Json.datapath, mlraichle.Json.filenameConstructed)));
         end
+        
         function saveConstructed(S)
             assert(isstruct(S))
             
@@ -25,10 +27,14 @@ classdef Json
             fprintf(fid, jsonencode(S));
             fclose(fid);            
         end
+        
         function [j559,j754] = hand_curated()
-            datapath = fullfile(getenv('HOME'), 'MATLAB-Drive', 'mlraichle', 'data', '');
-            load(fullfile(datapath, 'j559.mat'), 'j559')
-            load(fullfile(datapath, 'j754.mat'), 'j754')
+            %load(fullfile(this.datapath, 'j559.mat'), 'j559')
+            %load(fullfile(this.datapath, 'j754.mat'), 'j754')            
+            
+            import mlraichle.Json;
+            j559 = jsondecode(fileread(fullfile(Json.datapath, 'CCIR_00559.json')));
+            j754 = jsondecode(fileread(fullfile(Json.datapath, 'CCIR_00754.json')));
         end
         
         function S = json_for_construct_ct(j754, j559)
@@ -185,12 +191,85 @@ classdef Json
     end
     
     methods
+        function prjf = tradt_to_projectFolder(this, tradt)
+            re = regexp(tradt, '^[a-z]+dt(?<datetime>\d+)\S*', 'names');
+            date = re.datetime(1:8);
+            exp = this.date2experimentMap_(date);
+            prjf = this.experiment2projectMap_(exp);
+        end
+        function sesf = tradt_to_sessionFolder(this, tradt)   
+            re = regexp(tradt, '^[a-z]+dt(?<datetime>\d+)\S*', 'names');
+            date = re.datetime(1:8);
+            exp = this.date2experimentMap_(date);         
+            exp = strsplit(exp, '_');
+            sesf = ['ses-' exp{2}];
+        end
+        
         function this = Json(varargin)
             %% JSON
             %  @param .
             
-            
+            this.S_ = mlraichle.Json.loadConstructed();            
+            [this.S559_,this.S754_] = this.hand_curated();
+            this.experiment2projectMap_ = containers.Map;
+            this.date2experimentMap_ = containers.Map;
+            this = this.buildExperiment2projectMap();
+            this = this.buildDate2experimentMap(this.S_);            
         end
+    end
+    
+    %% PROTECTED
+    
+    methods (Access = protected)
+        function this = buildExperiment2projectMap(this)            
+            for sub = asrow(fields(this.S559_))
+               for exp = asrow(this.S559_.(sub{1}).experiments)
+                   this.experiment2projectMap_(exp{1}) = 'CCIR_00559';
+               end
+            end
+            for sub = asrow(fields(this.S754_))
+               for exp = asrow(this.S754_.(sub{1}).experiments)
+                   this.experiment2projectMap_(exp{1}) = 'CCIR_00754';
+               end
+            end
+        end
+        function this = buildDate2experimentMap(this, node)
+            for sub = asrow(fields(node))
+                dates = node.(sub{1}).dates;
+                for exp = asrow(fields(dates))
+                    if isfield(node.(sub{1}), 'ct_experiment') && ...
+                            this.isct(node.(sub{1}).ct_experiment, exp{1})
+                        continue
+                    end
+                    date = node.(sub{1}).dates.(exp{1});
+                    this.date2experimentMap_(date) = exp{1};
+                end
+                
+                if isfield(node.(sub{1}), 'aliases')
+                    this = this.buildDate2experimentMap(node.(sub{1}).aliases);
+                end
+            end
+        end
+        function tf = isct(this, ct_exp, exp1)
+            if iscell(ct_exp)
+                tf = false;
+                for ct = asrow(ct_exp)
+                    tf = tf || this.isct(ct{1}, exp1);
+                end
+                return
+            end
+            
+            % base case
+            tf = strcmp(ct_exp, exp1);
+        end
+    end
+    
+    properties (Access = protected)
+        S_
+        S559_
+        S754_    
+        date2experimentMap_
+        experiment2projectMap_
     end
     
     %  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
