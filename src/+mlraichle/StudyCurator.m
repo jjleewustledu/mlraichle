@@ -21,6 +21,125 @@ classdef StudyCurator
     end
     
     methods (Static)
+        function t4resolve_to_T1001(folders, varargin)
+            %% subjects/sub-S12345/tradt<datetime>
+            
+            import mlraichle.*
+            import mlraichle.StudyCurator.*
+            ip = inputParser;
+            addParameter(ip, 'fsleyes', true, @islogical)
+            parse(ip, varargin{:})
+            
+            fprintf('t4resolve_to_T1001:  working on %s', folders)
+            if lstrfind(folders, '*')
+                error('mlraichle:RuntimeError', 'StudyCurator.t4resolve_to_T1001.folders->%s', folders)
+            end
+            fv = mlfourdfp.FourdfpVisitor();
+            json = mlraichle.Json();
+            ss = strsplit(folders, filesep);
+            subf = ss{2};
+            tradt = ss{3};
+            prjf = json.tradt_to_projectFolder(tradt);
+            sesf = json.tradt_to_sessionFolder(tradt);
+            TRAF = tradt_to_TRA_DTFolder(tradt);            
+
+            rrdir = fullfile(getenv('SUBJECTS_DIR'), subf, 'resampling_restricted', '');
+            pwd0 = pushd(rrdir);            
+            ensuredir('Tmp');
+            pwd1 = pushd('Tmp');
+
+            fv.lns_4dfp(fullfile(rrdir, tradt), [tradt 'r1'])
+            fv.lns_4dfp(fullfile(rrdir, [tradt '_avgt']), [tradt '_avgtr1'])
+            fv.lns_4dfp(fullfile(rrdir, 'T1001'), 'T1001r1')
+            folders1 = fullfile(prjf, sesf, TRAF);
+            sesd = SessionData.create(folders1);
+            if lstrfind(tradt, 'oc')
+                maskForImages = {'none' 'none'};
+            else
+                maskForImages = {'T1001' 'Msktgen'};
+            end
+            cRB = mlfourdfp.CompositeT4ResolveBuilder( ...
+                'sessionData',   sesd, ...
+                'theImages',     {'T1001r1' [tradt '_avgtr1']}, ...
+                'maskForImages', maskForImages, ...
+                'resolveTag',    'op_T1001', ...
+                'NRevisions', 1);
+            cRB.resolve();
+            t4ori = sprintf('%s_to_T1001_t4', tradt);
+            t4new = sprintf('%s_avgtr1_to_op_T1001_t4', tradt);
+            fpori = sprintf('%s_avgt_on_T1001', tradt);
+            fpnew = sprintf('%s_avgtr1_op_T1001', tradt);
+            if ip.Results.fsleyes
+                mlbash(sprintf('fsleyes %s.4dfp.img T1001.4dfp.img', fpnew))
+            end
+            popd(pwd1)
+
+            ensuredir('Previous')
+            movefile(t4ori, fullfile('Previous', t4ori))
+            movefile(fullfile('Tmp', t4new), t4ori)
+            fv.movefile_4dfp(fpori, fullfile('Previous', fpori))
+            fv.movefile_4dfp(fullfile('Tmp', fpnew), fpori)
+            mlbash('rm -rf Tmp')
+
+            popd(pwd0)
+        end
+        function t4resolves_to_T1001(folders)
+            %% subjects/sub-S12345/tradt<datetime>, globbing enabled
+            
+            ss = strsplit(folders, filesep);
+            pwd0 = pushd(fullfile(getenv('SUBJECTS_DIR'), ss{2}, 'resampling_restricted'));
+            ss3 = ss{3};
+            if ~lstrfind(ss3, '_avgt_on_T1001.4dfp.hdr')
+                ss3 = [ss3 '_avgt_on_T1001.4dfp.hdr'];
+            end
+            for tradt = asrow(glob(ss3))
+                re = regexp(tradt{1}, '^(?<tradt>[a-z]+dt\d+)_avgt_on_T1001.4dfp.\w+$', 'names');
+                if ~isempty(re)
+                    mlraichle.StudyCurator.t4resolve_to_T1001( ...
+                        fullfile(ss{1}, ss{2}, re.tradt), 'fsleyes', false)
+                end
+            end
+            popd(pwd0)
+        end
+        function tdt = TRA_DTFolder_to_tradt(TDT)
+            if lstrfind(TDT, '.')
+                TDT = strsplit(TDT, '.');
+                TDT = TDT{1};
+            end
+            ss = strsplit(TDT, '_');
+            tdt = lower([(ss{1}) ss{2}]);
+        end
+        function TDT = tradt_to_TRA_DTFolder(tdt)
+            re = regexp(tdt, '^(?<tra>[a-z]+)dt(?<datetime>\d+)$', 'names');
+            TDT = sprintf('%s_DT%s.000000-Converted-AC', upper(re.tra), re.datetime);
+        end
+        function c = dtcode(tdt)
+            re = regexp(tdt, '^[a-z]+(?<code>dt\d+)\S*', 'names');
+            c = re.code;            
+        end
+%        function sf = find_sesfold(subfold, tracerdt)
+%        end
+        function c = tracercode(tdt)
+            re = regexp(tdt, '^(?<code>[a-z]+)dt\d+\S*', 'names');
+            c = re.code;
+        end
+        function tdtses = tracerdt_session(sesfold, tdt)
+            for t4s = asrow(glob(fullfile(sesfold, [tdt '*_avgtr1_to_op_*_avgtr1_t4'])))
+                re = regexp(t4s{1}, ['^' tdt '_avgtr1_to_op_(?<tdtses>\w+dt\d+)_avgtr1_t4$'], 'names');
+                if ~isempty(re.tdtses)
+                    if ~strcmp(tdt, re.tdtses)
+                        tdtses = re.tdtses;
+                    end
+                    return
+                end
+                
+                % globbed, no matches
+                error('mlraichle:NotImplementedError', 'StudyCurator.tracerdt_session')
+            end
+            
+            % no globs, no matches  
+            error('mlraichle:NotImplementedError', 'StudyCurator.tracerdt_session')            
+        end
         function fn = filenameJson(prefix)
             re = regexp(prefix, '(?<tracer>[a-z]+)(?<dt>dt\d+)', 'names');
             fn = sprintf('%s_%s.json', upper(re.tracer), upper(re.dt));
@@ -225,37 +344,6 @@ classdef StudyCurator
     %% DEPRECATED
     
     methods (Hidden)
-        function stageT4s__(this)
-            import mlraichle.*
-            
-            pwd0 = pushd(this.subPath);
-            subData = SubjectData('subjectFolder', basename(this.subPath));
-            sesFold = subData.subFolder2sesFolder( basename(this.subPath));
-            sesData = SessionData( ...
-                'studyData', StudyData(), ...
-                'projectData', ProjectData('sessionStr', sesFold), ...
-                'subjectData', subData, ...
-                'sessionFolder', sesFold, ...
-                'tracer', 'FDG', ...
-                'ac', true); 
-            cRB = mlfourdfp.CompositeT4ResolveBuilder( ...
-                'sessionData',   sesData, ...
-                'theImages',     {'T1001' 'fdg_avg'}, ...
-                'maskForImages', 'Msktgen', ...
-                'resolveTag',    'op_T1001r1', ...
-                'NRevisions',    1, ...
-                'logPath',       'Log');
-            cRB.neverMarkFinished = true;
-            cRB.ignoreFinishMark  = true;
-            cRB = cRB.resolve; 
-            disp(cRB.t4s)
-            disp(cRB.product)
-            
-            error('mlraichle:NotImplementedError', 'StudyCurator.stageT4s')            
-            
-            %copyfile('', fullfile(this.subPath1, 'fdg_to_op_T1001_t4'))
-            popd(pwd0)
-        end
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
