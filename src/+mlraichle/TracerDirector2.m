@@ -95,6 +95,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             subpth = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2});
             subd = SubjectData('subjectFolder', ss{2});
             subid = subFolder2subID(subd, ss{2});
+            subd.aufbauSessionPath(subpth, subd.subjectsJson.(subid));
             
             pwd0 = pushd(subpth);
             dt = DirTool([ss{3} '*']);
@@ -172,7 +173,11 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                 srb = SubjectResolveBuilder('subjectData', subd, 'sessionData', sesd, 'makeClean', ipr.makeClean);
                 srb.align();
                 srb.t4_mul();
-                srb.lns_json_all();
+                try
+                    srb.lns_json_all();
+                catch ME
+                    handwarning(ME)
+                end
             end
             SubjectResolveBuilder.lns_resampling_restricted();
             SubjectResolveBuilder.compose_t4s('compositionTarget', ipr.compositionTarget);
