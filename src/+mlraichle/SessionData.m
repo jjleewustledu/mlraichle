@@ -20,7 +20,7 @@ classdef SessionData < mlnipet.ResolvingSessionData
             import mlraichle.*
 
             ip = inputParser;
-            addRequired(ip, 'folders', @(x) isfolder(fullfile(getenv('SINGULARITY_HOME'), x)))
+            addRequired(ip, 'folders', @(x) isfolder(fullfile(getenv('SINGULARITY_HOME'), x)));
             addParameter(ip, 'ignoreFinishMark', false, @islogical);
             addParameter(ip, 'reconstructionMethod', 'NiftyPET', @ischar);
             parse(ip, varargin{:});
