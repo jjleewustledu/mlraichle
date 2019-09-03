@@ -215,22 +215,18 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             switch mlraichle.StudyRegistry.instance().umapType
                 case 'ct'                    
                     this = TracerDirector2(mlfourdfp.CarneyUmapBuilder2(varargin{:}));
-                    TracerDirector2.prepareFreesurferData(varargin{:});
                     this.builder_ = this.builder.prepareMprToAtlasT4;
                     if this.builder.isfinished
                         return
                     end 
                 case 'ute'
                     this = TracerDirector2(mlfourdfp.UTEUmapBuilder(varargin{:}));
-                    TracerDirector2.prepareFreesurferData(varargin{:});
                     this.builder_ = this.builder.prepareMprToAtlasT4;
                 case 'mrac_hires'
                     this = TracerDirector2(mlfourdfp.MRACHiresUmapBuilder(varargin{:}));
-                    TracerDirector2.prepareFreesurferData(varargin{:});
                     this.builder_ = this.builder.prepareMprToAtlasT4;
                 case 'pseudoct'
                     this = mlfourdfp.PseudoCTBuilder(varargin{:});
-                    TracerDirector2.prepareFreesurferData(varargin{:});
                     this.builder_ = this.builder.prepareMprToAtlasT4;
                 otherwise
                     error('mlraichle:ValueError', 'TracerDirector2.constructUmaps')
@@ -334,7 +330,8 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
  			%% TRACERDIRECTOR2
  			%  @param builder must be an mlpet.TracerBuilder.
 
- 			this = this@mlnipet.CommonTracerDirector(varargin{:});
+ 			this = this@mlnipet.CommonTracerDirector(varargin{:});            
+            this.prepareFreesurferData(varargin{:});
  		end
     end    
 

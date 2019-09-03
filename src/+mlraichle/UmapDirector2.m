@@ -44,7 +44,7 @@ classdef UmapDirector2 < mlpipeline.AbstractDirector
             
             import mlfourd.ImagingContext2;
             fv      = mlfourdfp.FourdfpVisitor;
-            fsd_    = { 'aparc+aseg' 'aparc.a2009s+aseg' 'brainmask' 'T1' };  
+            fsd_    = { 'aparc+aseg' 'aparc.a2009s+aseg' 'brainmask' 'brain' 'T1' };  
             fsd     = cellfun(@(x) fullfile(sess.mriLocation, x),   fsd_, 'UniformOutput', false);
             safefsd = fv.ensureSafeFileprefix(fsd_); safefsd{4} = [safefsd{4} '001'];
             safefsd = cellfun(@(x) fullfile(sess.sessionPath, x), safefsd, 'UniformOutput', false);
@@ -63,7 +63,8 @@ classdef UmapDirector2 < mlpipeline.AbstractDirector
 	methods (Access = private)
 		  
  		function this = UmapDirector2(varargin)
-            this = this@mlpipeline.AbstractDirector(varargin{:}); 			
+            this = this@mlpipeline.AbstractDirector(varargin{:}); 
+            this.prepareFreesurferData(varargin{:});			
  		end
  	end 
 
