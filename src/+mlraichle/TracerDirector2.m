@@ -501,7 +501,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
  			%  @param builder must be an mlpet.TracerBuilder.
 
  			this = this@mlnipet.CommonTracerDirector(varargin{:});            
-            this.prepareFreesurferData(varargin{:});
+            this.prepareFreesurferData('sessionData', this.sessionData);
  		end
     end    
 

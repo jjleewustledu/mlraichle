@@ -64,7 +64,7 @@ classdef UmapDirector2 < mlpipeline.AbstractDirector
 		  
  		function this = UmapDirector2(varargin)
             this = this@mlpipeline.AbstractDirector(varargin{:}); 
-            this.prepareFreesurferData(varargin{:});			
+            this.prepareFreesurferData('sessionData', this.sessionData);
  		end
  	end 
 
