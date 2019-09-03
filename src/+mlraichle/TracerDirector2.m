@@ -11,6 +11,66 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
     end
     
     methods (Static)
+        function constructPhantomStudy(varargin)
+            %% CONSTRUCTPHANTOMSTUDY constructs objects required for niftypet on calibration phantoms.  
+            %  It provides iterators for project, session and tracer folders on the filesystem.
+            %  Usage:  constructPhantomStudy(<folders expression>)
+            %          e.g.:  >> constructPhantomStudy('CCIR_00123/ses-E00123/FDG_DT20190101.000000-Converted-NAC')    
+            %          e.g.:  >> constructPhantomStudy('CCIR_00123/ses-E0012*/FDG_DT*-Converted-NAC')
+            %  
+            %  @precondition fullfile(projectsDir, project, session, 'umaps', '*UMAP*') 
+            %                for projectsDir := getenv('PROJECTS_DIR') and 
+            %                {project, session, ...} = split(<folders_expression>)
+            %  @param foldersExpr is char.
+            %  @return results in fullfile(projectsDir, project, session, tracer) 
+            %          for elements of projectsExpr, sessionsExpr and tracerExpr.
+
+            import mlraichle.*; %#ok<NSTIMP>
+            import mlsystem.DirTool;
+            import mlpet.DirToolTracer;
+
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired( ip, 'foldersExpr', @ischar)
+            addParameter(ip, 'getstats', false)
+            parse(ip, varargin{:});
+            ipr = TracerDirector2.adjustIprConstructResolvedStudy(ip.Results);
+
+            registry = StudyRegistry.instance();
+            for p = asrowdirs(glob(fullfile(registry.projectsDir, ipr.projectsExpr)))
+                for s = asrowdirs(glob(fullfile(p{1}, ipr.sessionsExpr)))
+                    pwd0 = pushd(s{1});
+                    for t = asrowdirs(glob(ipr.tracersExpr))
+                        try
+                            folders = fullfile(basename(p{1}), basename(s{1}), t{1});
+                            sesd = SessionData.create(folders, ...
+                                'ignoreFinishMark', true, ...
+                                'reconstructionMethod', 'NiftyPET');
+
+                            fprintf('constructPhantomStudy:\n');
+                            fprintf([evalc('disp(sesd)') '\n']);
+                            fprintf(['\tsessd.tracerLocation->' sesd.tracerLocation '\n']);
+
+                            warning('off', 'MATLAB:subsassigndimmismatch');
+                            pwd1 = pushd(t{1});
+                            if ~ipr.getstats
+                                TracerDirector2.constructPhantom('sessionData', sesd);
+                            else
+                                [me,sd] = TracerDirector2.constructPhantomStats('sessionData', sesd);
+                                fprintf('mlraichle.TracerDirector2.constructPhantomStudy:\n')
+                                fprintf('specific activity:  mean %g std %g', me, sd)
+                            end
+                            popd(pwd1)
+                            warning('on',  'MATLAB:subsassigndimmismatch');
+                        catch ME
+                            dispwarning(ME)
+                            getReport(ME)
+                        end
+                    end
+                    popd(pwd0);
+                end
+            end
+        end
         function constructResolvedStudy(varargin)
             %% CONSTRUCTRESOLVEDSTUDY supports t4_resolve for niftypet.  It provides iterators for 
             %  project, session and tracer folders on the filesystem.
@@ -27,9 +87,6 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             %  @param foldersExpr is char.
             %  @return results in fullfile(projectsDir, project, session, tracer) 
             %          for elements of projectsExpr, sessionsExpr and tracerExpr.
-            %
-            %  N.B.:  Setting environment vars PROJECTS_DIR or SUBJECTS_DIR is not compatible with many Docker or Singularity
-            %         use cases.
 
             import mlraichle.*; %#ok<NSTIMP>
             import mlsystem.DirTool;
@@ -73,10 +130,6 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
         function constructSessionsStudy(varargin)
             %% CONSTRUCTSESSIONSSTUDY
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345/ses-E12345'.
-            
-            %% Version $Revision$ was created $Date$ by $Author$,
-            %% last modified $LastChangedDate$ and checked into repository $URL$,
-            %% developed on Matlab 9.5.0.1067069 (R2018b) Update 4.  Copyright 2019 John Joowon Lee.
             
             import mlraichle.*
             import mlpet.SessionResolveBuilder
@@ -136,10 +189,6 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             %% CONSTRUCTSUBJECTSSTUDY 
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             
-            %% Version $Revision$ was created $Date$ by $Author$,
-            %% last modified $LastChangedDate$ and checked into repository $URL$,
-            %% developed on Matlab 9.5.0.1067069 (R2018b) Update 4.  Copyright 2019 John Joowon Lee.
-            
             import mlraichle.*
             import mlsystem.DirTool
             import mlpet.SubjectResolveBuilder
@@ -182,11 +231,132 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             SubjectResolveBuilder.lns_resampling_restricted();
             SubjectResolveBuilder.compose_t4s('compositionTarget', ipr.compositionTarget);
             SubjectResolveBuilder.t4img_4dfp_on_T1001(fullfile(subPath, 'resampling_restricted', ''));
-            SubjectResolveBuilder.copySurfer(fullfile(subPath, 'resampling_restricted', ''));
+            SubjectResolveBuilder.copySurfer(subPath, fullfile(subPath, 'resampling_restricted', ''));
             copyfile('*.json', 'resampling_restricted', 'f')
+            SubjectResolveBuilder.finalize(subPath)
+            popd(pwd0)
+        end
+        function constructSubjectsVisualizations(varargin)
+            %% CONSTRUCTSUBEJCTSVISUALIZATIONS 
+            %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
+            
+            import mlraichle.*
+            import mlsystem.DirTool
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired(ip, 'foldersExpr', @ischar)
+            addParameter(ip, 'tmpPath', fullfile('/home2', 'jjlee', 'Tmp', ''), @isfolder)
+            parse(ip, varargin{:})
+            ipr = ip.Results;            
+            ss = strsplit(ipr.foldersExpr, '/');
+            
+            dataPath = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, 'resampling_restricted', '');
+            pwd0 = pushd(dataPath);
+            %mlbash(sprintf('t4img_4dfp %s %s %s -OT1001', , , ))
+            popd(pwd0)
+        end
+        function repairSubjectsJson(varargin)
+            %% REPAIRSUBJECTSJSON
+            %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
+            
+            %% Version $Revision$ was created $Date$ by $Author$,
+            %% last modified $LastChangedDate$ and checked into repository $URL$,
+            %% developed on Matlab 9.5.0.1067069 (R2018b) Update 4.  Copyright 2019 John Joowon Lee.
+            
+            import mlraichle.*
+            import mlsystem.DirTool
+            import mlpet.SubjectResolveBuilder
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired(ip, 'foldersExpr', @ischar)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            ss = strsplit(ipr.foldersExpr, '/');
+            
+            subPath = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '');            
+            pwd0 = pushd(subPath);
+            subd = SubjectData('subjectFolder', ss{2});
+            sesf = subd.subFolder2sesFolder(ss{2});
+            sesd = SessionData( ...
+                'studyData', StudyData(), ...
+                'projectData', ProjectData('sessionStr', sesf), ...
+                'subjectData', subd, ...
+                'sessionFolder', sesf, ...
+                'tracer', 'FDG', ...
+                'ac', true); % referenceTracer
+            srb = SubjectResolveBuilder('subjectData', subd, 'sessionData', sesd, 'makeClean', false);
+            try
+                srb.lns_json_all();
+            catch ME
+                dispexcept(ME)
+            end
             popd(pwd0)
         end
         
+        function        constructPhantom(varargin)   
+
+            % clean up working area
+            deleteExisting('*fdg*')
+            deleteExisting('*T1001*')
+            deleteExisting('umap*')
+            deleteExisting('msk*')
+            mlbash('rm -rf Log')
+            mlbash('rm -rf output')
+            
+            % rename working dir -NAC to -AC
+            if lstrfind(pwd, '-NAC')
+                pwdNAC = pwd;
+                pwdAC = strrep(pwdNAC, '-NAC', '-AC');
+                cd(fileparts(pwdNAC));
+                mlbash(sprintf('mv %s %s', pwdNAC, pwdAC))
+                cd(pwdAC);
+            elseif lstrfind(pwd, '-AC')
+                pwdAC = pwd;
+            else
+                error('mlraichle:RuntimeError', 'TracerDirector2.constructPhantom')
+            end
+            
+            % retrieve Head_MRAC_Brain_HiRes_in_UMAP_*; convert to NIfTI; resample for emissions
+            pwdUmaps = fullfile(fileparts(pwdAC), 'umaps');
+            globbed = asrowdirs(glob(fullfile(pwdUmaps, 'Head_MRAC_*_in_UMAP*')));
+            if isempty(globbed)
+                globbed = asrowdirs(glob(fullfile(pwdUmaps, '*UMAP*')));
+            end
+            assert(~isempty(globbed))
+            pwdDcms = globbed{end};
+            cd(pwdUmaps);
+            mlbash(sprintf('dcm2niix -f umapSiemens -o %s -b y -z y %s', pwdUmaps, pwdDcms));
+            globbedniix = glob('umapSiemens*.nii.gz');
+            copyfile(fullfile(getenv('SINGULARITY_HOME'), 'zeros_frame.nii.gz'));
+            mlbash(sprintf('reg_resample -ref zeros_frame.nii.gz -flo %s -res umapSynth.nii.gz', globbedniix{1}));
+            delete('zeros_frame.nii.gz');
+            movefile('umapSynth.nii.gz', pwdAC);
+            cd(pwdAC);
+            
+            % adjust quantification:  blur, use expected phantom mu
+            umap = mlfourd.ImagingContext2('umapSynth.nii.gz');
+            umap = umap.blurred(mlnipet.ResourcesRegistry.instance().petPointSpread);
+            umap = umap .* (0.09675 / 1e3);
+            umap = umap.nifti;
+            umap.img(umap.img < 0) = 0;
+            umap.datatype = 'single';
+            umap.saveas('umapSynth.nii.gz');
+        end
+        function [m,s] = constructPhantomStats(varargin) 
+            
+            pwd0 = pushd('output/PET/single-frame');
+            
+            globbed = glob('a_itr-*_t-0*sec_createPhantom.nii.gz');
+            emissions = mlfourd.ImagingFormatContext(globbed{1});
+            thresh = max(0, dipmax(emissions) - 8*dipstd(emissions));
+            emissionsVec = emissions.img(emissions.img > thresh);
+            m = mean(emissionsVec);
+            s = std(emissionsVec);
+            
+            popd(pwd0)
+        end
         function this = constructResolved(varargin)
             %  @param varargin for mlpet.TracerResolveBuilder.
             %  @return ignores the first frame of OC and OO which are NAC since they have breathing tube visible.  
