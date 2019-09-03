@@ -23,6 +23,8 @@ classdef StudyCurator
     methods (Static)
         function t4resolve_to_T1001(folders, varargin)
             %% subjects/sub-S12345/tradt<datetime>
+            %  @return *_to_T1001_t4, *_on_T1001.4dfp in subjects/sub-S12345/tradt<datetime>/resampling_restricted
+            %  @return previous objects in subjects/sub-S12345/tradt<datetime>/resampling_restricted/Previous
             
             import mlraichle.*
             import mlraichle.StudyCurator.*
@@ -70,7 +72,7 @@ classdef StudyCurator
             fpori = sprintf('%s_avgt_on_T1001', tradt);
             fpnew = sprintf('%s_avgtr1_op_T1001', tradt);
             if ip.Results.fsleyes
-                mlbash(sprintf('fsleyes %s.4dfp.img T1001.4dfp.img', fpnew))
+                mlbash(sprintf('fsleyes %s.4dfp.img T1001r1.4dfp.img', fpnew))
             end
             popd(pwd1)
 
@@ -117,8 +119,6 @@ classdef StudyCurator
             re = regexp(tdt, '^[a-z]+(?<code>dt\d+)\S*', 'names');
             c = re.code;            
         end
-%        function sf = find_sesfold(subfold, tracerdt)
-%        end
         function c = tracercode(tdt)
             re = regexp(tdt, '^(?<code>[a-z]+)dt\d+\S*', 'names');
             c = re.code;
@@ -331,7 +331,7 @@ classdef StudyCurator
             ensuredir(this.subPath1)
             
             this.subjectsJson_ = jsondecode( ...
-                fileread(fullfile(getenv('SUBJECTS_DIR'), 'construct_ct.json')));
+                fileread(fullfile(getenv('SUBJECTS_DIR'), 'constructed_20190725.json')));
  		end
     end 
     
