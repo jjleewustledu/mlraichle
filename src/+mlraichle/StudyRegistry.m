@@ -10,6 +10,7 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
  	
     properties
         ignoredExperiments = {'52823' '53317' '53343'}
+        tracerList = {'oc' 'oo' 'ho' 'fdg'}
     end
     
     properties (Dependent)
