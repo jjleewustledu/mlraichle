@@ -383,6 +383,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             this = mlraichle.TracerDirector2(mlpet.TracerResolveBuilder(varargin{:}));
             this.fastFilesystemSetup;
             if (~this.sessionData.attenuationCorrected)
+                this.populateTracerUmapFolder()
                 if ~isfile(this.sessionData.umapSynthOpT1001)
                     this.constructUmaps(varargin{:})
                 end
