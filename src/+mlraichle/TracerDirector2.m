@@ -37,10 +37,10 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             ipr = TracerDirector2.adjustIprConstructResolvedStudy(ip.Results);
 
             registry = StudyRegistry.instance();
-            for p = asrowdirs(glob(fullfile(registry.projectsDir, ipr.projectsExpr)))
-                for s = asrowdirs(glob(fullfile(p{1}, ipr.sessionsExpr)))
+            for p = globT(fullfile(registry.projectsDir, ipr.projectsExpr))
+                for s = globT(fullfile(p{1}, ipr.sessionsExpr))
                     pwd0 = pushd(s{1});
-                    for t = asrowdirs(glob(ipr.tracersExpr))
+                    for t = globT(ipr.tracersExpr)
                         try
                             folders = fullfile(basename(p{1}), basename(s{1}), t{1});
                             sesd = SessionData.create(folders, ...
@@ -335,9 +335,9 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             
             % retrieve Head_MRAC_Brain_HiRes_in_UMAP_*; convert to NIfTI; resample for emissions
             pwdUmaps = fullfile(fileparts(pwdAC), 'umaps');
-            globbed = asrowdirs(glob(fullfile(pwdUmaps, 'Head_MRAC_*_in_UMAP*')));
+            globbed = globT(fullfile(pwdUmaps, 'Head_MRAC_*_in_UMAP*'));
             if isempty(globbed)
-                globbed = asrowdirs(glob(fullfile(pwdUmaps, '*UMAP*')));
+                globbed = globT(fullfile(pwdUmaps, '*UMAP*'));
             end
             assert(~isempty(globbed))
             pwdDcms = globbed{end};
