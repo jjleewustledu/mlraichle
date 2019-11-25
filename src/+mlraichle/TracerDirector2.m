@@ -147,16 +147,22 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             addRequired( ip, 'foldersExpr', @ischar)
             addParameter(ip, 'makeClean', true, @islogical)  
             addParameter(ip, 'blur', [], @(x) isnumeric(x) || ischar(x) || isstring(x))
+            addParameter(ip, 'makeAligned', true, @islogical)
             parse(ip, varargin{:})
             ipr = ip.Results;
             
             ss = strsplit(ipr.foldersExpr, '/');
             setenv('SUBJECTS_DIR', fullfile(getenv('SINGULARITY_HOME'), ss{1}))
-            subpth = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2});
-            subd = SubjectData('subjectFolder', ss{2});
-            subid = subFolder2subID(subd, ss{2});
-            subd.aufbauSessionPath(subpth, subd.subjectsJson.(subid));
+            subpth = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2});            
             
+            %% redundant with mlpet.StudyResolveBuilder.configureSubjectData__ if ipr.makeClean
+            if ~ipr.makeClean
+                subd = SubjectData('subjectFolder', ss{2});
+                subid = subFolder2subID(subd, ss{2});
+                subd.aufbauSessionPath(subpth, subd.subjectsJson.(subid));
+            end
+            
+            ensuredir(subpth)
             pwd0 = pushd(subpth);
             dt = DirTool([ss{3} '*']);
             for ses = dt.dns
@@ -173,8 +179,10 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                         sesd.tracerBlurArg = TracerDirector2.todouble(ipr.blur);
                     end
                     srb = SessionResolveBuilder('sessionData', sesd, 'makeClean', ipr.makeClean);
-                    srb.align;
-                    srb.t4_mul;
+                    if ipr.makeAligned
+                        srb.align;
+                        srb.t4_mul;
+                    end
                 end
                 popd(pwd1)
             end
