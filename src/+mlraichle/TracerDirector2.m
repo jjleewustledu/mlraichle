@@ -37,26 +37,26 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             ipr = TracerDirector2.adjustIprConstructResolvedStudy(ip.Results);
 
             registry = StudyRegistry.instance();
-            for p = asrowdirs(glob(fullfile(registry.projectsDir, ipr.projectsExpr)))
-                for s = asrowdirs(glob(fullfile(p{1}, ipr.sessionsExpr)))
+            for p = globT(fullfile(registry.projectsDir, ipr.projectsExpr))
+                for s = globT(fullfile(p{1}, ipr.sessionsExpr))
                     pwd0 = pushd(s{1});
-                    for t = asrowdirs(glob(ipr.tracersExpr))
+                    for t = globT(ipr.tracersExpr)
                         try
                             folders = fullfile(basename(p{1}), basename(s{1}), t{1});
-                            sesd = SessionData.create(folders, ...
+                            sessd = SessionData.create(folders, ...
                                 'ignoreFinishMark', true, ...
                                 'reconstructionMethod', 'NiftyPET');
 
                             fprintf('constructPhantomStudy:\n');
-                            fprintf([evalc('disp(sesd)') '\n']);
-                            fprintf(['\tsessd.tracerLocation->' sesd.tracerLocation '\n']);
+                            fprintf([evalc('disp(sessd)') '\n']);
+                            fprintf(['\tsessd.tracerLocation->' sessd.tracerLocation '\n']);
 
                             warning('off', 'MATLAB:subsassigndimmismatch');
                             pwd1 = pushd(t{1});
                             if ~ipr.getstats
-                                TracerDirector2.constructPhantom('sessionData', sesd);
+                                TracerDirector2.constructPhantom('sessionData', sessd);
                             else
-                                [me,sd] = TracerDirector2.constructPhantomStats('sessionData', sesd);
+                                [me,sd] = TracerDirector2.constructPhantomStats('sessionData', sessd);
                                 fprintf('mlraichle.TracerDirector2.constructPhantomStudy:\n')
                                 fprintf('specific activity:  mean %g std %g', me, sd)
                             end
@@ -101,22 +101,32 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             ipr = TracerDirector2.adjustIprConstructResolvedStudy(ip.Results);
 
             registry = StudyRegistry.instance();
-            for p = asrowdirs(glob(fullfile(registry.projectsDir, ipr.projectsExpr)))
-                for s = asrowdirs(glob(fullfile(p{1}, ipr.sessionsExpr)))
+            for p = globT(fullfile(registry.projectsDir, ipr.projectsExpr))
+                for s = globT(fullfile(p{1}, ipr.sessionsExpr))
                     pwd0 = pushd(s{1});
-                    for t = asrowdirs(glob(ipr.tracersExpr))
+                            
+                    for t = globT(ipr.tracersExpr)
                         try
                             folders = fullfile(basename(p{1}), basename(s{1}), t{1});
-                            sesd = SessionData.create(folders, ...
+                            sessd = SessionData.create(folders, ...
                                 'ignoreFinishMark', ipr.ignoreFinishMark, ...
-                                'reconstructionMethod', ipr.reconstructionMethod);
+                                'reconstructionMethod', ipr.reconstructionMethod);                    
+                            if ~isfile(fullfile(sessd.umapSynthOpT1001('typ','fqfn')))
+                                TracerDirector2.constructUmaps('sessionData', sessd, 'umapType', registry.umapType);
+                            end
+                            if isempty(glob(fullfile(sessd.tracerLocation, 'umap', '*')))
+                                TracerDirector2.populateTracerUmapFolder('sessionData', sessd)
+                            end
+                            if ~isfolder(sessd.tracerOutputLocation())
+                                continue
+                            end
 
                             fprintf('constructResolvedStudy:\n');
-                            fprintf([evalc('disp(sesd)') '\n']);
-                            fprintf(['\tsessd.tracerLocation->' sesd.tracerLocation '\n']);
+                            fprintf([evalc('disp(sessd)') '\n']);
+                            fprintf(['\tsessd.tracerLocation->' sessd.tracerLocation '\n']);
 
                             warning('off', 'MATLAB:subsassigndimmismatch');
-                            TracerDirector2.constructResolved('sessionData', sesd);  
+                            TracerDirector2.constructResolved('sessionData', sessd);
                             warning('on',  'MATLAB:subsassigndimmismatch');
                         catch ME
                             dispwarning(ME)
@@ -140,34 +150,42 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             addRequired( ip, 'foldersExpr', @ischar)
             addParameter(ip, 'makeClean', true, @islogical)  
             addParameter(ip, 'blur', [], @(x) isnumeric(x) || ischar(x) || isstring(x))
+            addParameter(ip, 'makeAligned', true, @islogical)
             parse(ip, varargin{:})
             ipr = ip.Results;
             
             ss = strsplit(ipr.foldersExpr, '/');
             setenv('SUBJECTS_DIR', fullfile(getenv('SINGULARITY_HOME'), ss{1}))
-            subpth = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2});
-            subd = SubjectData('subjectFolder', ss{2});
-            subid = subFolder2subID(subd, ss{2});
-            subd.aufbauSessionPath(subpth, subd.subjectsJson.(subid));
+            subpth = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2});            
             
+            %% redundant with mlpet.StudyResolveBuilder.configureSubjectData__ if ipr.makeClean
+            if ~ipr.makeClean
+                subd = SubjectData('subjectFolder', ss{2});
+                subid = subFolder2subID(subd, ss{2});
+                subd.aufbauSessionPath(subpth, subd.subjectsJson.(subid));
+            end
+            
+            ensuredir(subpth)
             pwd0 = pushd(subpth);
             dt = DirTool([ss{3} '*']);
             for ses = dt.dns
                 
                 pwd1 = pushd(ses{1});
                 if SessionResolveBuilder.validTracerSession()
-                    sesd = SessionData( ...
+                    sessd = SessionData( ...
                         'studyData', StudyData(), ...
                         'projectData', ProjectData('sessionStr', ses{1}), ...
                         'subjectData', SubjectData('subjectFolder', ss{2}), ...
                         'sessionFolder', ses{1}, ...
                         'tracer', 'FDG', 'ac', true); % referenceTracer
                     if ~isempty(ipr.blur)
-                        sesd.tracerBlurArg = TracerDirector2.todouble(ipr.blur);
+                        sessd.tracerBlurArg = TracerDirector2.todouble(ipr.blur);
                     end
-                    srb = SessionResolveBuilder('sessionData', sesd, 'makeClean', ipr.makeClean);
-                    srb.align;
-                    srb.t4_mul;
+                    srb = SessionResolveBuilder('sessionData', sessd, 'makeClean', ipr.makeClean);
+                    if ipr.makeAligned
+                        srb.align;
+                        srb.t4_mul;
+                    end
                 end
                 popd(pwd1)
             end
@@ -209,7 +227,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             if ipr.makeAligned
                 subd = SubjectData('subjectFolder', ss{2});
                 sesf = subd.subFolder2sesFolder(ss{2});
-                sesd = SessionData( ...
+                sessd = SessionData( ...
                     'studyData', StudyData(), ...
                     'projectData', ProjectData('sessionStr', sesf), ...
                     'subjectData', subd, ...
@@ -217,9 +235,9 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                     'tracer', 'FDG', ...
                     'ac', true); % referenceTracer
                 if ~isempty(ipr.blur)
-                    sesd.tracerBlurArg = TracerDirector2.todouble(ipr.blur);
+                    sessd.tracerBlurArg = TracerDirector2.todouble(ipr.blur);
                 end
-                srb = SubjectResolveBuilder('subjectData', subd, 'sessionData', sesd, 'makeClean', ipr.makeClean);
+                srb = SubjectResolveBuilder('subjectData', subd, 'sessionData', sessd, 'makeClean', ipr.makeClean);
                 srb.align();
                 srb.t4_mul();
                 try
@@ -279,14 +297,14 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             pwd0 = pushd(subPath);
             subd = SubjectData('subjectFolder', ss{2});
             sesf = subd.subFolder2sesFolder(ss{2});
-            sesd = SessionData( ...
+            sessd = SessionData( ...
                 'studyData', StudyData(), ...
                 'projectData', ProjectData('sessionStr', sesf), ...
                 'subjectData', subd, ...
                 'sessionFolder', sesf, ...
                 'tracer', 'FDG', ...
                 'ac', true); % referenceTracer
-            srb = SubjectResolveBuilder('subjectData', subd, 'sessionData', sesd, 'makeClean', false);
+            srb = SubjectResolveBuilder('subjectData', subd, 'sessionData', sessd, 'makeClean', false);
             try
                 srb.lns_json_all();
             catch ME
@@ -320,9 +338,9 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             
             % retrieve Head_MRAC_Brain_HiRes_in_UMAP_*; convert to NIfTI; resample for emissions
             pwdUmaps = fullfile(fileparts(pwdAC), 'umaps');
-            globbed = asrowdirs(glob(fullfile(pwdUmaps, 'Head_MRAC_*_in_UMAP*')));
+            globbed = globT(fullfile(pwdUmaps, 'Head_MRAC_*_in_UMAP*'));
             if isempty(globbed)
-                globbed = asrowdirs(glob(fullfile(pwdUmaps, '*UMAP*')));
+                globbed = globT(fullfile(pwdUmaps, '*UMAP*'));
             end
             assert(~isempty(globbed))
             pwdDcms = globbed{end};
