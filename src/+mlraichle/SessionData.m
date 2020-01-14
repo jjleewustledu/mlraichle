@@ -12,6 +12,10 @@ classdef SessionData < mlnipet.ResolvingSessionData
         STUDY_CENSUS_XLSX_FN = 'census 2018may31.xlsx'
     end
     
+    properties
+        tracers = {'fdg' 'ho' 'oo' 'oc'}
+    end
+    
     methods (Static)
         function this = create(varargin)
             % @param folders ~ <project folder>/<session folder>/<scan folder>, in getenv('SINGULARITY_HOME')
