@@ -1,4 +1,4 @@
-classdef StudyData < handle & mlpipeline.StudyData
+classdef StudyData < handle & mlnipet.StudyData
 	%% STUDYDATA  
 
 	%  $Revision$
@@ -10,7 +10,7 @@ classdef StudyData < handle & mlpipeline.StudyData
         
     methods
  		function this = StudyData(varargin)
- 			this = this@mlpipeline.StudyData(mlraichle.StudyRegistry.instance(), varargin{:});
+ 			this = this@mlnipet.StudyData(mlraichle.StudyRegistry.instance(), varargin{:});
         end        
     end  
 
