@@ -183,8 +183,8 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                     end
                     srb = SessionResolveBuilder('sessionData', sessd, 'makeClean', ipr.makeClean);
                     if ipr.makeAligned
-                        srb.align;
-                        srb.t4_mul;
+                        srb.alignCrossModal();
+                        srb.t4_mul();
                     end
                 end
                 popd(pwd1)
@@ -224,21 +224,21 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             
             subPath = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '');            
             pwd0 = pushd(subPath);
+            subd = SubjectData('subjectFolder', ss{2});
+            sesf = subd.subFolder2sesFolder(ss{2});
+            sessd = SessionData( ...
+                'studyData', StudyData(), ...
+                'projectData', ProjectData('sessionStr', sesf), ...
+                'subjectData', subd, ...
+                'sessionFolder', sesf, ...
+                'tracer', 'FDG', ...
+                'ac', true); % referenceTracer
+            if ~isempty(ipr.blur)
+                sessd.tracerBlurArg = TracerDirector2.todouble(ipr.blur);
+            end
+            srb = SubjectResolveBuilder('subjectData', subd, 'sessionData', sessd, 'makeClean', ipr.makeClean);
             if ipr.makeAligned
-                subd = SubjectData('subjectFolder', ss{2});
-                sesf = subd.subFolder2sesFolder(ss{2});
-                sessd = SessionData( ...
-                    'studyData', StudyData(), ...
-                    'projectData', ProjectData('sessionStr', sesf), ...
-                    'subjectData', subd, ...
-                    'sessionFolder', sesf, ...
-                    'tracer', 'FDG', ...
-                    'ac', true); % referenceTracer
-                if ~isempty(ipr.blur)
-                    sessd.tracerBlurArg = TracerDirector2.todouble(ipr.blur);
-                end
-                srb = SubjectResolveBuilder('subjectData', subd, 'sessionData', sessd, 'makeClean', ipr.makeClean);
-                srb.align();
+                srb.alignCrossModal();
                 srb.t4_mul();
                 try
                     srb.lns_json_all();
@@ -246,12 +246,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                     handwarning(ME)
                 end
             end
-            SubjectResolveBuilder.lns_resampling_restricted();
-            SubjectResolveBuilder.compose_t4s('compositionTarget', ipr.compositionTarget);
-            SubjectResolveBuilder.t4img_4dfp_on_T1001(fullfile(subPath, 'resampling_restricted', ''));
-            SubjectResolveBuilder.copySurfer(subPath, fullfile(subPath, 'resampling_restricted', ''));
-            copyfile('*.json', 'resampling_restricted', 'f')
-            SubjectResolveBuilder.finalize(subPath)
+            srb.createResamplingRestricted('compositionTarget', ipr.compositionTarget)
             popd(pwd0)
         end
         function constructSubjectsVisualizations(varargin)
