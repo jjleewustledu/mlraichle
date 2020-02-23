@@ -1,6 +1,6 @@
-classdef InstrumentKit < handle & mlpet.InstrumentKit
+classdef DeviceKit < handle & mlpet.DeviceKit
 	%% INSTRUMENTKIT is a concrete factory for projects packaged by mlraichle.  It is part of the 
-    %  abstract factory pattern of mlpet.InstrumentKit and manages instances of mlpet.CCIRRadMeasurements and
+    %  abstract factory pattern of mlpet.DeviceKit and manages instances of mlpet.CCIRRadMeasurements and
     %  mlpet.ReferenceSource.
 
 	%  $Revision$
@@ -33,20 +33,20 @@ classdef InstrumentKit < handle & mlpet.InstrumentKit
             parse(ip, varargin{:});
             
             import mlpet.ReferenceSource;
-            import mlraichle.InstrumentKit;
+            import mlraichle.DeviceKit;
             rs(1) = ReferenceSource( ...
                 'isotope', '137Cs', ...
                 'activity', 500, ...
                 'activityUnits', 'nCi', ...
                 'sourceId', '1231-8-87', ...
-                'refDate', datetime(2007,4,1, 'TimeZone', InstrumentKit.PREFERRED_TIMEZONE));
+                'refDate', datetime(2007,4,1, 'TimeZone', DeviceKit.PREFERRED_TIMEZONE));
             if (datetime(ip.Results.session) > datetime(2016,4,7, 'TimeZone', 'America/Chicago'))
                 rs(2) = ReferenceSource( ...
                     'isotope', '22Na', ...
                     'activity', 101.4, ...
                     'activityUnits', 'nCi', ...
                     'sourceId', '1382-54-1', ...
-                    'refDate', datetime(2009,8,1, 'TimeZone', InstrumentKit.PREFERRED_TIMEZONE));
+                    'refDate', datetime(2009,8,1, 'TimeZone', DeviceKit.PREFERRED_TIMEZONE));
             end
             if (datetime(ip.Results.session) > datetime(2018,10,4, 'TimeZone', 'America/Chicago'))
                 rs(3) = ReferenceSource( ...
@@ -54,7 +54,7 @@ classdef InstrumentKit < handle & mlpet.InstrumentKit
                     'activity', 101.3, ...
                     'activityUnits', 'nCi', ...
                     'sourceId', '1932-53', ...
-                    'refDate', datetime(2017,11,1, 'TimeZone', InstrumentKit.PREFERRED_TIMEZONE), ...
+                    'refDate', datetime(2017,11,1, 'TimeZone', DeviceKit.PREFERRED_TIMEZONE), ...
                     'productCode', 'MGF-068-R3');
             end
             for irs = 1:length(rs)
@@ -62,11 +62,11 @@ classdef InstrumentKit < handle & mlpet.InstrumentKit
             end
         end
         function obj = PrepareCapracDevice(varargin)
- 			%% PREPARECAPRACDEVICE instantiates the InstrumentKit with the device then calibrates the device.
+ 			%% PREPARECAPRACDEVICE instantiates the DeviceKit with the device then calibrates the device.
  			%  @param session is mlraichle.Scan.
             
             import mlraichle.*;
-            this = InstrumentKit(varargin{:});
+            this = DeviceKit(varargin{:});
             obj  = CapracDevice( ...
                 'radMeasurements',  this.CreateRadMeasurements( 'session', this.session_), ...
                 'referenceSources', this.CreateReferenceSources('session', this.session_));
@@ -75,31 +75,31 @@ classdef InstrumentKit < handle & mlpet.InstrumentKit
             catch ME
                 handexcept(ME, ...
                     'mlraichle:RunTimeError', ...
-                    'InstrumentKit.PrepareCapracDevice could not calibrate the device');
+                    'DeviceKit.PrepareCapracDevice could not calibrate the device');
             end
         end
         function obj = PrepareTwiliteDevice(varargin)
             import mlraichle.*;
-            this = InstrumentKit(varargin{:});
+            this = DeviceKit(varargin{:});
             obj  = TwiliteDevice('radMeasurements', this.CreateRadMeasurements('session', this.session_));
             try
                 obj = obj.calibrateDevice(this.twiliteCalMeasurements);
             catch ME
                 handexcept(ME, ...
                     'mlraichle:RunTimeError', ...
-                    'InstrumentKit.PrepareTwiliteDevice could not calibrate the device');
+                    'DeviceKit.PrepareTwiliteDevice could not calibrate the device');
             end
         end
         function obj = PrepareBiographMMRDevice(varargin)
             import mlraichle.*;
-            this = InstrumentKit(varargin{:});
+            this = DeviceKit(varargin{:});
             obj  = BiographMMRDevice('radRadMeasurements', this.CreateRadMeasurements('session', this.session_));
             try
                 obj = obj.calibrateDevice(this.biographMMRCalMeasurements);
             catch ME
                 handexcept(ME, ...
                     'mlraichle:RunTimeError', ...
-                    'InstrumentKit.PrepareBiographMMRDevice could not calibrate the device');
+                    'DeviceKit.PrepareBiographMMRDevice could not calibrate the device');
             end
         end
     end
@@ -128,7 +128,7 @@ classdef InstrumentKit < handle & mlpet.InstrumentKit
     end
     
     methods (Access = private)
- 		function this = InstrumentKit(varargin)
+ 		function this = DeviceKit(varargin)
  			%% INSTRUMENTKIT
  			%  @param session is mlraichle.Session.
             

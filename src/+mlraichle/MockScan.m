@@ -1,5 +1,5 @@
 classdef MockScan < handle & mlraichle.Scan
-	%% MOCKSCAN is intended for use by mlraichle.Test_InstrumentKit.
+	%% MOCKSCAN is intended for use by mlraichle.Test_DeviceKit.
     %  https://cnda.wustl.edu/app/action/DisplayItemAction/search_element/xnat%3AmrSessionData/search_field/xnat%3AmrSessionData.ID/search_value/CNDA_E262767/popup/false/project/CCIR_00559
 
 	%  $Revision$
