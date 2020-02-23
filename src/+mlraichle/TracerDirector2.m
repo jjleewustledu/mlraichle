@@ -52,13 +52,13 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                             fprintf(['\tsessd.tracerLocation->' sessd.tracerLocation '\n']);
 
                             warning('off', 'MATLAB:subsassigndimmismatch');
-                            pwd1 = pushd(t{1});
+                            pwd1 = pushd(fullfile(sessd.sessionPath, t{1}));
                             if ~ipr.getstats
                                 TracerDirector2.constructPhantom('sessionData', sessd);
                             else
-                                [me,sd] = TracerDirector2.constructPhantomStats('sessionData', sessd);
+                                [me,sd,vol,N,min_,max_] = TracerDirector2.constructPhantomStats('sessionData', sessd);
                                 fprintf('mlraichle.TracerDirector2.constructPhantomStudy:\n')
-                                fprintf('specific activity:  mean %g std %g', me, sd)
+                                fprintf('specific activity:  mean %g std %g vol %g N %g min %g max %g\n', me, sd, vol, N, min_, max_)
                             end
                             popd(pwd1)
                             warning('on',  'MATLAB:subsassigndimmismatch');
@@ -333,16 +333,21 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             
             % retrieve Head_MRAC_Brain_HiRes_in_UMAP_*; convert to NIfTI; resample for emissions
             pwdUmaps = fullfile(fileparts(pwdAC), 'umaps');
-            globbed = globT(fullfile(pwdUmaps, 'Head_MRAC_*_in_UMAP*'));
+            globbed = globT(fullfile(pwdUmaps, 'Head_MRAC_*5min_in_UMAP*'));
             if isempty(globbed)
                 globbed = globT(fullfile(pwdUmaps, '*UMAP*'));
             end
             assert(~isempty(globbed))
             pwdDcms = globbed{end};
             cd(pwdUmaps);
-            mlbash(sprintf('dcm2niix -f umapSiemens -o %s -b y -z y %s', pwdUmaps, pwdDcms));
             globbedniix = glob('umapSiemens*.nii.gz');
-            copyfile(fullfile(getenv('SINGULARITY_HOME'), 'zeros_frame.nii.gz'));
+            if ~isempty(globbedniix)
+                ensuredir('Previous')
+                mlbash(sprintf('mv -f %s Previous', cell2str(globbedniix)))
+            end
+            mlbash(sprintf('dcm2niix -f umapSiemens -o %s -b y -z y %s', pwdUmaps, pwdDcms));
+            copyfile(fullfile(getenv('SINGULARITY_HOME'), 'zeros_frame.nii.gz'));            
+            globbedniix = glob('umapSiemens*.nii.gz');
             mlbash(sprintf('reg_resample -ref zeros_frame.nii.gz -flo %s -res umapSynth.nii.gz', globbedniix{1}));
             delete('zeros_frame.nii.gz');
             movefile('umapSynth.nii.gz', pwdAC);
@@ -357,16 +362,22 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             umap.datatype = 'single';
             umap.saveas('umapSynth.nii.gz');
         end
-        function [m,s] = constructPhantomStats(varargin) 
+        function [m,s,vol,N,min_,max_] = constructPhantomStats(varargin) 
             
             pwd0 = pushd('output/PET/single-frame');
             
-            globbed = glob('a_itr-*_t-0*sec_createPhantom.nii.gz');
+            globbed = glob('a*t-0*sec*createPhantom.nii.gz');
             emissions = mlfourd.ImagingFormatContext(globbed{1});
-            thresh = max(0, dipmax(emissions) - 8*dipstd(emissions));
+            thresh = max(0, dipmax(emissions)/2);
             emissionsVec = emissions.img(emissions.img > thresh);
             m = mean(emissionsVec);
-            s = std(emissionsVec);
+            s = std(emissionsVec);            
+            N = numel(emissionsVec);
+            vol = N*prod([2.0863 2.0863 2.0312])/1e3; % mL
+            min_ = min(emissionsVec);
+            max_ = max(emissionsVec);
+            histogram(emissionsVec)
+            emissions.fsleyes(fullfile(pwd0, 'umapSynth.nii.gz'))
             
             popd(pwd0)
         end
