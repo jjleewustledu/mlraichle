@@ -187,6 +187,7 @@ classdef SessionData < mlnipet.ResolvingSessionData
             if isempty(this.studyData_)
                 this.studyData_ = mlraichle.StudyData();
             end
+            this.ReferenceTracer = 'FDG';
             if isempty(this.projectData_)
                 this.projectData_ = mlraichle.ProjectData('sessionStr', this.sessionFolder);
             end

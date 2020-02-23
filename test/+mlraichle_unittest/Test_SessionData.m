@@ -44,6 +44,33 @@ classdef Test_SessionData < matlab.unittest.TestCase
         function test_vLocation(this)
             this.verifyEqual(this.testObj.sessionPath, this.sessp);
         end
+        function test_RevisionAndResolved(~)
+            sessd = mlraichle.SessionData.create('CCIR_00559/ses-E03056/FDG_DT20190523132832.000000-Converted-AC');
+            sessd.rnumber = 2;
+            sessdNac = sessd; sessdNac.attenuationCorrected = false;
+
+            disp(sessd)
+
+            disp(sessd.tracerRevision)
+            disp(sessd.tracerRevisionAvgt)
+            disp(sessd.tracerRevisionSumt)
+            disp(sessd.tracerResolved)
+            disp(sessd.tracerResolvedAvgt)
+            disp(sessd.tracerResolvedSumt)
+            disp(sessd.tracerResolvedFinal)
+            disp(sessd.tracerResolvedFinalAvgt)
+            disp(sessd.tracerResolvedFinalSumt)
+
+            disp(sessdNac.tracerRevision)
+            disp(sessdNac.tracerRevisionAvgt)
+            disp(sessdNac.tracerRevisionSumt)
+            disp(sessdNac.tracerResolved)
+            disp(sessdNac.tracerResolvedAvgt)
+            disp(sessdNac.tracerResolvedSumt)
+            disp(sessdNac.tracerResolvedFinal)
+            disp(sessdNac.tracerResolvedFinalAvgt)
+            disp(sessdNac.tracerResolvedFinalSumt)
+        end
         
         %% IMRData
         

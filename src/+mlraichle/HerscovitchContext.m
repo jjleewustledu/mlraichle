@@ -64,11 +64,6 @@ classdef HerscovitchContext < mlraichle.SessionData
                 this.tracerRevision('typ', 'fqfp'), 'op_fdgr1', this.filetypeExt);
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
-        function obj  = tracerResolvedFinalOnAtl(this, varargin)
-            fqfn = fullfile(this.vallLocation, ...
-                sprintf('%s_on_%s_%i%s', this.tracerResolvedFinal('typ', 'fp'), this.studyAtlas.fileprefix, this.atlVoxelSize, this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
-        end
         function obj  = tracerResolvedFinalSumt(this, varargin)
             fqfn = sprintf('%s_sumt%s', this.tracerResolvedFinal('typ', 'fqfp'), this.filetypeExt);
             obj  = this.fqfilenameObject(fqfn, varargin{:});

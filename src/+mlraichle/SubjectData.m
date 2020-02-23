@@ -40,14 +40,7 @@ classdef SubjectData < mlnipet.SubjectData
         end
     end
 
-	methods 
-        function sub  = subjectID_to_sub(~, sid)
-            %% abbreviates sub-CNDA01_S12345 -> sub-S12345
-            
-            split = strsplit(sid, '_');
-            sub = ['sub-' split{2}];
-        end
-		  
+	methods 		  
  		function this = SubjectData(varargin)
  			%% SUBJECTDATA
  			%  @param .

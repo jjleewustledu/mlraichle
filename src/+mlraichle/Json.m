@@ -221,7 +221,7 @@ classdef Json
     %% PROTECTED
     
     methods (Access = protected)
-        function this = buildExperiment2projectMap(this)            
+        function this = buildExperiment2projectMap(this)
             for sub = asrow(fields(this.S559_))
                for exp = asrow(this.S559_.(sub{1}).experiments)
                    this.experiment2projectMap_(exp{1}) = 'CCIR_00559';

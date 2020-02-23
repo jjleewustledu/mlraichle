@@ -236,7 +236,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             if ~isempty(ipr.blur)
                 sessd.tracerBlurArg = TracerDirector2.todouble(ipr.blur);
             end
-            srb = SubjectResolveBuilder('subjectData', subd, 'sessionData', sessd, 'makeClean', ipr.makeClean);
+            srb = SubjectResolveBuilder('sessionData', sessd, 'makeClean', ipr.makeClean);
             if ipr.makeAligned
                 srb.alignCrossModal();
                 srb.t4_mul();
@@ -246,7 +246,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                     handwarning(ME)
                 end
             end
-            srb.createResamplingRestricted('compositionTarget', ipr.compositionTarget)
+            srb.constructResamplingRestricted('compositionTarget', ipr.compositionTarget)
             popd(pwd0)
         end
         function constructSubjectsVisualizations(varargin)
