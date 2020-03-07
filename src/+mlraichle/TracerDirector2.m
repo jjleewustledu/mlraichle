@@ -33,6 +33,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             ip.KeepUnmatched = true;
             addRequired( ip, 'foldersExpr', @ischar)
             addParameter(ip, 'getstats', false)
+            addParameter(ip, 'mask', [])
             parse(ip, varargin{:});
             ipr = TracerDirector2.adjustIprConstructResolvedStudy(ip.Results);
 
@@ -48,7 +49,6 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                                 'reconstructionMethod', 'NiftyPET');
 
                             fprintf('constructPhantomStudy:\n');
-                            fprintf([evalc('disp(sessd)') '\n']);
                             fprintf(['\tsessd.tracerLocation->' sessd.tracerLocation '\n']);
 
                             warning('off', 'MATLAB:subsassigndimmismatch');
@@ -56,9 +56,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                             if ~ipr.getstats
                                 TracerDirector2.constructPhantom('sessionData', sessd);
                             else
-                                [me,sd,vol,N,min_,max_] = TracerDirector2.constructPhantomStats('sessionData', sessd);
-                                fprintf('mlraichle.TracerDirector2.constructPhantomStudy:\n')
-                                fprintf('specific activity:  mean %g std %g vol %g N %g min %g max %g\n', me, sd, vol, N, min_, max_)
+                                TracerDirector2.constructPhantomStats('sessionData', sessd, 'mask', ipr.mask);
                             end
                             popd(pwd1)
                             warning('on',  'MATLAB:subsassigndimmismatch');
@@ -364,10 +362,34 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
         end
         function [m,s,vol,N,min_,max_] = constructPhantomStats(varargin) 
             
+            ip = inputParser;
+            addParameter(ip, 'sessionData', [])
+            addParameter(ip, 'mask', [])
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            if isfile('mlraichle_TracerDirector2_constructPhantomStats.mat')
+                mat = load('mlraichle_TracerDirector2_constructPhantomStats.mat');
+                mat.stats.m = mat.stats.m/1e3;
+                mat.stats.s = mat.stats.s/1e3;
+                mat.stats.min_ = mat.stats.min_/1e3;
+                mat.stats.max_ = mat.stats.max_/1e3;
+                fprintf('#############################################################################################\n')
+                fprintf('lraichle.TracerDirector2.constructPhantomStats():\n')
+                fprintf('\t%s\n', basename(pwd))
+                disp(mat.stats)                
+                fprintf('\n')
+                return
+            end
+            
             pwd0 = pushd('output/PET/single-frame');
             
             globbed = glob('a*t-0*sec*createPhantom.nii.gz');
-            emissions = mlfourd.ImagingFormatContext(globbed{1});
+            emissions = mlfourd.ImagingContext2(globbed{1});
+            if ~isempty(ipr.mask)
+                emissions = emissions.masked(ipr.mask);
+            end
+            emissions = emissions.nifti;
             thresh = max(0, dipmax(emissions)/2);
             emissionsVec = emissions.img(emissions.img > thresh);
             m = mean(emissionsVec);
@@ -378,6 +400,19 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             max_ = max(emissionsVec);
             histogram(emissionsVec)
             emissions.fsleyes(fullfile(pwd0, 'umapSynth.nii.gz'))
+            
+            stats.m = m;
+            stats.s = s;
+            stats.vol = vol;
+            stats.N = N;
+            stats.min_ = min_;
+            stats.max_ = max_;
+            save(fullfile(pwd0, 'mlraichle_TracerDirector2_constructPhantomStats.mat'), 'stats')
+            
+            fprintf('#############################################################################################')
+            fprintf('mlraichle.TracerDirector2.constructPhantomStats():\n')
+            fprintf('\t%s\n', basename(pwd))
+            fprintf('\tspecific activity:  mean %g std %g vol %g N %g min %g max %g\n', me, sd, vol, N, min_, max_)
             
             popd(pwd0)
         end

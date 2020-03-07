@@ -41,10 +41,13 @@ classdef SessionData < mlnipet.ResolvingSessionData
             
             function ipr = adjustIpr(ipr)
                 ss = strsplit(ipr.folders, filesep);
-                assert(3 == length(ss));
                 ipr.prjfold = ss{1};
                 ipr.sesfold = ss{2};
-                ipr.scnfold = ss{3};
+                if length(ss) >= 3
+                    ipr.scnfold = ss{3};
+                else
+                    ipr.scnfold = '';
+                end
             end
         end
         function sessd = struct2sessionData(sessObj)
