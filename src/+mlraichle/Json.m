@@ -9,7 +9,7 @@ classdef Json
     
     properties (Constant)
         filenameConstructed = 'constructed_20190725.json'      
-        datapath = fullfile(getenv('HOME'), 'MATLAB-Drive', 'mlraichle', 'data', '')
+        datapath = fullfile(getenv('SINGULARITY_HOME'), 'subjects', '')
     end
     
     methods (Static)

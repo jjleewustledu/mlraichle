@@ -78,7 +78,7 @@ classdef SessionData < mlnipet.ResolvingSessionData
     methods
         function g    = getStudyCensus(this)
             g = mlraichle.StudyCensus(this.STUDY_CENSUS_XLSX_FN', 'sessionData', this);
-        end        
+        end 
         function this = manageLegacyStudyData(this, studyd)
             assert(isa(studyd, 'mlraichle.StudyData'))
             if isempty(this.subjectData_)

@@ -7,15 +7,15 @@ classdef CCIRRadMeasurements < handle & mlpet.CCIRRadMeasurements
  	%% It was developed on Matlab 9.3.0.713579 (R2017b) for MACI64.  Copyright 2018 John Joowon Lee.
  	    
     methods (Static)
-        function this = createByDate(aDate, varargin)
+        function this = createFromDate(aDate, varargin)
             import mlraichle.CCIRRadMeasurements.*;
-            this = createByFilename(date2filename(aDate), varargin{:});
+            this = createFromFilename(date2filename(aDate), varargin{:});
         end
-        function this = createByFilename(fqfn, varargin)
+        function this = createFromFilename(fqfn, varargin)
             this = mlraichle.CCIRRadMeasurements(varargin{:});
             this = this.readtables(fqfn);
         end
-        function this = createBySession(sess, varargin)
+        function this = createFromSession(sess, varargin)
             this = mlraichle.CCIRRadMeasurements('session', sess, varargin{:});
         end
     end
