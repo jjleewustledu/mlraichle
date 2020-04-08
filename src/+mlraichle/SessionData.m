@@ -18,7 +18,8 @@ classdef SessionData < mlnipet.ResolvingSessionData
     
     methods (Static)
         function this = create(varargin)
-            % @param folders ~ <project folder>/<session folder>/<scan folder>, in getenv('SINGULARITY_HOME')
+            % @param folders ~ getenv('SINGULARITY_HOME')/<project folder>/<session folder>/<scan folder> or
+            %                ~ getenv('SINGULARITY_HOME')/subjects/<subject folder>/<session folder>/<scan folder>
             % @param ignoreFinishMark is logical, default := false
             
             import mlraichle.*
@@ -33,7 +34,7 @@ classdef SessionData < mlnipet.ResolvingSessionData
             this = SessionData( ...
                 'studyData', StudyRegistry.instance(), ...
                 'projectData', ProjectData('projectFolder', ipr.prjfold), ...
-                'subjectData', SubjectData(), ...
+                'subjectData', SubjectData('subjectFolder', ipr.subfold), ...
                 'sessionFolder', ipr.sesfold, ...
                 'scanFolder', ipr.scnfold);
             this.ignoreFinishMark = ipr.ignoreFinishMark;            
@@ -41,7 +42,21 @@ classdef SessionData < mlnipet.ResolvingSessionData
             
             function ipr = adjustIpr(ipr)
                 ss = strsplit(ipr.folders, filesep);
+                if lstrfind(ss{1}, 'subjects')
+                    p = mlraichle.ProjectData();
+                    ipr.subfold = ss{2};
+                    ipr.prjfold = p.session2project(ss{3});
+                    ipr.sesfold = ss{3};
+                    if length(ss) >= 3
+                        ipr.scnfold = ss{4};
+                    else
+                        ipr.scnfold = '';
+                    end
+                    return
+                end
+                
                 ipr.prjfold = ss{1};
+                ipr.subfold = mlraichle.SubjectData().sesFolder2subFolder(ss{2});
                 ipr.sesfold = ss{2};
                 if length(ss) >= 3
                     ipr.scnfold = ss{3};

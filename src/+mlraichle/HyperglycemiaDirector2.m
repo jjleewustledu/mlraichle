@@ -11,16 +11,7 @@ classdef HyperglycemiaDirector2
  		
  	end
 
-    methods (Static)  
-        function those = constructGlucoseMetab(varargin)
-            those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
-                'mlglucose.MetabDirector.constructHuang', varargin{:}); 
-        end
-        function those = constructOxygenMetab(varargin)
-            those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
-                'mloxygen.MetabDirector.constructAll', varargin{:}); 
-        end
-        
+    methods (Static)
         function those = cleanResolved(varargin)
             those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
                 'mlraichle.TracerDirector2.cleanResolved', varargin{:}); 

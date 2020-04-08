@@ -306,7 +306,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             popd(pwd0)
         end
         
-        function        constructPhantom(varargin)   
+        function constructPhantom(varargin)   
 
             % clean up working area
             deleteExisting('*fdg*')
