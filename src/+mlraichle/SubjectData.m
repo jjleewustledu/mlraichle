@@ -15,20 +15,58 @@ classdef SubjectData < mlnipet.SubjectData
         function obj = createProjectData(varargin)
             obj = mlraichle.ProjectData(varargin{:});
         end
+        function subf = sesFolder2subFolder(sesf)
+            %% requires well-defined cell-array mlraichle.StudyRegistry.instance().subjectsJson.
+            %  @param sesf is a session folder.
+            %  @returns corresponding subject folder.
+            
+            import mlraichle.SubjectData
+            json = mlraichle.StudyRegistry.instance().subjectsJson;
+            subjectsLabel = fields(json);
+            ssesf = split(sesf, '-');
+            for sL = asrow(subjectsLabel)
+                subjectStruct = json.(sL{1});
+                if isfield(subjectStruct, 'experiments')
+                    for eL = asrow(subjectStruct.experiments)
+                        if lstrfind(eL, ssesf{2})
+                            ssub = split(subjectStruct.sid, '_');
+                            subf = ['sub-' ssub{2}];
+                            return
+                        end
+                    end
+                end
+                if isfield(subjectStruct, 'aliases')
+                    json1 = subjectStruct.aliases;
+                    subjectsLabel1 = fields(json1);
+                    for sL1 = asrow(subjectsLabel1)                        
+                        subjectStruct1 = json1.(sL1{1});
+                        if isfield(subjectStruct1, 'experiments')
+                            for eL = asrow(subjectStruct1.experiments)
+                                if lstrfind(eL, ssesf{2})
+                                    ssub = split(subjectStruct1.sid, '_');
+                                    subf = ['sub-' ssub{2}];
+                                    return
+                                end
+                            end
+                        end
+                    end
+                end
+            end             
+        end
         function sesf = subFolder2sesFolders(subf)
-            %% requires well-defined cell-array this.subjectsJson.
+            %% requires well-defined cell-array mlraichle.StudyRegistry.instance().subjectsJson.
             %  @param subf is a subject folder.
             %  @returns first-found non-trivial session folder in the subject folder.
             
             import mlraichle.SubjectData
             json = mlraichle.StudyRegistry.instance().subjectsJson;
-            subjects = fields(json);
-            ss = split(subf, '-');
+            subjectsLabel = fields(json);
+            ssesf = split(subf, '-');
             sesf = {};
-            for s = asrow(subjects)
-                subS = json.(s{1});
-                if lstrfind(subS.id, ss{2}) || lstrfind(subS.sid, ss{2})
-                    sesf = [sesf SubjectData.findExperiments(subS, subf)]; %#ok<AGROW>
+            for sL = asrow(subjectsLabel)
+                subjectStruct = json.(sL{1});
+                if lstrfind(subjectStruct.id, ssesf{2}) || lstrfind(subjectStruct.sid, ssesf{2})
+                    sesf = [sesf SubjectData.findExperiments(subjectStruct, subf)]; %#ok<AGROW>
                 end
             end 
         end
