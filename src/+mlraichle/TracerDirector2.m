@@ -149,6 +149,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             addParameter(ip, 'makeClean', true, @islogical)  
             addParameter(ip, 'blur', [], @(x) isnumeric(x) || ischar(x) || isstring(x))
             addParameter(ip, 'makeAligned', true, @islogical)
+            addParameter(ip, 'aufbauSessionPath', true, @islogical)
             parse(ip, varargin{:})
             ipr = ip.Results;
             
@@ -157,7 +158,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             subpth = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2});            
             
             %% redundant with mlpet.StudyResolveBuilder.configureSubjectData__ if ipr.makeClean
-            if ~ipr.makeClean
+            if ipr.aufbauSessionPath
                 subd = SubjectData('subjectFolder', ss{2});
                 subid = subFolder2subID(subd, ss{2});
                 subd.aufbauSessionPath(subpth, subd.subjectsJson.(subid));
