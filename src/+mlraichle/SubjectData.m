@@ -67,6 +67,7 @@ classdef SubjectData < mlnipet.SubjectData
                 subjectStruct = json.(sL{1});
                 if lstrfind(subjectStruct.id, ssesf{2}) || lstrfind(subjectStruct.sid, ssesf{2})
                     sesf = [sesf SubjectData.findExperiments(subjectStruct, subf)]; %#ok<AGROW>
+                    %disp(sesf)
                 end
             end 
         end

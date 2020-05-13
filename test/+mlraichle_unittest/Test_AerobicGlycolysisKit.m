@@ -57,6 +57,19 @@ classdef Test_AerobicGlycolysisKit < matlab.unittest.TestCase
                 'cpuIndex', 1, ...
                 'averageVoxels', false)
         end
+        function test_buildRoiset(this)
+            deleteExisting(fullfile(this.home, 'subjects/sub-S58163/resampling_restricted/wmparc_selectedIndices.mat'))
+            roiset = this.obj_fdg.buildRoiset('wmparc', 'cpuIndex', 1);
+            for r = roiset
+                disp(r{1})
+            end
+        end
+        function test_construct_Ks(this)
+            deleteExisting(fullfile(this.home, 'subjects/sub-S58163/resampling_restricted/wmparc_selectedIndices.mat'))
+            construct_Ks('subjects/sub-S58163', 1, 'sessionsExpr', 'ses-E03056', 'wallClockLimit', '1081')
+            inst = mlraichle.StudyRegistry.instance();
+            inst.wallClockLimit = 168*3600;
+        end
 	end
 
  	methods (TestClassSetup)
