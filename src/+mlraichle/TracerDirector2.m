@@ -431,7 +431,11 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                 if ~isfile(this.sessionData.umapSynthOpT1001)
                     this.constructUmaps(varargin{:})
                 end
-                this = this.instanceConstructResolvedNAC;                
+                try
+                    this = this.instanceConstructResolvedNAC;
+                catch ME
+                    handwarning(ME)
+                end
                 this.fastFilesystemTeardownWithAC(true); % intermediate artifacts
             else
                 this = this.instanceConstructResolvedAC;
