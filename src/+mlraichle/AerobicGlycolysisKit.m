@@ -7,7 +7,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
  	%% It was developed on Matlab 9.7.0.1319299 (R2019b) Update 5 for MACI64.  Copyright 2020 John Joowon Lee.
  	
 	properties
- 		
     end
     
 	methods (Static)
@@ -18,6 +17,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             %  @param cpuIndex is char or is numeric. 
             %  Setting cpuIndex := {-1,0,Inf} also sets wallClockLimit := Inf. 
             %  @param useParfor is logical with default := ~ifdeployed().
+            %  @param estimateNumNodes is logical; disp # nodes to request from Torque.
             
             import mlraichle.*
             
@@ -25,11 +25,12 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             ip.KeepUnmatched = true;
             addRequired(ip, 'foldersExpr', @ischar)
             addRequired(ip, 'cpuIndex', @(x) isnumeric(x) || ischar(x))
-            addParameter(ip, 'roisExpr', 'wmparc', @ischar)
+            addParameter(ip, 'roisExpr', 'brain', @ischar)
             addParameter(ip, 'sessionsExpr', 'ses-E', @ischar)
             addParameter(ip, 'voxelTime', 90, @(x) isnumeric(x) || ischar(x))
             addParameter(ip, 'wallClockLimit', 168*3600, @(x) isnumeric(x) || ischar(x))
             addParameter(ip, 'useParfor', ~isdeployed(), @islogical)
+            addParameter(ip, 'estimateNumNodes', false, @islogical)
             parse(ip, varargin{:})
             ipr = ip.Results;
             if ischar(ipr.cpuIndex)
@@ -44,28 +45,34 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             if ischar(ipr.wallClockLimit)
                 ipr.wallClockLimit = str2double(ipr.wallClockLimit);
             end
-            fprintf('mlraichle.AerobicGlycolysis.constructSubjectsStudy():\n')
-            disp(ipr)
+            if ~ipr.estimateNumNodes
+                fprintf('mlraichle.AerobicGlycolysis.constructSubjectsStudy():\n')
+                disp(ipr)
+            end
             ss = strsplit(ipr.foldersExpr, '/'); 
-            disp(ss)
     
+            % update registry with passed parameters
             registry = mlraichle.StudyRegistry.instance();
             registry.voxelTime = ipr.voxelTime;
             registry.wallClockLimit = ipr.wallClockLimit;   
-            registry.useParfor = ipr.useParfor;
-            disp(registry)
+            registry.useParfor = ipr.useParfor;            
+            if ~ipr.estimateNumNodes
+                disp(registry)
+            end
             
+            % estimate num nodes or build Ks
             subPath = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '');            
-            pwd0 = pushd(subPath);
-            fprintf('mlraichle.AerobicGlycolysisKit.constructSubjectsStudy():  pwd->%s\n', pwd)
-            fprintf('mlraichle.AerobicGlycolysisKit.constructSubjectsStudy():  getenv(''CCIR_RAD_MEASUREMENTS_DIR'')->%s\n', ...
-                getenv('CCIR_RAD_MEASUREMENTS_DIR'));
-            subd = SubjectData('subjectFolder', ss{2});
-            disp(subd)
-            sesfs = subd.subFolder2sesFolders(ss{2});
-            disp(sesfs)
+            pwd0 = pushd(subPath); 
+            subd = SubjectData('subjectFolder', ss{2}); 
+            sesfs = subd.subFolder2sesFolders(ss{2});          
+            if ~ipr.estimateNumNodes
+                fprintf('mlraichle.AerobicGlycolysisKit.constructSubjectsStudy():  pwd->%s\n', pwd)
+                fprintf('mlraichle.AerobicGlycolysisKit.constructSubjectsStudy():  getenv(''CCIR_RAD_MEASUREMENTS_DIR'')->%s\n', ...
+                    getenv('CCIR_RAD_MEASUREMENTS_DIR'));                
+                disp(subd)
+                disp(sesfs)
+            end
             for s = sesfs(contains(sesfs, ipr.sessionsExpr))
-                disp(s{1})
                 sesd = SessionData( ...
                     'studyData', StudyData(), ...
                     'projectData', ProjectData('sessionStr', s{1}), ...
@@ -73,10 +80,16 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                     'sessionFolder', s{1}, ...
                     'tracer', 'FDG', ...
                     'ac', true); 
-                disp(sesd)
-                kit = AerobicGlycolysisKit.createFromSession(sesd);
-                disp(kit)
-                sstr = split(sesd.tracerResolvedOpSubject('typ', 'fqfn', 'tag', '_on_T1001'), ['Singularity' filesep]);
+                kit = AerobicGlycolysisKit.createFromSession(sesd);                
+                if ~ipr.estimateNumNodes
+                    disp(sesd)
+                    disp(kit)
+                end
+                sstr = split(sesd.tracerOnAtlas('typ', 'fqfn'), ['Singularity' filesep]);
+                if ipr.estimateNumNodes
+                    kit.estimateNumNodes(sstr{2}, ipr.roisExpr)
+                    continue
+                end
                 kit.buildKs( ...
                     'filesExpr', sstr{2}, ...
                     'cpuIndex', ipr.cpuIndex, ...

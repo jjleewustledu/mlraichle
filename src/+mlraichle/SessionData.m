@@ -13,6 +13,7 @@ classdef SessionData < mlnipet.ResolvingSessionData
     end
     
     properties
+        registry
         tracers = {'fdg' 'ho' 'oo' 'oc'}
     end
     
@@ -91,6 +92,12 @@ classdef SessionData < mlnipet.ResolvingSessionData
     end
 
     methods
+        function obj  = brainOnAtlas(this, varargin)
+            fqfn = fullfile( ...
+                this.subjectPath, 'resampling_restricted', ...
+                sprintf('brain%s%s', this.registry.atlasTag, this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
         function g    = getStudyCensus(this)
             g = mlraichle.StudyCensus(this.STUDY_CENSUS_XLSX_FN', 'sessionData', this);
         end 
@@ -100,6 +107,34 @@ classdef SessionData < mlnipet.ResolvingSessionData
                 this.subjectData_ = mlraichle.SubjectData();
             end
             this.subjectData_.studyData = studyd;
+        end
+        function obj  = metricOnAtlas(this, metric, varargin)
+            %% METRICONATLAS
+            %  @param required metric is char.
+            %  @param datetime is datetime.
+            %  @param dateonlhy is logical.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired(ip, 'metric', @ischar)
+            addParameter(ip, 'datetime', this.datetime, @isdatetime)
+            addParameter(ip, 'dateonly', false, @islogical)
+            parse(ip, metric, varargin{:})
+            ipr = ip.Results;            
+            if ipr.dateonly
+                adatestr = [datestr(ipr.datetime, 'yyyymmdd') '000000'];
+            else
+                adatestr = datestr(ipr.datetime, 'yyyymmddHHMMSS');
+            end
+            
+            fqfn = fullfile( ...
+                this.subjectPath, 'resampling_restricted', ...
+                sprintf('%sdt%s%s%s', ...
+                        lower(ipr.metric), ...
+                        adatestr, ...
+                        this.registry.atlasTag, ...
+                        this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = mprForReconall(this, varargin)
             obj = this.fqfilenameObject( ...
@@ -113,7 +148,71 @@ classdef SessionData < mlnipet.ResolvingSessionData
                 return
             end
             loc = this.tracerConvertedLocation(varargin{:});
+        end        
+        function obj  = tracerOnAtlas(this, varargin)
+            obj = this.metricOnAtlas(this.tracer, varargin{:});
         end
+        
+        %% Metabolism
+        
+        function obj  = cbfOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('cbf', varargin{:});
+        end
+        function obj  = cbvOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('cbv', varargin{:});
+        end
+        function obj  = v1OnAtlas(this, varargin)
+            obj = this.metricOnAtlas('v1', varargin{:});
+        end
+        function obj  = oefOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('oef', varargin{:});
+        end
+        function obj  = cmro2OnAtlas(this, varargin)
+            obj = this.metricOnAtlas('cmro', varargin{:});
+        end
+        function obj  = cmrglcOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('cmrglc', varargin{:});
+        end
+        function obj  = ksOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('ks', varargin{:});
+        end
+        function obj  = ogiOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('ogi', varargin{:});
+        end
+        function obj  = agiOnAtlas(this, varargin)
+            % dag := cmrglc - cmro2/6 \approx aerobic glycolysis
+            
+            obj = this.metricOnAtlas('agi', varargin{:});
+        end
+                
+        %% 
+        
+      	function this = SessionData(varargin)
+ 			this = this@mlnipet.ResolvingSessionData(varargin{:});
+            if isempty(this.studyData_)
+                this.studyData_ = mlraichle.StudyData();
+            end
+            this.ReferenceTracer = 'FDG';
+            if isempty(this.projectData_)
+                this.projectData_ = mlraichle.ProjectData('sessionStr', this.sessionFolder);
+            end
+            
+            %% registry
+            
+            this.registry = mlraichle.StudyRegistry.instance();
+            
+            %% taus
+            
+            if (~isempty(this.scanFolder_) && lexist(this.jsonFilename, 'file'))
+                j = jsondecode(fileread(this.jsonFilename));
+                this.taus_ = j.taus';
+            end
+        end
+    end
+    
+    %% HIDDEN, DEPRECATED
+    
+    methods (Hidden)
         function obj  = tracerResolvedSubj(this, varargin)
             %% TRACERRESOLVEDSUBJ is designed for use with mlraichle.SubjectImages.
             %  TODO:  reconcile use of ipr.destVnumber.
@@ -141,82 +240,7 @@ classdef SessionData < mlnipet.ResolvingSessionData
                 sprintf('%s%s_op_%sv%ir%i%s', ...
                         ipr.name, ipr.tag, ipr.dest, ipr.destVnumber, ipr.destRnumber, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
-        end
-        
-        %% Metabolism
-        
-        function obj  = cbfOpFdg(this, varargin)
-            obj = this.visitMapOpFdg('cbf', varargin{:});
-        end
-        function obj  = cbvOpFdg(this, varargin)
-            obj = this.visitMapOpFdg('cbv', varargin{:});
-        end
-        function obj  = oefOpFdg(this, varargin)
-            obj = this.visitMapOpFdg('oef', varargin{:});
-        end
-        function obj  = cmro2OpFdg(this, varargin)
-            obj = this.visitMapOpFdg('cmro', varargin{:});
-        end
-        function obj  = cmrglcOpFdg(this, varargin)
-            obj = this.visitMapOpFdg('cmrglc', varargin{:});
-        end
-        function obj  = ksOpFdg(this, varargin)
-            obj = this.visitMapOpFdg('sokoloffKs', varargin{:});
-        end
-        function obj  = ogiOpFdg(this, varargin)
-            obj = this.visitMapOpFdg('ogi', varargin{:});
-        end
-        function obj  = agiOpFdg(this, varargin)
-            % dag := cmrglc - cmro2/6 \approx aerobic glycolysis
-            
-            obj = this.visitMapOpFdg('agi', varargin{:});
         end        
-        function obj  = cbfOnAtl(this, varargin)
-            obj = this.visitMapOnAtl('cbf', varargin{:});
-        end
-        function obj  = cbvOnAtl(this, varargin)
-            obj = this.visitMapOnAtl('cbv', varargin{:});
-        end
-        function obj  = oefOnAtl(this, varargin)
-            obj = this.visitMapOnAtl('oef', varargin{:});
-        end
-        function obj  = cmro2OnAtl(this, varargin)
-            obj = this.visitMapOnAtl('cmro', varargin{:});
-        end
-        function obj  = cmrglcOnAtl(this, varargin)
-            obj = this.visitMapOnAtl('cmrglc', varargin{:});
-        end
-        function obj  = ksOnAtl(this, varargin)
-            obj = this.visitMapOnAtl('sokoloffKs', varargin{:});
-        end
-        function obj  = ogiOnAtl(this, varargin)
-            obj = this.visitMapOnAtl('ogi', varargin{:});
-        end
-        function obj  = agiOnAtl(this, varargin)
-            % dag := cmrglc - cmro2/6 \approx aerobic glycolysis
-            
-            obj = this.visitMapOnAtl('agi', varargin{:});
-        end
-                
-        %% 
-        
-      	function this = SessionData(varargin)
- 			this = this@mlnipet.ResolvingSessionData(varargin{:});
-            if isempty(this.studyData_)
-                this.studyData_ = mlraichle.StudyData();
-            end
-            this.ReferenceTracer = 'FDG';
-            if isempty(this.projectData_)
-                this.projectData_ = mlraichle.ProjectData('sessionStr', this.sessionFolder);
-            end
-            
-            %% taus
-            
-            if (~isempty(this.scanFolder_) && lexist(this.jsonFilename, 'file'))
-                j = jsondecode(fileread(this.jsonFilename));
-                this.taus_ = j.taus';
-            end
-        end
     end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
