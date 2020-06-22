@@ -10,7 +10,7 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
  	
     properties
         atlasTag = '_222'
-        ignoredExperiments = {'52823' '53317' '53343'}
+        ignoredExperiments = {'52823' '53317' '53343' '178378' '186470'}
         tracerList = {'oc' 'oo' 'ho' 'fdg'}
     end
     

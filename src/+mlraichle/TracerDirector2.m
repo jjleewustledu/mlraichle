@@ -216,9 +216,13 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             addParameter(ip, 'makeClean', true, @islogical)
             addParameter(ip, 'makeAligned', true, @islogical)
             addParameter(ip, 'compositionTarget', '', @ischar)
+            addParameter(ip, 'redoResamplingRestricted', false, @islogical)
             addParameter(ip, 'blur', [], @(x) isnumeric(x) || ischar(x) || isstring(x))
             parse(ip, varargin{:})
             ipr = ip.Results;
+            if ipr.redoResamplingRestricted
+                ipr.makeClean = false;
+            end
             ss = strsplit(ipr.foldersExpr, '/');
             
             subPath = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '');            
@@ -236,7 +240,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                 sessd.tracerBlurArg = TracerDirector2.todouble(ipr.blur);
             end
             srb = SubjectResolveBuilder('sessionData', sessd, 'makeClean', ipr.makeClean);
-            if ipr.makeAligned
+            if ipr.makeAligned && ~ipr.redoResamplingRestricted
                 srb.alignCrossModal();
                 srb.t4_mul();
                 try
