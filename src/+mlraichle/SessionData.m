@@ -152,9 +152,24 @@ classdef SessionData < mlnipet.ResolvingSessionData
         function obj  = tracerOnAtlas(this, varargin)
             obj = this.metricOnAtlas(this.tracer, varargin{:});
         end
+        function obj  = wmparcOnAtlas(this, varargin)
+            fqfn = fullfile( ...
+                this.subjectPath, 'resampling_restricted', ...
+                sprintf('wmparc%s%s', this.registry.atlasTag, this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
+        function obj  = wmparc1OnAtlas(this, varargin)
+            fqfn = fullfile( ...
+                this.subjectPath, 'resampling_restricted', ...
+                sprintf('wmparc1%s%s', this.registry.atlasTag, this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
         
         %% Metabolism
         
+        function obj  = fdgOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('fdg', varargin{:});
+        end
         function obj  = cbfOnAtlas(this, varargin)
             obj = this.metricOnAtlas('cbf', varargin{:});
         end
@@ -175,6 +190,9 @@ classdef SessionData < mlnipet.ResolvingSessionData
         end
         function obj  = ksOnAtlas(this, varargin)
             obj = this.metricOnAtlas('ks', varargin{:});
+        end
+        function obj  = maskOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('mask', varargin{:});
         end
         function obj  = ogiOnAtlas(this, varargin)
             obj = this.metricOnAtlas('ogi', varargin{:});
