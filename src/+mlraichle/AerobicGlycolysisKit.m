@@ -122,19 +122,21 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                     'sessionFolder', s{1}, ...
                     'tracer', 'FDG', ...
                     'ac', true); 
-                kit = AerobicGlycolysisKit.createFromSession(sesd);
+                this = AerobicGlycolysisKit.createFromSession(sesd);
                 fdgstr = split(sesd.tracerOnAtlas('typ', 'fqfn'), ['Singularity' filesep]);
                 sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
-                kit.constructWmparc1OnAtlas(sesd)
+                this.constructWmparc1OnAtlas(sesd)
                 
 %               TESTING                
                 
-                kss_ = kit.buildKsByWmparc1('filesExpr', fdgstr{2});             % = [];
+                kss_ = this.buildKsByWmparc1('filesExpr', fdgstr{2});             % = [];
+                kss_.save()
+                kss = [kss kss_]; %#ok<AGROW>
+                
                 msk_ = sesd.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
                 msk_ = msk_.binarized();
                 msk_.fileprefix = [sesd.maskOnAtlas('typ', 'fp') '_b43_wmparc1'];
                 msk_.save()
-                kss = [kss kss_]; %#ok<AGROW>
                 msk = [msk msk_]; %#ok<AGROW>
             end
             popd(pwd0)
@@ -149,14 +151,15 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             %  @return pred as mlfourd.ImagingContext.
             %  @return resid as mlfourd.ImagingContext.
             %  @return mae as mlfourd.ImagingContext.
-            %  @return chi / (s^{-1}) as mlfourd.ImagingContext.
+            %  @return chi in (s^{-1}) as mlfourd.ImagingContext.
+            %  @return cmrglc in mumoles/hg/min as mlfourd.ImagingContext.
             
             import mlfourd.ImagingContext2
             
             this = mlraichle.AerobicGlycolysisKit.createFromSubjectSession(varargin{:});
             pwd0 = pushd(this.sessionData.tracerOnAtlas('typ', 'filepath'));
             cbv222 = ImagingContext2(this.sessionData.cbvOnAtlas('dateonly', true));
-            ks222 = this.ksOnAtlasTagged('_b43');
+            ks222 = this.ksOnAtlasTagged('');
             mask222 = this.maskOnAtlasTagged('');
             
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData);
@@ -275,18 +278,25 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                         'ac', true); 
                     fdg = sesd.fdgOnAtlas('typ', 'mlfourd.ImagingContext2');
                     AerobicGlycolysisKit.ic2mat(fdg)
+                    
                     [ks, msk] = AerobicGlycolysisKit.constructKsByWmparc(foldersExpr, [], 'sessionsExpr', sesfs{p}); % memory ~ 5.5 GB
+                    ks = ks.blurred(4.3);
+                    ks.save()
                     AerobicGlycolysisKit.ic2mat(ks)
                     AerobicGlycolysisKit.ic2mat(msk)
+                    
                     [~,~,~,chi,cmrglc] = AerobicGlycolysisKit.constructKsDx(foldersExpr, [], 'sessionsExpr', sesfs{p});
+                    chi = chi.blurred(4.3);
+                    chi.save()
                     AerobicGlycolysisKit.ic2mat(chi)
+                    cmrglc = cmrglc.blurred(4.3);
+                    cmrglc.save()
                     AerobicGlycolysisKit.ic2mat(cmrglc)
                 catch ME
                     handwarning(ME)
                 end
             end            
-            popd(pwd0)
-            
+            popd(pwd0)            
         end
         function this = createFromSession(varargin)
             this = mlraichle.AerobicGlycolysisKit('sessionData', varargin{:});
