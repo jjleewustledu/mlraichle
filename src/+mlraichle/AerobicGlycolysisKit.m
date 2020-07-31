@@ -5,104 +5,12 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
  	%  was created 01-Apr-2020 10:54:09 by jjlee,
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.7.0.1319299 (R2019b) Update 5 for MACI64.  Copyright 2020 John Joowon Lee.
- 	
+    
 	properties
-        regionTag = '_brain'
+        regionTag = '_wmparc1'
     end
     
 	methods (Static)
-        function ic = constructRegularizedSolution(varargin)
-            %% CONSTRUCTSOLUTIONCHOICE
-            %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
-            %  @param optional cpuIndex is char or is numeric. 
-            %  @param sessionsExpr is char, e.g., 'ses-E67890'.
-            %  @return mlfourd.ImagingContext2 contains lowest mean abs error solutions drawn from
-            %          ksdt*_222_b43_brain and ksdt*_222_b43_wmparc.
-            
-            import mlfourd.ImagingFormatContext
-            import mlfourd.ImagingContext2            
-            this = mlraichle.AerobicGlycolysisKit.createFromSubjectSession(varargin{:});
-            
-            % expand choice to [128 128 75 4]
-            choice = this.constructSolutionChoice(varargin{:});
-            choice = choice.fourdfp;
-            img = choice.img;
-            for ik = 1:4
-                choice.img(:,:,:,ik) = img;
-            end
-            
-            % construct regularized ks & save
-            ksbrain = ImagingFormatContext([this.sessionData.ksOnAtlas('typ', 'fqfp') '_b43_brain.4dfp.hdr']);
-            kswmparc1 = ImagingFormatContext([this.sessionData.ksOnAtlas('typ', 'fqfp') '_b43_wmparc1.4dfp.hdr']);            
-            ks = copy(ksbrain);
-            ks.fileprefix = strrep(ks.fileprefix, 'brain', 'regular');
-            ks.img(logical(choice.img)) = kswmparc1.img(logical(choice.img));
-            ks.save() % 4dfp
-            sz = size(ks);
-            img = reshape(ks.img, [sz(1) sz(2) sz(3) 4]);
-            save([ks.fileprefix '.mat'], 'img') % Patrick's mat
-            
-            % construct chi & save
-            cbv = ImagingFormatContext(this.sessionData.cbvOnAtlas('dateonly', true));
-            chi = this.ks2chi(ks, cbv);
-            chi.save()
-            chi = chi.blurred(4.3);
-            chi.save()
-            
-            % return ImagingContext2
-            ic = ImagingContext2(ks);
-        end
-        function ic = constructSolutionChoice(varargin)
-            %% CONSTRUCTSOLUTIONCHOICE
-            %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
-            %  @param optional cpuIndex is char or is numeric. 
-            %  @param sessionsExpr is char, e.g., 'ses-E67890'.
-            %  @return mlfourd.ImagingContext2 chooses the solution that has lower mean abs error:
-            %          0 -> brain has lower error;
-            %          1 -> wmparc1 has lower error.
-            
-            import mlfourd.ImagingFormatContext
-            import mlfourd.ImagingContext2
-            this = mlraichle.AerobicGlycolysisKit.createFromSubjectSession(varargin{:});
-            pwd0 = pushd(this.sessionData.tracerOnAtlas('typ', 'filepath'));
-            
-            brainMAE = ImagingFormatContext([this.sessionData.fdgOnAtlas('typ', 'fqfp') '_b43_brain_meanAbsError.4dfp.hdr']);
-            wmparc1MAE = ImagingFormatContext([this.sessionData.fdgOnAtlas('typ', 'fqfp') '_b43_wmparc1_meanAbsError.4dfp.hdr']);
-            wmparc1MAE.img(wmparc1MAE.img == 0) = inf;
-            choice = copy(brainMAE);
-            choice.fileprefix = strrep(choice.fileprefix, 'brain_meanAbsError', 'choice');
-            choice.img = single(wmparc1MAE.img < brainMAE.img);
-            ic = ImagingContext2(choice);
-            ic.save()
-            
-            popd(pwd0)
-        end
-        function [pred,resid,mae] = constructKsDx(varargin)
-            %% CONSTRUCTKSDX
-            %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
-            %  @param optional cpuIndex is char or is numeric. 
-            %  @param sessionsExpr is char, e.g., 'ses-E67890'.
-            %  @param regionTag is char, e.g., '_brain' | '_wmparc1'
-            %  @return pred as mlfourd.ImagingContext.
-            %  @return resid as mlfourd.ImagingContext.
-            %  @return mae as mlfourd.ImagingContext.
-            
-            import mlfourd.ImagingContext2
-            this = mlraichle.AerobicGlycolysisKit.createFromSubjectSession(varargin{:});
-            pwd0 = pushd(this.sessionData.tracerOnAtlas('typ', 'filepath'));
-            cbv222 = ImagingContext2(this.sessionData.cbvOnAtlas('dateonly', true));
-            ks222 = this.ksOnAtlas();
-            mask222 = this.maskOnAtlas();
-            
-            devkit = mlpet.ScannerKit.createFromSession(this.sessionData);
-            huang = mlglucose.ImagingHuang1980.createFromDeviceKit( ...
-                devkit, 'cbv', cbv222, 'roi', mask222, 'regionTag', this.regionTag);
-            huang.ks = ks222;
-            pred = huang.buildPrediction(); pred.save()
-            resid = huang.buildResidual(); resid.save()
-            mae = huang.buildMeanAbsError(); mae.save()
-            popd(pwd0)
-        end
         function constructKsByVoxels(varargin)
             %% CONSTRUCTKSBYVOXELS 
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
@@ -176,12 +84,13 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             end
             popd(pwd0)
         end        
-        function kss = constructKsByWmparc(varargin)
+        function [kss,msk] = constructKsByWmparc(varargin)
             %% CONSTRUCTKSBYWMPARC
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param required cpuIndex is char or is numeric. 
             %  @param sessionsExpr is char, e.g., 'ses-E67890'.
             %  @return kss as mlfourd.ImagingContext2 or cell array.
+            %  @return msk, the mask of kss, as mlfourd.ImagingContext2 or cell array.
             
             import mlraichle.*
             
@@ -189,7 +98,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             ip.KeepUnmatched = true;
             addRequired(ip, 'foldersExpr', @ischar)
             addOptional(ip, 'cpuIndex', [], @(x) isnumeric(x) || ischar(x))
-            addParameter(ip, 'roisExpr', 'wmparc', @ischar)
             addParameter(ip, 'sessionsExpr', 'ses-E', @ischar)
             addParameter(ip, 'useParfor', true, @islogical)
             parse(ip, varargin{:})
@@ -199,11 +107,12 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             registry = mlraichle.StudyRegistry.instance();
             registry.useParfor = ipr.useParfor;
             
-            % build Ks
+            % build Ks and their masks
             ss = strsplit(ipr.foldersExpr, '/');           
             pwd0 = pushd(fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '')); 
             subd = SubjectData('subjectFolder', ss{2}); 
             sesfs = subd.subFolder2sesFolders(ss{2});
+            msk = {};
             kss = {};
             for s = sesfs(contains(sesfs, ipr.sessionsExpr))
                 sesd = SessionData( ...
@@ -214,14 +123,170 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                     'tracer', 'FDG', ...
                     'ac', true); 
                 kit = AerobicGlycolysisKit.createFromSession(sesd);
-                sstr = split(sesd.tracerOnAtlas('typ', 'fqfn'), ['Singularity' filesep]);
+                fdgstr = split(sesd.tracerOnAtlas('typ', 'fqfn'), ['Singularity' filesep]);
                 sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
                 kit.constructWmparc1OnAtlas(sesd)
-                kss = [kss kit.buildKsByParc( ...
-                    'filesExpr', sstr{2}, ...
-                    'roisExpr', ipr.roisExpr)]; %#ok<AGROW>
+                
+%               TESTING                
+                
+                kss_ = kit.buildKsByWmparc1('filesExpr', fdgstr{2});             % = [];
+                msk_ = sesd.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
+                msk_ = msk_.binarized();
+                msk_.fileprefix = [sesd.maskOnAtlas('typ', 'fp') '_b43_wmparc1'];
+                msk_.save()
+                kss = [kss kss_]; %#ok<AGROW>
+                msk = [msk msk_]; %#ok<AGROW>
             end
             popd(pwd0)
+        end
+        function [pred,resid,mae,chi,cmrglc] = constructKsDx(varargin)
+            %% CONSTRUCTKSDX
+            %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
+            %  @param optional cpuIndex is char or is numeric. 
+            %  @param sessionsExpr is char, e.g., 'ses-E67890'.
+            %  @param regionTag is char, e.g., '_brain' | '_wmparc1'
+            %  @param lastKsTag is char and used by this.ksOnAtlas, e.g., '', '_b43'
+            %  @return pred as mlfourd.ImagingContext.
+            %  @return resid as mlfourd.ImagingContext.
+            %  @return mae as mlfourd.ImagingContext.
+            %  @return chi / (s^{-1}) as mlfourd.ImagingContext.
+            
+            import mlfourd.ImagingContext2
+            
+            this = mlraichle.AerobicGlycolysisKit.createFromSubjectSession(varargin{:});
+            pwd0 = pushd(this.sessionData.tracerOnAtlas('typ', 'filepath'));
+            cbv222 = ImagingContext2(this.sessionData.cbvOnAtlas('dateonly', true));
+            ks222 = this.ksOnAtlasTagged('_b43');
+            mask222 = this.maskOnAtlasTagged('');
+            
+            devkit = mlpet.ScannerKit.createFromSession(this.sessionData);
+            huang = mlglucose.ImagingHuang1980.createFromDeviceKit( ...
+                devkit, 'cbv', cbv222, 'roi', mask222, 'regionTag', this.regionTag);
+            huang.ks = ks222;
+            
+%           TESTING
+%            pred = [];
+%            resid = [];
+%            mae = [];
+
+            pred = huang.buildPrediction(); pred.save(); 
+            resid = huang.buildResidual(); resid.save(); 
+            mae = huang.buildMeanAbsError(); mae.save(); 
+
+            chi = this.ks2chi(ks222, cbv222); chi.save(); 
+            cmrglc = this.ks2cmrglc(ks222, cbv222, devkit.radMeasurements); cmrglc.save();
+            popd(pwd0)
+        end
+        function ic = constructRegularizedSolution(varargin)
+            %% CONSTRUCTSOLUTIONCHOICE
+            %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
+            %  @param optional cpuIndex is char or is numeric. 
+            %  @param sessionsExpr is char, e.g., 'ses-E67890'.
+            %  @return mlfourd.ImagingContext2 contains lowest mean abs error solutions drawn from
+            %          ksdt*_222_b43_brain and ksdt*_222_b43_wmparc.
+            
+            import mlfourd.ImagingFormatContext
+            import mlfourd.ImagingContext2            
+            this = mlraichle.AerobicGlycolysisKit.createFromSubjectSession(varargin{:});
+            
+            % expand choice to [128 128 75 4]
+            choice = this.constructSolutionChoice(varargin{:});
+            choice = choice.fourdfp;
+            img = choice.img;
+            for ik = 1:4
+                choice.img(:,:,:,ik) = img;
+            end
+            
+            % construct regularized ks & save
+            ksbrain = ImagingFormatContext([this.sessionData.ksOnAtlas('typ', 'fqfp') '_b43_brain.4dfp.hdr']);
+            kswmparc1 = ImagingFormatContext([this.sessionData.ksOnAtlas('typ', 'fqfp') '_b43_wmparc1.4dfp.hdr']);            
+            ks = copy(ksbrain);
+            ks.fileprefix = strrep(ks.fileprefix, 'brain', 'regular');
+            ks.img(logical(choice.img)) = kswmparc1.img(logical(choice.img));
+            ks.save() % 4dfp
+            sz = size(ks);
+            img = reshape(ks.img, [sz(1) sz(2) sz(3) 4]);
+            save([ks.fileprefix '.mat'], 'img') % Patrick's mat
+            
+            % construct chi & save
+            cbv = ImagingFormatContext(this.sessionData.cbvOnAtlas('dateonly', true));
+            chi = this.ks2chi(ks, cbv);
+            chi.save()
+            chi = chi.blurred(4.3);
+            chi.save()
+            
+            % return ImagingContext2
+            ic = ImagingContext2(ks);
+        end
+        function ic = constructSolutionChoice(varargin)
+            %% CONSTRUCTSOLUTIONCHOICE
+            %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
+            %  @param optional cpuIndex is char or is numeric. 
+            %  @param sessionsExpr is char, e.g., 'ses-E67890'.
+            %  @return mlfourd.ImagingContext2 chooses the solution that has lower mean abs error:
+            %          0 -> brain has lower error;
+            %          1 -> wmparc1 has lower error.
+            
+            import mlfourd.ImagingFormatContext
+            import mlfourd.ImagingContext2
+            this = mlraichle.AerobicGlycolysisKit.createFromSubjectSession(varargin{:});
+            pwd0 = pushd(this.sessionData.tracerOnAtlas('typ', 'filepath'));
+            
+            brainMAE = ImagingFormatContext([this.sessionData.fdgOnAtlas('typ', 'fqfp') '_b43_brain_meanAbsError.4dfp.hdr']);
+            wmparc1MAE = ImagingFormatContext([this.sessionData.fdgOnAtlas('typ', 'fqfp') '_b43_wmparc1_meanAbsError.4dfp.hdr']);
+            wmparc1MAE.img(wmparc1MAE.img == 0) = inf;
+            choice = copy(brainMAE);
+            choice.fileprefix = strrep(choice.fileprefix, 'brain_meanAbsError', 'choice');
+            choice.img = single(wmparc1MAE.img < brainMAE.img);
+            ic = ImagingContext2(choice);
+            ic.save()
+            
+            popd(pwd0)
+        end
+        function constructSubjectByWmparc(varargin)   
+            %% CONSTRUCTSUBJECTBYWMPARC constructs in parallel the sessions of a subject.
+            %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
+            
+            import mlraichle.*
+            import mlraichle.AerobicGlycolysisKit.*
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired(ip, 'foldersExpr', @ischar)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            ss = strsplit(ipr.foldersExpr, '/');           
+            pwd0 = pushd(fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '')); 
+            subd = mlraichle.SubjectData('subjectFolder', ss{2});             
+            sesfs = subd.subFolder2sesFolders(ss{2});
+            foldersExpr = ipr.foldersExpr;
+            
+%           TESTING
+
+            for p = 3 % length(sesfs)
+                try
+                    sesd = SessionData( ...
+                        'studyData', StudyData(), ...
+                        'projectData', ProjectData('sessionStr', sesfs{p}), ...
+                        'subjectData', subd, ...
+                        'sessionFolder', sesfs{p}, ...
+                        'tracer', 'FDG', ...
+                        'ac', true); 
+                    fdg = sesd.fdgOnAtlas('typ', 'mlfourd.ImagingContext2');
+                    AerobicGlycolysisKit.ic2mat(fdg)
+                    [ks, msk] = AerobicGlycolysisKit.constructKsByWmparc(foldersExpr, [], 'sessionsExpr', sesfs{p}); % memory ~ 5.5 GB
+                    AerobicGlycolysisKit.ic2mat(ks)
+                    AerobicGlycolysisKit.ic2mat(msk)
+                    [~,~,~,chi,cmrglc] = AerobicGlycolysisKit.constructKsDx(foldersExpr, [], 'sessionsExpr', sesfs{p});
+                    AerobicGlycolysisKit.ic2mat(chi)
+                    AerobicGlycolysisKit.ic2mat(cmrglc)
+                catch ME
+                    handwarning(ME)
+                end
+            end            
+            popd(pwd0)
+            
         end
         function this = createFromSession(varargin)
             this = mlraichle.AerobicGlycolysisKit('sessionData', varargin{:});
@@ -241,7 +306,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             addRequired(ip, 'foldersExpr', @ischar)
             addOptional(ip, 'cpuIndex', [], @(x) isnumeric(x) || ischar(x))
             addParameter(ip, 'sessionsExpr', 'ses-E', @ischar)
-            addParameter(ip, 'regionTag', '_brain', @ischar)
+            addParameter(ip, 'regionTag', '_wmparc1', @ischar)
             parse(ip, varargin{:})
             ipr = ip.Results;
             
@@ -263,6 +328,50 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                 these = [these this]; %#ok<AGROW>
             end
             popd(pwd0)
+        end      
+        function msk = ks2mask(ic)
+            %% @param required ic is mlfourd.ImagingContext2 | cell
+            
+            if iscell(ic)
+                msk = {};
+                for anic = ic
+                    msk = [msk mlraichle.AerobicGlycolysisKit.ks2mask(anic)]; %#ok<AGROW>
+                end
+                return
+            end
+            
+            assert(isa(ic, 'mlfourd.ImagingContext2'))            
+            assert(length(size(ic)) == 4)
+            cache = copy(ic.fourdfp);
+            cache.fileprefix = strrep(ic.fileprefix, 'ks', 'mask');
+            cache.img = single(cache.img(:,:,:,1) > 0);
+            msk = mlfourd.ImagingContext2(cache);
+        end
+        function matfn = ic2mat(ic)
+            %% @param required ic is mlfourd.ImagingContext2 | cell
+            
+            if isempty(ic) % for unit testing
+                matfn = '';
+                return
+            end
+            
+            if iscell(ic)
+                matfn = {};
+                for anic = ic
+                    matfn = [matfn mlraichle.AerobicGlycolysisKit.ic2mat(anic)]; %#ok<AGROW>
+                end
+                return
+            end
+            
+            assert(isa(ic, 'mlfourd.ImagingContext2'))
+            sz = size(ic);
+            assert(length(sz) >= 3)
+            if length(sz) == 3
+                sz = [sz 1];
+            end
+            img = reshape(ic.fourdfp.img, [sz(1)*sz(2)*sz(3) sz(4)]);
+            matfn = [ic.fqfileprefix '.mat'];
+            save(matfn, 'img')
         end
     end
 
@@ -348,46 +457,65 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                 end
             end
         end        
-        function ic = ksOnAtlas(this)
-            fp = [this.sessionData.ksOnAtlas('typ', 'fqfp') this.blurTag this.regionTag];
+        function ic = ksOnAtlasTagged(this, varargin)
+            %% @param lasttag := {'' '_b43'}
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addOptional(ip, 'lastKsTag', '', @ischar)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            fqfp = [this.sessionData.ksOnAtlas('typ', 'fqfp') this.blurTag this.regionTag ipr.lastKsTag];
             
             % 4dfp exists
-            if isfile([fp '.4dfp.hdr'])
-                ic = mlfourd.ImagingContext2([fp '.4dfp.hdr']);
+            if isfile([fqfp '.4dfp.hdr'])
+                ic = mlfourd.ImagingContext2([fqfp '.4dfp.hdr']);
                 return
             end
             
             % Luckett-mat exists
             ifc = mlfourd.ImagingFormatContext(this.sessionData.fdgOnAtlas);
-            ifc.fileprefix = fp;
-            ks = load([fp '.mat'], 'img');
-            ifc.img = reshape(single(ks.img), [128 128 75 4]);
-            ic = mlfourd.ImagingContext2(ifc);
-        end
-        function ic = maskOnAtlas(this)
-            fp = [this.sessionData.maskOnAtlas('typ', 'fqfp') this.blurTag this.regionTag];
-            
-            % 4dfp exists
-            if isfile([fp '.4dfp.hdr'])
-                ic = mlfourd.ImagingContext2([fp '.4dfp.hdr']);
-                return
-            end 
-            
-            % Luckett-mat exists
-            if isfile([fp '.mat'])
-                ifc = mlfourd.ImagingFormatContext(this.sessionData.fdgOnAtlas);
-                ifc.fileprefix = fp;
-                msk = load([fp '.mat'], 'img');
-                ifc.img = reshape(single(msk.img), [128 128 75]);
+            ifc.fileprefix = mybasename(fqfp);
+            if isfile([fqfp '.mat'])
+                ks = load([fqfp '.mat'], 'img');
+                ifc.img = reshape(single(ks.img), [128 128 75 4]);
                 ic = mlfourd.ImagingContext2(ifc);
+                ic.save()
                 return
             end
             
-            % build de novo
-            ic = mlfourd.ImagingContext2( ...
-                fullfile(this.sessionData.maskOnAtlas('typ', 'filepath'), [this.regionTag(2:end) '_222.4dfp.hdr']));
-            ic = ic.binarized();
-            ic.fileprefix = fp;
+            error('mlraichle:RuntimeError', 'AerobicGlycolysis.ksOnAtlas')
+        end
+        function ic = maskOnAtlasTagged(this, varargin)
+            %% @param lasttag := {'' '_b43'}
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addOptional(ip, 'lastKsTag', '', @ischar)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            fqfp = [this.sessionData.maskOnAtlas('typ', 'fqfp') this.blurTag this.regionTag ipr.lastKsTag];
+            
+            % 4dfp exists
+            if isfile([fqfp '.4dfp.hdr'])
+                ic = mlfourd.ImagingContext2([fqfp '.4dfp.hdr']);
+                return
+            end
+            
+            % Luckett-mat exists
+            ifc = mlfourd.ImagingFormatContext(this.sessionData.fdgOnAtlas);
+            ifc.fileprefix = mybasename(fqfp);
+            if isfile([fqfp '.mat'])
+                msk = load([fqfp '.mat'], 'img');
+                ifc.img = reshape(single(msk.img), [128 128 75]);
+                ic = mlfourd.ImagingContext2(ifc);
+                ic.save()
+                return
+            end
+            
+            error('mlraichle:RuntimeError', 'AerobicGlycolysis.maskOnAtlasTagged')
         end
     end
 		
