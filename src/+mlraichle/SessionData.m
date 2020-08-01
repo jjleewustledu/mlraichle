@@ -19,8 +19,9 @@ classdef SessionData < mlnipet.ResolvingSessionData
     
     methods (Static)
         function this = create(varargin)
-            % @param folders ~ getenv('SINGULARITY_HOME')/<project folder>/<session folder>/<scan folder> or
-            %                ~ getenv('SINGULARITY_HOME')/subjects/<subject folder>/<session folder>/<scan folder>
+            % @param folders found in getenv('SINGULARITY_HOME'):
+            %        ~ <project folder>/<session folder>/<scan folder> or
+            %        ~ subjects/<subject folder>/<session folder>/<scan folder>
             % @param ignoreFinishMark is logical, default := false
             
             import mlraichle.*
