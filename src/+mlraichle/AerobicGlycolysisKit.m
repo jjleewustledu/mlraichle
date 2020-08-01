@@ -127,9 +127,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                 sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
                 this.constructWmparc1OnAtlas(sesd)
                 
-%               TESTING                
-                
-                kss_ = this.buildKsByWmparc1('filesExpr', fdgstr{2});             % = [];
+                kss_ = this.buildKsByWmparc1('filesExpr', fdgstr{2}); 
                 kss_.save()
                 kss = [kss kss_]; %#ok<AGROW>
                 
