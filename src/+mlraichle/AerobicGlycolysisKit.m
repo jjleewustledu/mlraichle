@@ -141,7 +141,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             end
             popd(pwd0)
         end
-        function [pred,resid,mae,chi,cmrglc] = constructKsDx(varargin)
+        function [pred,resid,nmae,chi,cmrglc] = constructKsDx(varargin)
             %% CONSTRUCTKSDX
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param optional cpuIndex is char or is numeric. 
@@ -161,21 +161,17 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             cbv222 = ImagingContext2(this.sessionData.cbvOnAtlas('dateonly', true));
             ks222 = this.ksOnAtlasTagged('');
             mask222 = this.maskOnAtlasTagged('');
-            
+
+            % prep Huang model
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData);
             huang = mlglucose.ImagingHuang1980.createFromDeviceKit( ...
                 devkit, 'cbv', cbv222, 'roi', mask222, 'regionTag', this.regionTag);
             huang.ks = ks222;
-            
-%           TESTING
-%            pred = [];
-%            resid = [];
-%            mae = [];
 
+            % do Dx
             pred = huang.buildPrediction(); pred.save(); 
             resid = huang.buildResidual(); resid.save(); 
-            mae = huang.buildMeanAbsError(); mae.save(); 
-
+            [mae,nmae] = huang.buildMeanAbsError(); mae.save(); nmae.save();
             chi = this.ks2chi(ks222, cbv222); chi.save(); 
             cmrglc = this.ks2cmrglc(ks222, cbv222, devkit.radMeasurements); cmrglc.save();
             popd(pwd0)
