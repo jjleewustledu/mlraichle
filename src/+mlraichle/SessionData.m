@@ -114,12 +114,14 @@ classdef SessionData < mlnipet.ResolvingSessionData
             %  @param required metric is char.
             %  @param datetime is datetime.
             %  @param dateonlhy is logical.
+            %  @param tags is char, e.g., '_b43_wmparc1_b43'
             
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired(ip, 'metric', @ischar)
             addParameter(ip, 'datetime', this.datetime, @isdatetime)
             addParameter(ip, 'dateonly', false, @islogical)
+            addParameter(ip, 'tags', '', @ischar)
             parse(ip, metric, varargin{:})
             ipr = ip.Results;            
             if ipr.dateonly
@@ -130,10 +132,11 @@ classdef SessionData < mlnipet.ResolvingSessionData
             
             fqfn = fullfile( ...
                 this.subjectPath, 'resampling_restricted', ...
-                sprintf('%sdt%s%s%s', ...
+                sprintf('%sdt%s%s%s%s', ...
                         lower(ipr.metric), ...
                         adatestr, ...
                         this.registry.atlasTag, ...
+                        ipr.tags, ...
                         this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
@@ -141,6 +144,12 @@ classdef SessionData < mlnipet.ResolvingSessionData
             obj = this.fqfilenameObject( ...
                 fullfile(this.sessionPath, ['mpr' this.filetypeExt]), varargin{:});            
         end        
+        function obj  = parcOnAtlas(this, varargin)
+            fqfn = fullfile( ...
+                this.subjectPath, 'resampling_restricted', ...
+                sprintf('%s%s%s', this.parcellation, this.registry.atlasTag, this.filetypeExt));
+            obj  = this.fqfilenameObject(fqfn, varargin{:});
+        end
         function loc  = tracerRawdataLocation(this, varargin)
             %% Siemens legacy
             ipr = this.iprLocation(varargin{:});
@@ -189,6 +198,9 @@ classdef SessionData < mlnipet.ResolvingSessionData
         function obj  = cmrglcOnAtlas(this, varargin)
             obj = this.metricOnAtlas('cmrglc', varargin{:});
         end
+        function obj  = chiOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('chi', varargin{:});
+        end
         function obj  = ksOnAtlas(this, varargin)
             obj = this.metricOnAtlas('ks', varargin{:});
         end
@@ -226,6 +238,10 @@ classdef SessionData < mlnipet.ResolvingSessionData
                 j = jsondecode(fileread(this.jsonFilename));
                 this.taus_ = j.taus';
             end
+            
+            %% parcellation structure
+            
+            this.parcellation = 'wmparc1';
         end
     end
     
