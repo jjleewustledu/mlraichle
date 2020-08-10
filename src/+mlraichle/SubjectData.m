@@ -51,7 +51,9 @@ classdef SubjectData < mlnipet.SubjectData
                         end
                     end
                 end
-            end             
+            end 
+            error('mlraichle:ValueError', ...
+                'SubjectData.sesFolder2subFolder(%s) found no subject folder', sesf)
         end
         function sesf = subFolder2sesFolders(subf)
             %% requires well-defined cell-array mlraichle.StudyRegistry.instance().subjectsJson.
