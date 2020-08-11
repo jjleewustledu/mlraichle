@@ -201,6 +201,9 @@ classdef SessionData < mlnipet.ResolvingSessionData
         function obj  = chiOnAtlas(this, varargin)
             obj = this.metricOnAtlas('chi', varargin{:});
         end
+        function obj  = KsOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('Ks', varargin{:});
+        end
         function obj  = ksOnAtlas(this, varargin)
             obj = this.metricOnAtlas('ks', varargin{:});
         end
