@@ -388,12 +388,59 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             %         mlpet.AerobicGlycolysisKit.buildKsByWmparc1().    
             
             ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired(ip, 'foldersExpr', @ischar)
+            addOptional(ip, 'cpuIndex', [], @(x) isnumeric(x) || ischar(x))
+            addParameter(ip, 'sessionsExpr', 'ses-E', @ischar)
             addParameter(ip, 'voxelIndex', 1, @isnumeric)
+            addParameter(ip, 'regionTag', '_wmparc1', @ischar)
+            addParameter(ip, 'Delta', 0.05, @isnumeric)
             parse(ip, varargin{:})
-            ipr = ip.Results;        
+            ipr = ip.Results; 
+            DELTA = ipr.Delta;
             
             this = mlraichle.AerobicGlycolysisKit.createFromSubjectSession(varargin{:});            
-            pwd0 = pushd(this.sessionData.tracerOnAtlas('typ', 'filepath'));            
+            sesd = this.sessionData;
+            pwd0 = pushd(sesd.tracerOnAtlas('typ', 'filepath'));            
+            
+            % select ROI
+            wmparc1 = sesd.wmparc1OnAtlas('typ', 'mlfourd.ImagingFormatContext');
+            roi = copy(wmparc1);
+            roi.img = single(wmparc1.img == ipr.voxelIndex);
+            fprintf('plotDxPrediction:  #roi = %g\n', dipsum(roi.img))
+            if dipsum(roi.img) == 0
+                return
+            end
+            roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, ipr.voxelIndex); 
+            
+            % select data
+            cbv = sesd.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', 'dateonly', true);
+            cbv = cbv.volumeAveraged(roi);
+            cbv = cbv .* 0.0105;
+            devkit = mlpet.ScannerKit.createFromSession(sesd);            
+            counting = devkit.buildCountingDevice();
+            scanner = devkit.buildScannerDevice();
+            scanner = scanner.blurred(4.3);
+            scanner = scanner.volumeAveraged(roi);
+            Dt = mlglucose.NumericHuang1980.DTimeToShift(counting, scanner);
+            timesInterp = 0:scanner.times(end);
+            aif0 = cbv.fourdfp.img * pchip(counting.times, counting.activityDensity(), timesInterp);     
+            aif1 = cbv.fourdfp.img * pchip(counting.times + Dt, counting.activityDensity(), timesInterp);    
+            aif2 = conv(aif1, DELTA*exp(-DELTA*timesInterp));
+            aif2 = aif2(1:length(timesInterp));
+            tac = scanner.activityDensity(); 
+            
+            % plot
+            figure
+            plot(scanner.times, tac, ':o', ...
+                 timesInterp, aif0, '--', ...
+                 timesInterp, aif1, '-', ...
+                 timesInterp, aif2, '-.')
+            legend('TAC', 'AIF_{Dt=0}', sprintf('AIF_{Dt=%g}', Dt), sprintf('AIF_{Dt=%g, Delta=%g}', Dt, 1/DELTA))
+            xlim([0 360])
+            xlabel('time frames')
+            ylabel('activity (Bq/mL)')
+            title(sprintf('plotDxTimes: index = %g', ipr.voxelIndex))
             
             popd(pwd0)
         end 
@@ -406,17 +453,55 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             %         mlpet.AerobicGlycolysisKit.buildKsByWmparc1().   
             
             ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired(ip, 'foldersExpr', @ischar)
+            addOptional(ip, 'cpuIndex', [], @(x) isnumeric(x) || ischar(x))
+            addParameter(ip, 'sessionsExpr', 'ses-E', @ischar)
             addParameter(ip, 'voxelIndex', 1, @isnumeric)
+            addParameter(ip, 'regionTag', '_wmparc1', @ischar)
             parse(ip, varargin{:})
             ipr = ip.Results;
             
             this = mlraichle.AerobicGlycolysisKit.createFromSubjectSession(varargin{:});            
-            pwd0 = pushd(this.sessionData.tracerOnAtlas('typ', 'filepath')); 
+            sesd = this.sessionData;
+            pwd0 = pushd(sesd.tracerOnAtlas('typ', 'filepath')); 
+            
+            % select ROI
+            wmparc1 = sesd.wmparc1OnAtlas('typ', 'mlfourd.ImagingFormatContext');
+            roi = copy(wmparc1);
+            roi.img = single(wmparc1.img == ipr.voxelIndex);
+            fprintf('plotDxPrediction:  #roi = %g\n', dipsum(roi.img))
+            if dipsum(roi.img) == 0
+                return
+            end
+            roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, ipr.voxelIndex); 
+            
+            % select data
+            fdg = sesd.tracerOnAtlas('typ', 'ImagingContext2');
+            fdg1d = fdg.volumeAveraged(roi);
+            fdg1d = fdg1d.fourdfp.img;
+            pred = sesd.tracerOnAtlas('typ', 'mlfourd.ImagingContext2', 'tags', '_b43_wmparc1_predicted');
+            pred1d = pred.volumeAveraged(roi);
+            pred1d = pred1d.fourdfp.img;
+            times = cumsum(sesd.taus);
+            times = [0 times(1:end-1)];
+            
+            % plot
+            figure
+            plot(times, fdg1d, ':o', times, pred1d, '-')
+            xlabel('time frames')
+            ylabel('activity (Bq/mL)')
+            title(sprintf('plotDxPrediction: index = %g', ipr.voxelIndex))
+            
+            %timesInterp = 0:times(end);
+            %predInterp = pchip(times, pred1d, timesInterp);
+            %plot(times, fdg1d, ':o', timesInterp, predInterp, '-')             
             
             popd(pwd0)
         end
     end
 
+    
 	methods
         function assembleSubjectsStudy(this, varargin)
             %% ASSEMBLESUBJECTSSTUDY 
