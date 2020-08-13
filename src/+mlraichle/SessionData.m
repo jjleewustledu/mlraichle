@@ -110,29 +110,35 @@ classdef SessionData < mlnipet.ResolvingSessionData
             this.subjectData_.studyData = studyd;
         end
         function obj  = metricOnAtlas(this, metric, varargin)
-            %% METRICONATLAS
+            %% METRICONATLAS appends fileprefixes with information from this.dataAugmentation
             %  @param required metric is char.
-            %  @param datetime is datetime.
+            %  @param datetime is datetime or char, .e.g., '20200101000000' | ''.
             %  @param dateonlhy is logical.
             %  @param tags is char, e.g., '_b43_wmparc1_b43'
             
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired(ip, 'metric', @ischar)
-            addParameter(ip, 'datetime', this.datetime, @isdatetime)
+            addParameter(ip, 'datetime', this.datetime, @(x) isdatetime(x) || ischar(x))
             addParameter(ip, 'dateonly', false, @islogical)
             addParameter(ip, 'tags', '', @ischar)
             parse(ip, metric, varargin{:})
-            ipr = ip.Results;            
-            if ipr.dateonly
-                adatestr = [datestr(ipr.datetime, 'yyyymmdd') '000000'];
-            else
-                adatestr = datestr(ipr.datetime, 'yyyymmddHHMMSS');
+            ipr = ip.Results;
+            
+            if ischar(ipr.datetime)
+                adatestr = ipr.datetime;
+            end
+            if isdatetime(ipr.datetime)
+                if ipr.dateonly
+                    adatestr = ['dt' datestr(ipr.datetime, 'yyyymmdd') '000000'];
+                else
+                    adatestr = ['dt' datestr(ipr.datetime, 'yyyymmddHHMMSS')];
+                end
             end
             
             fqfn = fullfile( ...
                 this.subjectPath, 'resampling_restricted', ...
-                sprintf('%sdt%s%s%s%s', ...
+                sprintf('%s%s%s%s%s', ...
                         lower(ipr.metric), ...
                         adatestr, ...
                         this.registry.atlasTag, ...
