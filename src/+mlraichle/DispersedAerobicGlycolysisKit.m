@@ -436,7 +436,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
                     
                     % Dx
                     if any(idx == ipr.indicesToCheck)                        
-                        h = huang.plot('xlim', [-10 360]);
+                        h = huang.plot('xlim', [-20 1800]);
                         title(sprintf('DispersedAerobicGlycolysisKit.buildKsByWmparc1:  idx == %i', idx))  
                         try
                             savefig(h, ...
@@ -457,16 +457,15 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
         end        
         function msk = ensureTailoredMask(this)
             msk = this.sessionData.wmparc1OnAtlas('typ', 'ImagingContext2');
-            fqfn = [msk.fqfileprefix '_binarized_b43_binarized_cbv10p8.4dfp.hdr'];
+            fqfn = [msk.fqfileprefix ['_binarized' this.blurTag '_binarized.4dfp.hdr']];
             if isfile(fqfn)
                 msk = mlfourd.ImagingContext2(fqfn);
                 return
             end 
-            % msk = msk.uthresh(5999); % exlude venous
+            % msk = msk.uthresh(5999); % exclude venous
             msk = msk.binarized();
             msk = msk.blurred(4.3);
             msk = msk.binarized();
-            msk = msk .* cbv;
             msk.save()
         end 
         function h = loadImagingHuang(this, varargin)
@@ -480,6 +479,42 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             h = mlglucose.DispersedImagingHuang1980.createFromDeviceKit( ...
                 this.devkit_, 'cbv', cbv, 'roi', mask, 'regionTag', this.regionTag);
             h.ks = ks;
+        end
+        function h = loadNumericHuang(this, roi, varargin)
+            %%
+            %  @param required roi is understood by mlfourd.ImagingContext2
+            %  @return mlglucose.NumericHuang1980
+            
+            roi = mlfourd.ImagingContext2(roi);
+            roi = roi.binarized();
+            roibin = logical(roi.fourdfp.img);
+            this.devkit_ = mlpet.ScannerKit.createFromSession(this.sessionData);
+            cbv = mlfourd.ImagingContext2(this.sessionData.cbvOnAtlas('dateonly', true));
+            mean_cbv = cbv.fourdfp.img(roibin);            
+            h = mlglucose.DispersedNumericHuang1980.createFromDeviceKit( ...
+                this.devkit_, 'cbv', mean_cbv, 'roi', roi, 'regionTag', this.regionTag);
+        end
+        function ic = maskOnAtlasTagged(this, varargin)
+            fqfp = [this.sessionData.wmparc1OnAtlas('typ', 'fqfp') '_binarized' this.blurTag '_binarized'];
+            
+            % 4dfp exists
+            if isfile([fqfp '.4dfp.hdr'])
+                ic = mlfourd.ImagingContext2([fqfp '.4dfp.hdr']);
+                return
+            end
+            
+            % Luckett-mat exists
+            ifc = mlfourd.ImagingFormatContext(this.sessionData.fdgOnAtlas);
+            ifc.fileprefix = mybasename(fqfp);
+            if isfile([fqfp '.mat'])
+                msk = load([fqfp '.mat'], 'img');
+                ifc.img = reshape(single(msk.img), [128 128 75]);
+                ic = mlfourd.ImagingContext2(ifc);
+                ic.save()
+                return
+            end
+            
+            error('mlraichle:RuntimeError', 'AerobicGlycolysis.maskOnAtlasTagged')
         end
     end
 
