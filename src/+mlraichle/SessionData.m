@@ -166,7 +166,14 @@ classdef SessionData < mlnipet.ResolvingSessionData
             loc = this.tracerConvertedLocation(varargin{:});
         end        
         function obj  = tracerOnAtlas(this, varargin)
-            obj = this.metricOnAtlas(this.tracer, varargin{:});
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'tags', '', @ischar)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            ipr.tags = [ipr.tags this.dataAugmentationTags];
+            
+            obj = this.metricOnAtlas(this.tracer, varargin{:}, 'tags', ipr.tags);
         end
         function obj  = venousOnAtlas(this, varargin)
             obj = this.metricOnAtlas('venous', 'datetime', '',varargin{:});
@@ -181,7 +188,14 @@ classdef SessionData < mlnipet.ResolvingSessionData
         %% Metabolism
         
         function obj  = fdgOnAtlas(this, varargin)
-            obj = this.metricOnAtlas('fdg', varargin{:});
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'tags', '', @ischar)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            ipr.tags = [ipr.tags this.dataAugmentationTags];
+            
+            obj = this.metricOnAtlas('fdg', varargin{:}, 'tags', ipr.tags);
         end
         function obj  = cbfOnAtlas(this, varargin)
             obj = this.metricOnAtlas('cbf', varargin{:});
