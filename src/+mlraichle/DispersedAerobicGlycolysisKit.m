@@ -444,13 +444,16 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
                     % Dx
                     if any(idx == ipr.indicesToCheck)                        
                         h = huang.plot('xlim', [-20 1800]);
-                        title(sprintf('DispersedAerobicGlycolysisKit.buildKsByWmparc1:  idx == %i', idx))  
+                        title(sprintf('DispersedAerobicGlycolysisKit.buildKsByWmparc1:  idx == %i\n%s', idx, datestr(sesd1.datetime)))
                         try
+                            dtTag = lower(sesd.doseAdminDatetimeTag);
                             savefig(h, ...
-                                fullfile(workdir, sprintf('DispersedAerobicGlycolysisKit_buildKsByWmparc1_idx%i.fig', idx)))
+                                fullfile(workdir, ...
+                                sprintf('DispersedAerobicGlycolysisKit_buildKsByWmparc1_idx%i_%s.fig', idx, dtTag)))
                             figs = get(0, 'children');
                             saveas(figs(1), ...
-                                fullfile(workdir, sprintf('DispersedAerobicGlycolysisKit_buildKsByWmparc1_idx%i.png', idx)))                        
+                                fullfile(workdir, ...
+                                sprintf('DispersedAerobicGlycolysisKit_buildKsByWmparc1_idx%i_%s.png', idx, dtTag)))
                             close(figs(1))
                         catch ME
                             handwarning(ME)
