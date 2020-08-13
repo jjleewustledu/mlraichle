@@ -163,22 +163,13 @@ classdef SessionData < mlnipet.ResolvingSessionData
             obj = this.metricOnAtlas(this.tracer, varargin{:});
         end
         function obj  = venousOnAtlas(this, varargin)
-            fqfn = fullfile( ...
-                this.subjectPath, 'resampling_restricted', ...
-                sprintf('venous%s%s', this.registry.atlasTag, this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+            obj = this.metricOnAtlas('venous', 'datetime', '',varargin{:});
         end
         function obj  = wmparcOnAtlas(this, varargin)
-            fqfn = fullfile( ...
-                this.subjectPath, 'resampling_restricted', ...
-                sprintf('wmparc%s%s', this.registry.atlasTag, this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+            obj = this.metricOnAtlas('wmparc', 'datetime', '',varargin{:});
         end
         function obj  = wmparc1OnAtlas(this, varargin)
-            fqfn = fullfile( ...
-                this.subjectPath, 'resampling_restricted', ...
-                sprintf('wmparc1%s%s', this.registry.atlasTag, this.filetypeExt));
-            obj  = this.fqfilenameObject(fqfn, varargin{:});
+            obj = this.metricOnAtlas('wmparc1', 'datetime', '',varargin{:});
         end
         
         %% Metabolism
