@@ -7,6 +7,11 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
  	%% It was developed on Matlab 9.7.0.1434023 (R2019b) Update 6 for MACI64.  Copyright 2020 John Joowon Lee.
  	
 	methods (Static)  
+        function msk = buildTrainingMask(nmae)
+            assert(contains(nmae.fileprefix, 'NMAE'))
+            msk = nmae.numlt(1);
+            msk.fileprefix = strrep(nmae.fileprefix, 'fdg', 'mask');
+        end
         function [cmrglc,Ks,msk] = constructCmrglc(varargin)
             %% CONSTRUCTCMRGLC
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
@@ -24,6 +29,8 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             this = mlraichle.DispersedAerobicGlycolysisKit.createFromSubjectSession(varargin{:});
             pwd0 = pushd(this.sessionData.tracerOnAtlas('typ', 'filepath'));
             
+            this.ensureTailoredMask()
+                    
             huang = this.loadImagingHuang();
             pred = huang.buildPrediction(); 
             pred.save(); 
@@ -457,14 +464,14 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
         end        
         function msk = ensureTailoredMask(this)
             msk = this.sessionData.wmparc1OnAtlas('typ', 'ImagingContext2');
-            fqfn = [msk.fqfileprefix ['_binarized' this.blurTag '_binarized.4dfp.hdr']];
+            fqfn = [msk.fqfileprefix '_binarized.4dfp.hdr'];
             if isfile(fqfn)
                 msk = mlfourd.ImagingContext2(fqfn);
                 return
             end 
             % msk = msk.uthresh(5999); % exclude venous
-            msk = msk.binarized();
-            msk = msk.blurred(4.3);
+            % msk = msk.binarized();
+            % msk = msk.blurred(4.3);
             msk = msk.binarized();
             msk.save()
         end 
@@ -495,7 +502,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
                 this.devkit_, 'cbv', mean_cbv, 'roi', roi, 'regionTag', this.regionTag);
         end
         function ic = maskOnAtlasTagged(this, varargin)
-            fqfp = [this.sessionData.wmparc1OnAtlas('typ', 'fqfp') '_binarized' this.blurTag '_binarized'];
+            fqfp = [this.sessionData.wmparc1OnAtlas('typ', 'fqfp') '_binarized'];
             
             % 4dfp exists
             if isfile([fqfp '.4dfp.hdr'])
