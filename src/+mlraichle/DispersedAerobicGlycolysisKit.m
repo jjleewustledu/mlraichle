@@ -14,23 +14,13 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
         end
         function [cmrglc,Ks,msk] = constructCmrglc(varargin)
             %% CONSTRUCTCMRGLC
-            %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
-            %  @param optional cpuIndex is char or is numeric. 
-            %  @param sessionsExpr is char, e.g., 'ses-E67890'.
-            %  @param regionTag is char, e.g., '_brain' | '_wmparc1'
-            %  @param lastKsTag is char and used by this.ksOnAtlas, e.g., '', '_b43'
+            %  @param required sessionData is mlpipeline.ISessionData.
             %  @return cmrglc in mumoles/hg/min as mlfourd.ImagingContext2.
             %  @return Ks in (s^{-1}) as mlfourd.ImagingContext2.
             %  @return msk as mlfourd.ImagingContext2.
-            %  @return pred as mlfourd.ImagingContext2.
-            %  @return resid as mlfourd.ImagingContext2.
-            %  @return mae as mlfourd.ImagingContext2.
             
-            this = mlraichle.DispersedAerobicGlycolysisKit.createFromSubjectSession(varargin{:});
+            this = mlraichle.DispersedAerobicGlycolysisKit.createFromSession(varargin{:});
             pwd0 = pushd(this.sessionData.tracerOnAtlas('typ', 'filepath'));
-            
-            this.ensureTailoredMask()
-                    
             huang = this.loadImagingHuang();
             pred = huang.buildPrediction(); 
             pred.save(); 
@@ -49,7 +39,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             msk.save();
             popd(pwd0)
         end
-        function [kss,msk] = constructKsByRegion(varargin)
+        function [Ks,msk] = constructKsByRegion(varargin)
             %% CONSTRUCTKSBYREGION
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param required cpuIndex is char or is numeric (compatibility). 
@@ -62,44 +52,21 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addRequired(ip, 'foldersExpr', @ischar)
-            addOptional(ip, 'cpuIndex', [], @(x) isnumeric(x) || ischar(x))
-            addParameter(ip, 'sessionsExpr', 'ses-E', @ischar)
-            addParameter(ip, 'region', '', @(x) ischar(x) && ~isempty(x))
+            addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:})
-            ipr = ip.Results;
-            Region = [upper(ipr.region(1)) ipr.region(2:end)];
+            sesd = ip.Results.sessionData;
+            Region = [upper(sesd.parcellation(1)) sesd.parcellation(2:end)];
             
             % build Ks and their masks
-            ss = strsplit(ipr.foldersExpr, '/');           
-            pwd0 = pushd(fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '')); 
-            subd = SubjectData('subjectFolder', ss{2}); 
-            sesfs = subd.subFolder2sesFolders(ss{2});
-            msk = {};
-            kss = {};
-            for s = sesfs(contains(sesfs, ipr.sessionsExpr))
-                sesd = SessionData( ...
-                    'studyData', StudyData(), ...
-                    'projectData', ProjectData('sessionStr', s{1}), ...
-                    'subjectData', subd, ...
-                    'sessionFolder', s{1}, ...
-                    'tracer', 'FDG', ...
-                    'ac', true, ...
-                    'parcellation', ipr.region); 
-                this = DispersedAerobicGlycolysisKit.createFromSession(sesd);
-                this.regionTag = ['_' ipr.region];
-                sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
-                this.constructWmparc1OnAtlas(sesd)
-                
-                fdgstr = split(sesd.tracerOnAtlas('typ', 'fqfn'), ['Singularity' filesep]);
-                kss_ = this.(['buildKsBy' Region])('filesExpr', fdgstr{2}); 
-                kss_.save()
-                kss_ = kss_.blurred(4.3);
-                kss_.save()
-                kss = [kss kss_]; %#ok<AGROW>                
-                msk_ = this.ensureTailoredMask();
-                msk = [msk msk_]; %#ok<AGROW>
-            end
+            pwd0 = pushd(sesd.subjectPath);             
+            this = DispersedAerobicGlycolysisKit.createFromSession(sesd);
+            sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
+            this.constructWmparc1OnAtlas(sesd)
+            Ks = this.(['buildKsBy' Region])(); 
+            Ks.save()
+            Ks = Ks.blurred(4.3);
+            Ks.save()             
+            msk = this.ensureTailoredMask();            
             popd(pwd0)
         end  
         function [kss,msk] = constructKsByWmparc1(varargin)
@@ -137,7 +104,6 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             pwd0 = pushd(fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '')); 
             subd = mlraichle.SubjectData('subjectFolder', ss{2});             
             sesfs = subd.subFolder2sesFolders(ss{2});
-            foldersExpr = ipr.foldersExpr;
             
             for sesf = sesfs(contains(sesfs, ipr.sessionsExpr))
                 try
@@ -158,11 +124,9 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
                         DispersedAerobicGlycolysisKit.ic2mat(fdg)
                     end
                     
-                    DispersedAerobicGlycolysisKit.(['constructKsBy' Region])( ...
-                        foldersExpr, [], 'sessionsExpr', sesf{1}); % memory ~ 5.5 GB
+                    DispersedAerobicGlycolysisKit.(['constructKsBy' Region])(sesd); % memory ~ 5.5 GB
                     
-                    [cmrglc,Ks,msk] = DispersedAerobicGlycolysisKit.constructCmrglc( ...
-                        foldersExpr, [], 'sessionsExpr', sesf{1}, 'regionTag', ['_' ipr.region]);
+                    [cmrglc,Ks,msk] = DispersedAerobicGlycolysisKit.constructCmrglc(sesd);
                     if ipr.saveMat
                         Ksc = DispersedAerobicGlycolysisKit.iccrop(Ks, 1:4);
                         DispersedAerobicGlycolysisKit.ic2mat(Ksc)
@@ -214,6 +178,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
         end
         function this = createFromSession(varargin)
             this = mlraichle.DispersedAerobicGlycolysisKit('sessionData', varargin{:});
+            this.regionTag = this.sessionData.parcellation;
         end
         function these = createFromSubjectSession(varargin)
             %% CREATEFROMSUBJECTSESSION
@@ -373,12 +338,24 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
     end
     
     methods
-        function kss = buildKsByWmparc1(this, varargin)
+        function buildDataAugmentation(~, sesd)
+            assert(isa(sesd, 'mlpipeline.ISessionData'))
+            if isfield(sesd.dataAugmentation, 'fdgCal')
+                fdg = sesd.fdgOnAtlas('typ', 'ImagingContext2', 'getAugmented', false);
+                fdg = fdg .* sesd.dataAugmentation.fdgCal;
+                fdg.fileprefix = sesd.fdgOnAtlas('typ', 'fileprefix');
+                try
+                    fdg.save()
+                catch ME
+                    handexcept(ME)
+                end
+            end
+        end
+        function ks = buildKsByWmparc1(this, varargin)
             %% BUILDKSBYWMPARC1
-            %  @param filesExpr
-            %  @param foldersExpr in {'subjects' 'subjects/sub-S12345' 'subjects/sub-S12345/ses-E12345'}
+            %  @param sessionData is mlpipeline.ISessionData.
             %  @param indicesToCheck:  e.g., [6000 1 7:20 24].
-            %  @return kss as mlfourd.ImagingContext2 or cell array, without saving to filesystems.
+            %  @return ks as mlfourd.ImagingContext2, without saving to filesystems.
             
             indices = [6000 1:85 251:255 1000:1035 2000:2035 3000:3035 4000:4035 5001:5002];
             if isdeployed()
@@ -389,81 +366,78 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'filesExpr', '', @ischar)
-            addParameter(ip, 'foldersExpr', '', @ischar)
+            addParameter(ip, 'sessionData', this.sessionData, @(x) isa(x, 'mlpipeline.ISessionData'))
             addParameter(ip, 'indicesToCheck', indicesToCheck, @(x) any(x == indices) || isempty(x))
             parse(ip, varargin{:})
             ipr = ip.Results;
             disp(ipr)
             
-            kss = {};
-            for sesd = this.filesExpr2sessions(ipr.filesExpr)
-                sesd1 = sesd{1};
-                sesd1.parcellation = 'wmparc1';
-                workdir = sesd1.tracerResolvedOpSubject('typ', 'path');
-                pwd0 = pushd(workdir);                
-                devkit = mlpet.ScannerKit.createFromSession(sesd1);                
-                cbv = sesd1.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', 'dateonly', true);
-                cbv = cbv.fourdfp;
-                wmparc1 = sesd1.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
-                wmparc1 = wmparc1.fourdfp;
-                ks = copy(wmparc1);
-                ks.fileprefix = sesd1.ksOnAtlas('typ', 'fp', 'tags', [this.blurTag '_wmparc1']);
-                lenKs = mlglucose.DispersedNumericHuang1980.LENK + 1;
-                ks.img = zeros([size(wmparc1) lenKs]);   
+            sesd = ipr.sessionData;
+            sesd.parcellation = 'wmparc1';
+            workdir = sesd.tracerResolvedOpSubject('typ', 'path');
+            
+            pwd0 = pushd(workdir);            
+            this.buildDataAugmentation(sesd);            
+            devkit = mlpet.ScannerKit.createFromSession(sesd);                
+            cbv = sesd.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', 'dateonly', true);
+            cbv = cbv.fourdfp;
+            wmparc1 = sesd.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
+            wmparc1 = wmparc1.fourdfp;
+            ks = copy(wmparc1);
+            ks.fileprefix = sesd.ksOnAtlas('typ', 'fp', 'tags', [this.blurTag '_wmparc1']);
+            lenKs = mlglucose.DispersedNumericHuang1980.LENK + 1;
+            ks.img = zeros([size(wmparc1) lenKs]);   
 
-                for idx = indices % parcs
-                    
-                    % for parcs, build roibin as logical, roi as single                    
-                    fprintf('starting mlpet.DispersedAerobicGlycolysisKit.buildKsByWmparc1.idx -> %i\n', idx)
-                    tic
-                    roi = copy(wmparc1);
-                    roibin = wmparc1.img == idx;
-                    roi.img = single(roibin);  
-                    roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, idx);
-                    if 0 == dipsum(roi.img)
-                        continue
+            for idx = indices % parcs
+
+                % for parcs, build roibin as logical, roi as single                    
+                fprintf('starting mlpet.DispersedAerobicGlycolysisKit.buildKsByWmparc1.idx -> %i\n', idx)
+                tic
+                roi = copy(wmparc1);
+                roibin = wmparc1.img == idx;
+                roi.img = single(roibin);  
+                roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, idx);
+                if 0 == dipsum(roi.img)
+                    continue
+                end
+
+                % solve Huang
+                roicbv = mean(cbv.img(roibin));
+                huang = mlglucose.DispersedNumericHuang1980.createFromDeviceKit( ...
+                    devkit, 'cbv', roicbv, 'roi', mlfourd.ImagingContext2(roi));
+                huang = huang.solve();
+                toc
+
+                % insert Huang solutions on roibin(idx) into ks
+                kscache = huang.ks();
+                kscache(huang.LENK+1) = huang.Dt;
+                for ik = 1:huang.LENK+1
+                    rate = ks.img(:,:,:,ik);
+                    rate(roibin) = kscache(ik);
+                    ks.img(:,:,:,ik) = rate;
+                end
+
+                % Dx
+                if any(idx == ipr.indicesToCheck)                        
+                    h = huang.plot('xlim', [-20 1800]);
+                    title(sprintf('DispersedAerobicGlycolysisKit.buildKsByWmparc1:  idx == %i\n%s', idx, datestr(sesd.datetime)))
+                    try
+                        dtTag = lower(sesd.doseAdminDatetimeTag);
+                        savefig(h, ...
+                            fullfile(workdir, ...
+                            sprintf('DispersedAerobicGlycolysisKit_buildKsByWmparc1_idx%i_%s.fig', idx, dtTag)))
+                        figs = get(0, 'children');
+                        saveas(figs(1), ...
+                            fullfile(workdir, ...
+                            sprintf('DispersedAerobicGlycolysisKit_buildKsByWmparc1_idx%i_%s.png', idx, dtTag)))
+                        close(figs(1))
+                    catch ME
+                        handwarning(ME)
                     end
-
-                    % solve Huang
-                    roicbv = mean(cbv.img(roibin));
-                    huang = mlglucose.DispersedNumericHuang1980.createFromDeviceKit( ...
-                        devkit, 'cbv', roicbv, 'roi', mlfourd.ImagingContext2(roi));
-                    huang = huang.solve();
-                    toc
-
-                    % insert Huang solutions on roibin(idx) into ks
-                    kscache = huang.ks();
-                    kscache(huang.LENK+1) = huang.Dt;
-                    for ik = 1:huang.LENK+1
-                        rate = ks.img(:,:,:,ik);
-                        rate(roibin) = kscache(ik);
-                        ks.img(:,:,:,ik) = rate;
-                    end
-                    
-                    % Dx
-                    if any(idx == ipr.indicesToCheck)                        
-                        h = huang.plot('xlim', [-20 1800]);
-                        title(sprintf('DispersedAerobicGlycolysisKit.buildKsByWmparc1:  idx == %i\n%s', idx, datestr(sesd1.datetime)))
-                        try
-                            dtTag = lower(sesd.doseAdminDatetimeTag);
-                            savefig(h, ...
-                                fullfile(workdir, ...
-                                sprintf('DispersedAerobicGlycolysisKit_buildKsByWmparc1_idx%i_%s.fig', idx, dtTag)))
-                            figs = get(0, 'children');
-                            saveas(figs(1), ...
-                                fullfile(workdir, ...
-                                sprintf('DispersedAerobicGlycolysisKit_buildKsByWmparc1_idx%i_%s.png', idx, dtTag)))
-                            close(figs(1))
-                        catch ME
-                            handwarning(ME)
-                        end
-                    end                    
-                end                
-                ks = mlfourd.ImagingContext2(ks);
-                kss = [kss ks]; %#ok<AGROW>
-                popd(pwd0)
-            end
+                end                    
+            end                
+            ks = mlfourd.ImagingContext2(ks);
+            popd(pwd0)
         end        
         function msk = ensureTailoredMask(this)
             msk = this.sessionData.wmparc1OnAtlas('typ', 'ImagingContext2');
@@ -478,6 +452,30 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             msk = msk.binarized();
             msk.save()
         end 
+        function sesds = filesExpr2sessions(this, fexp)
+            % @param fexp is char, e.g., 'subjects/sub-S58163/resampling_restricted/ocdt20190523122016_on_T1001.4dfp.hdr'
+            % @return instance from this.sessionData_.create()
+            
+            assert(ischar(fexp))
+            sesds = {};
+            ss = strsplit(fexp, filesep);
+            assert(strcmp(ss{1}, 'subjects'))
+            assert(strcmp(ss{3}, 'resampling_restricted'))
+            this.jitOnT1001(fexp)
+
+            pwd0 = pushd(fullfile(getenv('SINGULARITY_HOME'), ss{1}, ss{2}, ''));
+            re = regexp(ss{4}, '(?<tracer>[a-z]{2,3})dt(?<datetime>\d{14})\w+', 'names');            
+            for globTracer = globFoldersT( ...
+                    fullfile('ses-E*', sprintf('%s_DT%s.000000-Converted-AC', upper(re.tracer), re.datetime)))
+                for ccir = {'CCIR_00559' 'CCIR_00754'}
+                    sesf = fullfile(ccir{1}, globTracer{1});
+                    if isfolder(fullfile(getenv('SINGULARITY_HOME'), sesf))
+                        sesds = [sesds {this.sessionData_.create(sesf)}]; %#ok<AGROW>
+                    end
+                end
+            end            
+            popd(pwd0)
+        end
         function h = loadImagingHuang(this, varargin)
             %%
             %  @return mlglucose.DispersedImagingHuang1980  
