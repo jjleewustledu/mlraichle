@@ -7,8 +7,14 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
  	%% It was developed on Matlab 9.7.0.1434023 (R2019b) Update 6 for MACI64.  Copyright 2020 John Joowon Lee.
  	
 	methods (Static)  
-        function msk = buildTrainingMask(nmae)
+        function msk = buildTrainingMask(sesd, nmae)
+            assert(isa(sesd, 'mlpipeline.ISessionData'))
+            assert(isa(nmae, 'mlfourd.ImagingContext2'))
             assert(contains(nmae.fileprefix, 'NMAE'))
+            
+            wmparc1 = sesd.wmparc1OnAtlas('typ', 'ImagingContext2');
+            wmparc1 = wmparc1.binarized();
+            nmae = nmae .* wmparc1;
             msk = nmae.numlt(1);
             msk.fileprefix = strrep(nmae.fileprefix, 'fdg', 'mask');
         end
@@ -35,11 +41,11 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             chi.save(); 
             cmrglc = this.ks2cmrglc(huang.ks, huang.v1 ./ 0.0105, this.devkit_.radMeasurements); 
             cmrglc.save();
-            msk = this.buildTrainingMask(nmae);
+            msk = this.buildTrainingMask(huang.sessionData, nmae);
             msk.save();
             popd(pwd0)
         end
-        function [Ks,msk] = constructKsByRegion(varargin)
+        function [ks,msk] = constructKsByRegion(varargin)
             %% CONSTRUCTKSBYREGION
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param required cpuIndex is char or is numeric (compatibility). 
@@ -62,10 +68,10 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             this = DispersedAerobicGlycolysisKit.createFromSession(sesd);
             sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
             this.constructWmparc1OnAtlas(sesd)
-            Ks = this.(['buildKsBy' Region])(); 
-            Ks.save()
-            Ks = Ks.blurred(4.3);
-            Ks.save()             
+            ks = this.(['buildKsBy' Region])(); 
+            ks.save()
+            ks = ks.blurred(4.3);
+            ks.save()             
             msk = this.ensureTailoredMask();            
             popd(pwd0)
         end  
