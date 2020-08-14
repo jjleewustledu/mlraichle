@@ -77,7 +77,6 @@ classdef SessionData < mlnipet.ResolvingSessionData
             assert(isfield(sessObj, 'projectFolder'))
             assert(isfield(sessObj, 'sessionFolder'));
             assert(isfield(sessObj, 'sessionDate'));
-            assert(isfield(sessObj, 'parcellation'));
             studyd = StudyData;
             sessp = fullfile(studyd.projectsDir, sessObj.projectFolder, sessObj.sessionFolder, '');
             sessd = SessionData('studyData', studyd, ...
@@ -88,6 +87,10 @@ classdef SessionData < mlnipet.ResolvingSessionData
             if ( isfield(sessObj, 'parcellation') && ...
                 ~isempty(sessObj.parcellation))
                 sessd.parcellation = sessObj.parcellation;
+            end
+            if ( isfield(sessObj, 'region') && ...
+                ~isempty(sessObj.region))
+                sessd.region = sessObj.region;
             end
         end
     end
@@ -301,10 +304,6 @@ classdef SessionData < mlnipet.ResolvingSessionData
                 j = jsondecode(fileread(this.jsonFilename));
                 this.taus_ = j.taus';
             end
-            
-            %% parcellation structure
-            
-            this.parcellation = 'wmparc1';
         end
     end
     

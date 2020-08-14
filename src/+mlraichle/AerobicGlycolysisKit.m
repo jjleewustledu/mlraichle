@@ -6,10 +6,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.7.0.1319299 (R2019b) Update 5 for MACI64.  Copyright 2020 John Joowon Lee.
     
-	properties
-        regionTag
-    end
-    
 	methods (Static)
         function msk = buildTrainingMask(nmae)
             assert(contains(nmae.fileprefix, 'NMAE'))
@@ -21,7 +17,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param optional cpuIndex is char or is numeric. 
             %  @param sessionsExpr is char, e.g., 'ses-E67890'.
-            %  @param regionTag is char, e.g., '_brain' | '_wmparc1'
             %  @param lastKsTag is char and used by this.ksOnAtlas, e.g., '', '_b43'
             %  @return cmrglc in mumoles/hg/min as mlfourd.ImagingContext2.
             %  @return Ks in (s^{-1}) as mlfourd.ImagingContext2.
@@ -87,9 +82,8 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                     'sessionFolder', s{1}, ...
                     'tracer', 'FDG', ...
                     'ac', true, ...
-                    'parcellation', ipr.region); 
+                    'region', ipr.region); 
                 this = AerobicGlycolysisKit.createFromSession(sesd);
-                this.regionTag = ['_' ipr.region];
                 sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
                 this.constructWmparc1OnAtlas(sesd)
                 
@@ -277,7 +271,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             ip.KeepUnmatched = true;
             addRequired(ip, 'foldersExpr', @ischar)
             addParameter(ip, 'sessionsExpr', 'ses-E', @ischar)
-            addParameter(ip, 'region', '', @(x) ischar(x) && ~isempty(x))
+            addParameter(ip, 'region', 'wmparc1', @(x) ischar(x) && ~isempty(x))
             addParameter(ip, 'saveMat', true, @islogical)
             parse(ip, varargin{:})
             ipr = ip.Results;
@@ -298,7 +292,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                         'sessionFolder', sesf{1}, ...
                         'tracer', 'FDG', ...
                         'ac', true, ...
-                        'parcellation', ipr.region); 
+                        'region', ipr.region); 
                     if sesd.datetime < mlraichle.StudyRegistry.instance.earliestCalibrationDatetime
                         continue
                     end
@@ -311,7 +305,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                         foldersExpr, [], 'sessionsExpr', sesf{1}); % memory ~ 5.5 GB
                     
                     [cmrglc,Ks,msk] = AerobicGlycolysisKit.constructCmrglc( ...
-                        foldersExpr, [], 'sessionsExpr', sesf{1}, 'regionTag', ['_' ipr.region]);
+                        foldersExpr, [], 'sessionsExpr', sesf{1});
                     if ipr.saveMat
                         Ksc = AerobicGlycolysisKit.iccrop(Ks, 1:4);
                         AerobicGlycolysisKit.ic2mat(Ksc)
@@ -346,7 +340,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param optional cpuIndex is char or is numeric. 
             %  @param sessionsExpr is char, e.g., 'ses-E67890'.
-            %  @param regionTag is char, e.g., '_brain' | '_wmparc'
             %  @return these is {mlraichle.AerobicGlycolysisKit, ...}
             
             import mlraichle.*
@@ -355,8 +348,8 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             ip.KeepUnmatched = true;
             addRequired(ip, 'foldersExpr', @ischar)
             addOptional(ip, 'cpuIndex', [], @(x) isnumeric(x) || ischar(x))
+            addParameter(ip, 'region', 'wmparc1', @ischar)
             addParameter(ip, 'sessionsExpr', 'ses-E', @ischar)
-            addParameter(ip, 'regionTag', '_wmparc1', @ischar)
             parse(ip, varargin{:})
             ipr = ip.Results;
             
@@ -372,9 +365,9 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                     'subjectData', subd, ...
                     'sessionFolder', s{1}, ...
                     'tracer', 'FDG', ...
-                    'ac', true); 
+                    'ac', true, ...
+                    'region', ipr.region); 
                 this = AerobicGlycolysisKit.createFromSession(sesd);
-                this.regionTag = ipr.regionTag;
                 these = [these this]; %#ok<AGROW>
             end
             popd(pwd0)
@@ -393,7 +386,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             addOptional(ip, 'cpuIndex', [], @(x) isnumeric(x) || ischar(x))
             addParameter(ip, 'sessionsExpr', 'ses-E', @ischar)
             addParameter(ip, 'voxelIndex', 1, @isnumeric)
-            addParameter(ip, 'regionTag', '_wmparc1', @ischar)
             addParameter(ip, 'Delta', 0.05, @isnumeric)
             parse(ip, varargin{:})
             ipr = ip.Results; 
@@ -458,7 +450,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             addOptional(ip, 'cpuIndex', [], @(x) isnumeric(x) || ischar(x))
             addParameter(ip, 'sessionsExpr', 'ses-E', @ischar)
             addParameter(ip, 'voxelIndex', 1, @isnumeric)
-            addParameter(ip, 'regionTag', '_wmparc1', @ischar)
             parse(ip, varargin{:})
             ipr = ip.Results;
             
@@ -501,7 +492,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
         end
     end
 
-    
 	methods
         function assembleSubjectsStudy(this, varargin)
             %% ASSEMBLESUBJECTSSTUDY 
