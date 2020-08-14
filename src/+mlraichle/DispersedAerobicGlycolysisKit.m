@@ -55,7 +55,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:})
             sesd = ip.Results.sessionData;
-            Region = [upper(sesd.parcellation(1)) sesd.parcellation(2:end)];
+            Region = [upper(sesd.region(1)) sesd.region(2:end)];
             
             % build Ks and their masks
             pwd0 = pushd(sesd.subjectPath);             
@@ -114,7 +114,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
                         'sessionFolder', sesf{1}, ...
                         'tracer', 'FDG', ...
                         'ac', true, ...
-                        'parcellation', ipr.region); 
+                        'region', ipr.region); 
                     if sesd.datetime < mlraichle.StudyRegistry.instance.earliestCalibrationDatetime
                         continue
                     end
@@ -178,14 +178,13 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
         end
         function this = createFromSession(varargin)
             this = mlraichle.DispersedAerobicGlycolysisKit('sessionData', varargin{:});
-            this.regionTag = this.sessionData.parcellation;
         end
         function these = createFromSubjectSession(varargin)
             %% CREATEFROMSUBJECTSESSION
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param optional cpuIndex is char or is numeric. 
             %  @param sessionsExpr is char, e.g., 'ses-E67890'.
-            %  @param regionTag is char, e.g., '_brain' | '_wmparc'
+            %  @param region is char, e.g., 'brain' | 'wmparc'
             %  @return these is {mlraichle.DispersedAerobicGlycolysisKit, ...}
             
             import mlraichle.*
@@ -195,7 +194,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             addRequired(ip, 'foldersExpr', @ischar)
             addOptional(ip, 'cpuIndex', [], @(x) isnumeric(x) || ischar(x))
             addParameter(ip, 'sessionsExpr', 'ses-E', @ischar)
-            addParameter(ip, 'regionTag', '_wmparc1', @ischar)
+            addParameter(ip, 'region', 'wmparc1', @ischar)
             parse(ip, varargin{:})
             ipr = ip.Results;
             
@@ -211,9 +210,9 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
                     'subjectData', subd, ...
                     'sessionFolder', s{1}, ...
                     'tracer', 'FDG', ...
-                    'ac', true); 
+                    'ac', true, ...
+                    'region', ipr.region); 
                 this = DispersedAerobicGlycolysisKit.createFromSession(sesd);
-                this.regionTag = ipr.regionTag;
                 these = [these this]; %#ok<AGROW>
             end
             popd(pwd0)
@@ -232,7 +231,6 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             addOptional(ip, 'cpuIndex', [], @(x) isnumeric(x) || ischar(x))
             addParameter(ip, 'sessionsExpr', 'ses-E', @ischar)
             addParameter(ip, 'voxelIndex', 1, @isnumeric)
-            addParameter(ip, 'regionTag', '_wmparc1', @ischar)
             addParameter(ip, 'Delta', 0.5, @isnumeric)
             parse(ip, varargin{:})
             ipr = ip.Results; 
@@ -297,7 +295,6 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             addOptional(ip, 'cpuIndex', [], @(x) isnumeric(x) || ischar(x))
             addParameter(ip, 'sessionsExpr', 'ses-E', @ischar)
             addParameter(ip, 'voxelIndex', 1, @isnumeric)
-            addParameter(ip, 'regionTag', '_wmparc1', @ischar)
             parse(ip, varargin{:})
             ipr = ip.Results;
             
@@ -373,7 +370,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             disp(ipr)
             
             sesd = ipr.sessionData;
-            sesd.parcellation = 'wmparc1';
+            sesd.region = 'wmparc1';
             workdir = sesd.tracerResolvedOpSubject('typ', 'path');
             
             pwd0 = pushd(workdir);            
@@ -484,8 +481,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             cbv = mlfourd.ImagingContext2(this.sessionData.cbvOnAtlas('dateonly', true));
             mask = this.maskOnAtlasTagged();
             ks = this.ksOnAtlasTagged();
-            h = mlglucose.DispersedImagingHuang1980.createFromDeviceKit( ...
-                this.devkit_, 'cbv', cbv, 'roi', mask, 'regionTag', this.regionTag);
+            h = mlglucose.DispersedImagingHuang1980.createFromDeviceKit(this.devkit_, 'cbv', cbv, 'roi', mask);
             h.ks = ks;
         end
         function h = loadNumericHuang(this, roi, varargin)
@@ -499,8 +495,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             this.devkit_ = mlpet.ScannerKit.createFromSession(this.sessionData);
             cbv = mlfourd.ImagingContext2(this.sessionData.cbvOnAtlas('dateonly', true));
             mean_cbv = cbv.fourdfp.img(roibin);            
-            h = mlglucose.DispersedNumericHuang1980.createFromDeviceKit( ...
-                this.devkit_, 'cbv', mean_cbv, 'roi', roi, 'regionTag', this.regionTag);
+            h = mlglucose.DispersedNumericHuang1980.createFromDeviceKit(this.devkit_, 'cbv', mean_cbv, 'roi', roi);
         end
         function ic = maskOnAtlasTagged(this, varargin)
             fqfp = [this.sessionData.wmparc1OnAtlas('typ', 'fqfp') '_binarized'];
