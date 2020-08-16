@@ -17,7 +17,7 @@ classdef CapracDevice < handle & mlcapintec.CapracDevice
  			%  @param .
 
  			this = this@mlcapintec.CapracDevice(varargin{:});
-            assert(isa(this.radMeasurements, 'mlraichle.CCIRRadMeasurements'));
+            assert(isa(this.radMeasurements, 'mlpet.CCIRRadMeasurements'));
  		end
  	end 
     

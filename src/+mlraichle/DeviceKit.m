@@ -21,7 +21,7 @@ classdef DeviceKit < handle & mlpet.DeviceKit
             ip = inputParser;
             addParameter(ip, 'session', [], @(x) isa(x, 'mlraichle.Session'));
             parse(ip, varargin{:});
-            rm = mlraichle.CCIRRadMeasurements.CreateBySession(ip.Results.session);
+            rm = mlpet.CCIRRadMeasurements.CreateBySession(ip.Results.session);
         end
         function rs = CreateReferenceSources(varargin)
             %% CREATEREFERENCESOURCES
@@ -136,7 +136,7 @@ classdef DeviceKit < handle & mlpet.DeviceKit
             addParameter(ip, 'session', [], @(x) isa(x, 'mlraichle.Session'));
             parse(ip, varargin{:});
             this.session_ = ip.Results.session;
-            this.radMeasurements_ = mlraichle.CCIRRadMeasurements.CreateBySession(this.session_);
+            this.radMeasurements_ = mlpet.CCIRRadMeasurements.CreateBySession(this.session_);
  		end	   
   	end 
 
