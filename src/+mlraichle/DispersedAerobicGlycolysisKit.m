@@ -15,7 +15,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             wmparc1 = sesd.wmparc1OnAtlas('typ', 'ImagingContext2');
             wmparc1 = wmparc1.binarized();
             nmae = nmae .* wmparc1;
-            msk = nmae.numlt(1);
+            msk = nmae.numlt(1) .* nmae.numgt(0);
             msk.fileprefix = strrep(nmae.fileprefix, 'fdg', 'mask');
         end
         function [cmrglc,Ks,msk] = constructCmrglc(varargin)
