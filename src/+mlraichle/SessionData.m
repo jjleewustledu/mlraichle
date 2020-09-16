@@ -190,7 +190,18 @@ classdef SessionData < mlnipet.ResolvingSessionData
         
         %% Metabolism
         
-        function obj  = fdgOnAtlas(this, varargin)
+        function obj  = agiOnAtlas(this, varargin)
+            % dag := cmrglc - cmro2/6 \approx aerobic glycolysis
+            
+            obj = this.metricOnAtlas('agi', varargin{:});
+        end        
+        function obj  = cbfOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('cbf', varargin{:});
+        end
+        function obj  = cbvOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('cbv', varargin{:});
+        end
+        function obj  = chiOnAtlas(this, varargin)
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'tags', '', @ischar)
@@ -201,22 +212,7 @@ classdef SessionData < mlnipet.ResolvingSessionData
                 ipr.tags = [ipr.tags this.dataAugmentationTags];
             end
             
-            obj = this.metricOnAtlas('fdg', varargin{:}, 'tags', ipr.tags);
-        end
-        function obj  = cbfOnAtlas(this, varargin)
-            obj = this.metricOnAtlas('cbf', varargin{:});
-        end
-        function obj  = cbvOnAtlas(this, varargin)
-            obj = this.metricOnAtlas('cbv', varargin{:});
-        end
-        function obj  = v1OnAtlas(this, varargin)
-            obj = this.metricOnAtlas('v1', varargin{:});
-        end
-        function obj  = oefOnAtlas(this, varargin)
-            obj = this.metricOnAtlas('oef', varargin{:});
-        end
-        function obj  = cmro2OnAtlas(this, varargin)
-            obj = this.metricOnAtlas('cmro', varargin{:});
+            obj = this.metricOnAtlas('chi', varargin{:}, 'tags', ipr.tags);
         end
         function obj  = cmrglcOnAtlas(this, varargin)
             ip = inputParser;
@@ -231,7 +227,10 @@ classdef SessionData < mlnipet.ResolvingSessionData
             
             obj = this.metricOnAtlas('cmrglc', varargin{:}, 'tags', ipr.tags);
         end
-        function obj  = chiOnAtlas(this, varargin)
+        function obj  = cmro2OnAtlas(this, varargin)
+            obj = this.metricOnAtlas('cmro', varargin{:});
+        end
+        function obj  = coOnAtlas(this, varargin)
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'tags', '', @ischar)
@@ -242,7 +241,62 @@ classdef SessionData < mlnipet.ResolvingSessionData
                 ipr.tags = [ipr.tags this.dataAugmentationTags];
             end
             
-            obj = this.metricOnAtlas('chi', varargin{:}, 'tags', ipr.tags);
+            obj = this.metricOnAtlas('co', varargin{:}, 'tags', ipr.tags);
+        end
+        function obj  = fdgOnAtlas(this, varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'tags', '', @ischar)
+            addParameter(ip, 'getAugmented', true, @islogical)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            if ipr.getAugmented
+                ipr.tags = [ipr.tags this.dataAugmentationTags];
+            end
+            
+            obj = this.metricOnAtlas('fdg', varargin{:}, 'tags', ipr.tags);
+        end
+        function obj  = fsOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('fs', varargin{:});
+        end
+        function obj  = hoOnAtlas(this, varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'tags', '', @ischar)
+            addParameter(ip, 'getAugmented', true, @islogical)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            if ipr.getAugmented
+                ipr.tags = [ipr.tags this.dataAugmentationTags];
+            end
+            
+            obj = this.metricOnAtlas('ho', varargin{:}, 'tags', ipr.tags);
+        end
+        function obj  = ocOnAtlas(this, varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'tags', '', @ischar)
+            addParameter(ip, 'getAugmented', true, @islogical)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            if ipr.getAugmented
+                ipr.tags = [ipr.tags this.dataAugmentationTags];
+            end
+            
+            obj = this.metricOnAtlas('oc', varargin{:}, 'tags', ipr.tags);
+        end
+        function obj  = ooOnAtlas(this, varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'tags', '', @ischar)
+            addParameter(ip, 'getAugmented', true, @islogical)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            if ipr.getAugmented
+                ipr.tags = [ipr.tags this.dataAugmentationTags];
+            end
+            
+            obj = this.metricOnAtlas('oo', varargin{:}, 'tags', ipr.tags);
         end
         function obj  = KsOnAtlas(this, varargin)
             ip = inputParser;
@@ -273,13 +327,14 @@ classdef SessionData < mlnipet.ResolvingSessionData
         function obj  = maskOnAtlas(this, varargin)
             obj = this.metricOnAtlas('mask', varargin{:});
         end
+        function obj  = oefOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('oef', varargin{:});
+        end
         function obj  = ogiOnAtlas(this, varargin)
             obj = this.metricOnAtlas('ogi', varargin{:});
         end
-        function obj  = agiOnAtlas(this, varargin)
-            % dag := cmrglc - cmro2/6 \approx aerobic glycolysis
-            
-            obj = this.metricOnAtlas('agi', varargin{:});
+        function obj  = v1OnAtlas(this, varargin)
+            obj = this.metricOnAtlas('v1', varargin{:});
         end
                 
         %% 

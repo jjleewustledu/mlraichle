@@ -12,6 +12,29 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             msk = nmae.numlt(0.95);
             msk.fileprefix = strrep(nmae.fileprefix, 'fdg', 'mask');
         end
+        function [cbf,msk] = constructCbf(varargin)
+            %% CONSTRUCTCbf
+            %  @param required sessionData is mlpipeline.ISessionData.
+            %  @return cmrglc in mumoles/hg/min as mlfourd.ImagingContext2.
+            %  @return Ks in (s^{-1}) as mlfourd.ImagingContext2.
+            %  @return msk as mlfourd.ImagingContext2.
+            
+            this = mlraichle.AerobicGlycolysisKit.createFromSession(varargin{:});
+            pwd0 = pushd(this.sessionData.tracerOnAtlas('typ', 'filepath'));
+            raichle = this.loadImagingRaichle();
+            pred = raichle.buildPrediction(); 
+            pred.save(); 
+            resid = raichle.buildResidual(); 
+            resid.save(); 
+            [mae,nmae] = raichle.buildMeanAbsError(); 
+            mae.save(); 
+            nmae.save();
+            cbf = this.fs2cbf(raichle.fs); 
+            cbf.save(); 
+            msk = this.buildTrainingMask(raichle.sessionData, nmae);
+            msk.save();
+            popd(pwd0)
+        end
         function [cmrglc,Ks,msk] = constructCmrglc(varargin)
             %% CONSTRUCTCMRGLC
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
@@ -46,6 +69,36 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             msk.save();
             popd(pwd0)
         end
+        function [fs,msk] = constructFsByRegion(varargin)
+            %% CONSTRUCTFBYREGION
+            %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
+            %  @param required cpuIndex is char or is numeric (compatibility). 
+            %  @param sessionsExpr is char, e.g., 'ses-E67890'.
+            %  @param region is char:  'wmparc', 'wbrain'.
+            %  @return kss as mlfourd.ImagingContext2 or cell array.
+            %  @return msk, the mask of kss, as mlfourd.ImagingContext2 or cell array.
+            
+            import mlraichle.*
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
+            parse(ip, varargin{:})
+            sesd = ip.Results.sessionData;
+            Region = [upper(sesd.region(1)) sesd.region(2:end)];
+            
+            % build Ks and their masks
+            pwd0 = pushd(sesd.subjectPath);             
+            this = AerobicGlycolysisKit.createFromSession(sesd);
+            sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
+            this.constructWmparc1OnAtlas(sesd)
+            fs = this.(['buildFsBy' Region])(); 
+            fs.save()
+            fs = fs.blurred(4.3);
+            fs.save()             
+            msk = this.ensureTailoredMask();            
+            popd(pwd0)
+        end  
         function [kss,msk] = constructKsByRegion(varargin)
             %% CONSTRUCTKSBYREGION
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
@@ -258,7 +311,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             
             popd(pwd0)
         end        
-        function constructSubjectByRegion(varargin)   
+        function constructSubjectByRegion(varargin)
             %% CONSTRUCTSUBJECTBYREGION constructs in parallel the sessions of a subject.
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param sessionsExpr is char, e.g., 'ses-E' selects all sessions.
