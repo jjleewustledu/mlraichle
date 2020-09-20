@@ -96,7 +96,7 @@ classdef SessionData < mlnipet.ResolvingSessionData
     end
 
     methods
-        function obj  = brainOnAtlas(this, varargin)            
+        function obj  = brainOnAtlas(this, varargin)
             obj = this.metricOnAtlas('brain', 'datetime', '',varargin{:});
         end
         function g    = getStudyCensus(this)
@@ -180,6 +180,21 @@ classdef SessionData < mlnipet.ResolvingSessionData
         end
         function obj  = venousOnAtlas(this, varargin)
             obj = this.metricOnAtlas('venous', 'datetime', '',varargin{:});
+        end
+        function obj  = wbrain1OnAtlas(this, varargin)
+            
+            % prepare as needed
+            wm_fqfn = this.wmparc1OnAtlas('typ', 'fqfilename');
+            assert(isfile(wm_fqfn))
+            wb_fqfn = strrep(wm_fqfn, 'wmparc1', 'wbrain1');
+            if ~isfile(wb_fqfn)
+                ic = mlfourd.ImagingContext2(wm_fqfn);
+                ic = ic.binarized();
+                ic.fileprefix = strrep(ic.fileprefix, 'wmparc1', 'wbrain1');
+                ic.save()
+            end
+            
+            obj = this.metricOnAtlas('wbrain1', 'datetime', '',varargin{:});
         end
         function obj  = wmparcOnAtlas(this, varargin)
             obj = this.metricOnAtlas('wmparc', 'datetime', '',varargin{:});
