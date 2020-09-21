@@ -7,16 +7,15 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
  	%% It was developed on Matlab 9.7.0.1319299 (R2019b) Update 5 for MACI64.  Copyright 2020 John Joowon Lee.
     
 	methods (Static)
-        function msk = buildTrainingMask(nmae)
+        function msk       = buildTrainingMask(nmae)
             assert(contains(nmae.fileprefix, 'NMAE'))
             msk = nmae.numlt(0.95);
             msk.fileprefix = strrep(nmae.fileprefix, 'fdg', 'mask');
         end
-        function [cbf,msk] = constructCbf(varargin)
-            %% CONSTRUCTCbf
+        function [cbf,msk] = constructCbfAndSupportInfo(varargin)
+            %% CONSTRUCTCBFSUPPORTINFO
             %  @param required sessionData is mlpipeline.ISessionData.
-            %  @return cmrglc in mumoles/hg/min as mlfourd.ImagingContext2.
-            %  @return Ks in (s^{-1}) as mlfourd.ImagingContext2.
+            %  @return cbf in mumoles/hg/min as mlfourd.ImagingContext2.
             %  @return msk as mlfourd.ImagingContext2.
             
             this = mlraichle.AerobicGlycolysisKit.createFromSession(varargin{:});
@@ -33,6 +32,22 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             cbf.save(); 
             msk = this.buildTrainingMask(raichle.sessionData, nmae);
             msk.save();
+            popd(pwd0)
+        end
+        function cbf       = constructCbfByQuadModel(varargin)
+            %% CONSTRUCTCBFBYQUADMODEL
+            %  @param required sessionData is mlpipeline.ISessionData.
+            %  @return cbf in mL/min/hg as mlfourd.ImagingContext2.
+                      
+            this = mlraichle.AerobicGlycolysisKit.createFromSession(varargin{:});            
+            sesd = this.sessionData;
+            pwd0 = pushd(sesd.subjectPath);             
+            sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
+            this.constructWmparc1OnAtlas(sesd)
+            cbf = this.buildCbfByQuadModel();
+            cbf.save()
+            cbf = cbf.blurred(4.3);
+            cbf.save()                      
             popd(pwd0)
         end
         function [cmrglc,Ks,msk] = constructCmrglc(varargin)
@@ -69,7 +84,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             msk.save();
             popd(pwd0)
         end
-        function [fs,msk] = constructFsByRegion(varargin)
+        function [fs,msk]  = constructFsByRegion(varargin)
             %% CONSTRUCTFBYREGION
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param required cpuIndex is char or is numeric (compatibility). 
@@ -173,7 +188,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             [kss,msk] = mlraichle.AerobicGlycolysisKit.constructKsByRegion( ...
                 varargin{:}, 'region', 'wmparc1');
         end
-        function constructKsByVoxels(varargin)
+        function             constructKsByVoxels(varargin)
             %% CONSTRUCTKSBYVOXELS 
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param required cpuIndex is char or is numeric. 
@@ -246,7 +261,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             end
             popd(pwd0)
         end   
-        function ic = constructRegularizedSolution(varargin)
+        function ic        = constructRegularizedSolution(varargin)
             %% CONSTRUCTSOLUTIONCHOICE
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param optional cpuIndex is char or is numeric. 
@@ -286,7 +301,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             % return ImagingContext2
             ic = ImagingContext2(ks);
         end
-        function ic = constructSolutionChoice(varargin)
+        function ic        = constructSolutionChoice(varargin)
             %% CONSTRUCTSOLUTIONCHOICE
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param optional cpuIndex is char or is numeric. 
@@ -311,7 +326,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             
             popd(pwd0)
         end        
-        function constructSubjectByRegion(varargin)
+        function             constructSubjectByRegion(varargin)
             %% CONSTRUCTSUBJECTBYREGION constructs in parallel the sessions of a subject.
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param sessionsExpr is char, e.g., 'ses-E' selects all sessions.
@@ -371,24 +386,24 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             end            
             popd(pwd0)            
         end
-        function constructSubjectByWbrain(varargin)
+        function             constructSubjectByWbrain(varargin)
             %% CONSTRUCTSUBJECTBYWBRAIN constructs the sessions of a subject.
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param sessionsExpr is char, e.g., 'ses-E' selects all sessions.
             
             mlraichle.AerobicGlycolysisKit.constructSubjectByRegion(varargin{:}, 'region', 'wbrain')            
         end
-        function constructSubjectByWmparc1(varargin)   
+        function             constructSubjectByWmparc1(varargin)   
             %% CONSTRUCTSUBJECTBYWMPARC1 constructs in parallel the sessions of a subject.
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param sessionsExpr is char, e.g., 'ses-E' selects all sessions.
             
             mlraichle.AerobicGlycolysisKit.constructSubjectByRegion(varargin{:}, 'region', 'wmparc1')               
         end
-        function this = createFromSession(varargin)
+        function this      = createFromSession(varargin)
             this = mlraichle.AerobicGlycolysisKit('sessionData', varargin{:});
         end
-        function these = createFromSubjectSession(varargin)
+        function these     = createFromSubjectSession(varargin)
             %% CREATEFROMSUBJECTSESSION
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param optional cpuIndex is char or is numeric. 
@@ -425,7 +440,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             end
             popd(pwd0)
         end    
-        function plotDxDTimes(varargin)
+        function             plotDxDTimes(varargin)
             %% PLOTDXDTIMES plots diagnosstics for \Delta t shifts of AIF.
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param optional cpuIndex is char or is numeric. 
@@ -489,7 +504,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             
             popd(pwd0)
         end 
-        function plotDxPrediction(varargin)
+        function             plotDxPrediction(varargin)
             %% PLOTDXPREDICTION plots diagnosstics for model predictions.
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param optional cpuIndex is char or is numeric. 
@@ -546,7 +561,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
     end
 
 	methods
-        function assembleSubjectsStudy(this, varargin)
+        function       assembleSubjectsStudy(this, varargin)
             %% ASSEMBLESUBJECTSSTUDY 
             
             % create union of inferences   
@@ -599,7 +614,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             img = reshape(img, [sz1(1)*sz1(2)*sz1(3) 1]);
             save(fullfile(ifc1.filepath, [strrep(ifc1.fileprefix, 'ks', 'mask') '.mat']), 'img', '-v7.3');
         end
-        function ensureCompleteSubjectsStudy(this, varargin)
+        function       ensureCompleteSubjectsStudy(this, varargin)
             %% ENSURECOMPLETESUBJECTSSTUDY
             
             import mlraichle.*
@@ -638,7 +653,31 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             msk = msk.blurred(4.3);
             msk = msk.binarized();
             msk.save()
-        end     
+        end   
+        function sess = filesExpr2sessions(this, fexp)
+            % @param fexp is char, e.g., 'subjects/sub-S58163/resampling_restricted/ocdt20190523122016_on_T1001.4dfp.hdr'
+            % @return instance from this.sessionData_.create()
+            
+            assert(ischar(fexp))
+            sess = {};
+            ss = strsplit(fexp, filesep);
+            assert(strcmp(ss{1}, 'subjects'))
+            assert(strcmp(ss{3}, 'resampling_restricted'))
+            this.jitOnT1001(fexp)
+
+            pwd0 = pushd(fullfile(getenv('SINGULARITY_HOME'), ss{1}, ss{2}, ''));
+            re = regexp(ss{4}, '(?<tracer>[a-z]{2,3})dt(?<datetime>\d{14})\w+', 'names');            
+            for globTracer = globFoldersT( ...
+                    fullfile('ses-E*', sprintf('%s_DT%s.000000-Converted-AC', upper(re.tracer), re.datetime)))
+                for ccir = {'CCIR_00559' 'CCIR_00754'}
+                    sesf = fullfile(ccir{1}, globTracer{1});
+                    if isfolder(fullfile(getenv('SINGULARITY_HOME'), sesf))
+                        sess = [sess {this.sessionData_.create(sesf)}]; %#ok<AGROW>
+                    end
+                end
+            end            
+            popd(pwd0)
+        end  
     end
 		
     %% PROTECTED

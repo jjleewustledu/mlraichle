@@ -7,7 +7,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
  	%% It was developed on Matlab 9.7.0.1434023 (R2019b) Update 6 for MACI64.  Copyright 2020 John Joowon Lee.
  	
 	methods (Static)  
-        function msk = buildTrainingMask(sesd, nmae)
+        function msk       = buildTrainingMask(sesd, nmae)
             assert(isa(sesd, 'mlpipeline.ISessionData'))
             assert(isa(nmae, 'mlfourd.ImagingContext2'))
             assert(contains(nmae.fileprefix, 'NMAE'))
@@ -18,7 +18,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             msk = nmae.numlt(1) .* nmae.numgt(0);
             msk.fileprefix = strrep(nmae.fileprefix, 'fdg', 'mask');
         end
-        function checkArterial(varargin)
+        function             checkArterial(varargin)
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'))
@@ -32,8 +32,8 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             xlabel('time (s)')
             ylabel('activity (Bq/mL)')
         end  
-        function [cbf,msk] = constructCbf(varargin)
-            %% CONSTRUCTCbf
+        function [cbf,msk] = constructCbfAndSupportInfo(varargin)
+            %% CONSTRUCTCBFSUPPORTINFO
             %  @param required sessionData is mlpipeline.ISessionData.
             %  @return cmrglc in mumoles/hg/min as mlfourd.ImagingContext2.
             %  @return Ks in (s^{-1}) as mlfourd.ImagingContext2.
@@ -112,7 +112,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             msk.save();
             popd(pwd0)
         end
-        function [fs,msk] = constructFsByRegion(varargin)
+        function [fs,msk]  = constructFsByRegion(varargin)
             %% CONSTRUCTFBYREGION
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param required cpuIndex is char or is numeric (compatibility). 
@@ -142,7 +142,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             msk = this.ensureTailoredMask();            
             popd(pwd0)
         end  
-        function [ks,msk] = constructKsByRegion(varargin)
+        function [ks,msk]  = constructKsByRegion(varargin)
             %% CONSTRUCTKSBYREGION
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param required cpuIndex is char or is numeric (compatibility). 
@@ -172,7 +172,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             msk = this.ensureTailoredMask();            
             popd(pwd0)
         end  
-        function constructSubjectByRegion(varargin)   
+        function             constructSubjectByRegion(varargin)   
             %% CONSTRUCTSUBJECTBYREGION constructs in parallel the sessions of a subject.
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param sessionsExpr is char, e.g., 'ses-E' selects all sessions.
@@ -231,14 +231,14 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             end            
             popd(pwd0)            
         end
-        function constructSubjectByWmparc1(varargin)
+        function             constructSubjectByWmparc1(varargin)
             %% CONSTRUCTSUBJECTBYWMPARC1 constructs in parallel the sessions of a subject.
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param sessionsExpr is char, e.g., 'ses-E' selects all sessions.
             
             mlraichle.DispersedAerobicGlycolysisKit.constructSubjectByRegion(varargin{:}, 'region', 'wmparc1')               
         end
-        function ic = constructWmparc1OnAtlas(sesd)
+        function ic        = constructWmparc1OnAtlas(sesd)
             import mlfourd.ImagingFormatContext
             import mlfourd.ImagingContext2
             
@@ -268,10 +268,10 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             ic = ImagingContext2(wmparc1);
             ic.save()
         end
-        function this = createFromSession(varargin)
+        function this      = createFromSession(varargin)
             this = mlraichle.DispersedAerobicGlycolysisKit('sessionData', varargin{:});
         end
-        function these = createFromSubjectSession(varargin)
+        function these     = createFromSubjectSession(varargin)
             %% CREATEFROMSUBJECTSESSION
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param optional cpuIndex is char or is numeric. 
@@ -309,7 +309,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             end
             popd(pwd0)
         end
-        function h = index2histology(idx)
+        function h         = index2histology(idx)
             h = '';
             if (1000 <= idx && idx < 3000) || (11000 <= idx && idx < 13000)
                 h = 'g';
@@ -335,7 +335,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
                 otherwise
             end
         end
-        function plotDxDTimes(varargin)
+        function             plotDxDTimes(varargin)
             %% PLOTDXDTIMES plots diagnosstics for \Delta t shifts of AIF.
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param optional cpuIndex is char or is numeric. 
@@ -399,7 +399,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             
             popd(pwd0)
         end 
-        function plotDxPrediction(varargin)
+        function             plotDxPrediction(varargin)
             %% PLOTDXPREDICTION plots diagnosstics for model predictions.
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param optional cpuIndex is char or is numeric. 
@@ -453,7 +453,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
     end
     
     methods
-        function cbv    = buildCbvByWbrain(this, varargin)
+        function cbv   = buildCbvByWbrain(this, varargin)
             %% BUILDFBYWMPARC1
             %  @param sessionData is mlpipeline.ISessionData.
             %  @param indicesToCheck:  e.g., [6000 1 7:20 24].
@@ -499,7 +499,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
                                
             popd(pwd0)
         end
-        function cbv    = buildCbvByWmparc1(this, varargin)
+        function cbv   = buildCbvByWmparc1(this, varargin)
             %% BUILDFBYWMPARC1
             %  @param sessionData is mlpipeline.ISessionData.
             %  @param indicesToCheck:  e.g., [6000 1 7:20 24].
