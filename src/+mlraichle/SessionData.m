@@ -274,6 +274,9 @@ classdef SessionData < mlnipet.ResolvingSessionData
         function obj  = fsOnAtlas(this, varargin)
             obj = this.metricOnAtlas('fs', varargin{:});
         end
+        function obj  = gsOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('gs', varargin{:});
+        end
         function obj  = hoOnAtlas(this, varargin)
             ip = inputParser;
             ip.KeepUnmatched = true;
