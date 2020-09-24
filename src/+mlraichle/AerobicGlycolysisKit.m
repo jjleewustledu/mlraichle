@@ -28,7 +28,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             [mae,nmae] = raichle.buildMeanAbsError(); 
             mae.save(); 
             nmae.save();
-            cbf = this.fs2cbf(raichle.fs); 
+            cbf = this.metric2cbf(raichle.fs); 
             cbf.save(); 
             msk = this.buildTrainingMask(raichle.sessionData, nmae);
             msk.save();
@@ -50,8 +50,8 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             cbf.save()                      
             popd(pwd0)
         end
-        function [cmrglc,Ks,msk] = constructCmrglc(varargin)
-            %% CONSTRUCTCMRGLC
+        function [cmrglc,Ks,msk] = constructCmrglcAndSupportInfo(varargin)
+            %% CONSTRUCTCMRGLCANDSUPPORTINFO
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param optional cpuIndex is char or is numeric. 
             %  @param sessionsExpr is char, e.g., 'ses-E67890'.
@@ -64,8 +64,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             %  @return mae as mlfourd.ImagingContext2.
             
             this = mlraichle.AerobicGlycolysisKit.createFromSubjectSession(varargin{:});
-            pwd0 = pushd(this.sessionData.tracerOnAtlas('typ', 'filepath'));
-            
+            pwd0 = pushd(this.sessionData.tracerOnAtlas('typ', 'filepath'));            
             huang = this.loadImagingHuang();
             pred = huang.buildPrediction(); 
             pred.save(); 
@@ -372,14 +371,8 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                     AerobicGlycolysisKit.(['constructKsBy' Region])( ...
                         foldersExpr, [], 'sessionsExpr', sesf{1}); % memory ~ 5.5 GB
                     
-                    [cmrglc,Ks,msk] = AerobicGlycolysisKit.constructCmrglc( ...
+                    [cmrglc,Ks,msk] = AerobicGlycolysisKit.constructCmrglcAndSupportInfo( ...
                         foldersExpr, [], 'sessionsExpr', sesf{1});
-                    if ipr.saveMat
-                        Ksc = AerobicGlycolysisKit.iccrop(Ks, 1:4);
-                        AerobicGlycolysisKit.ic2mat(Ksc)
-                        AerobicGlycolysisKit.ic2mat(cmrglc)
-                        AerobicGlycolysisKit.ic2mat(msk)
-                    end
                 catch ME
                     handwarning(ME)
                 end

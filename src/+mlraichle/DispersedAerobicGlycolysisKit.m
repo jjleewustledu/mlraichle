@@ -35,33 +35,39 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
         function [cbf,msk] = constructCbfAndSupportInfo(varargin)
             %% CONSTRUCTCBFSUPPORTINFO
             %  @param required sessionData is mlpipeline.ISessionData.
-            %  @return cmrglc in mumoles/hg/min as mlfourd.ImagingContext2.
-            %  @return Ks in (s^{-1}) as mlfourd.ImagingContext2.
+            %  @return cbf in mumoles/hg/min as mlfourd.ImagingContext2.
             %  @return msk as mlfourd.ImagingContext2.
             
             this = mlraichle.DispersedAerobicGlycolysisKit.createFromSession(varargin{:});
             pwd0 = pushd(this.sessionData.tracerOnAtlas('typ', 'filepath'));
             raichle = this.loadImagingRaichle();
-            pred = raichle.buildPrediction(); 
-            pred.save(); 
+            raichle = raichle.ensureModel();
+            pred = raichle.buildPrediction();
+            this.saveAllFormats(pred)
             resid = raichle.buildResidual(); 
-            resid.save(); 
+            this.saveAllFormats(resid)
+            residwm = raichle.buildResidualWmparc1(); 
+            this.saveAllFormats(residwm)
             [mae,nmae] = raichle.buildMeanAbsError(); 
-            mae.save(); 
-            nmae.save();
-            cbf = this.fs2cbf(raichle.fs); 
-            cbf.save(); 
+            this.saveAllFormats(mae)
+            this.saveAllFormats(nmae)
+            cbf = this.metric2cbf(raichle.metric); 
+            this.saveAllFormats(cbf)
+            if strcmp('fs', this.sessionData.metric) || isempty(this.sessionData.metric)
+                E = this.metric2E(raichle.metric);
+                this.saveAllFormats(E)
+            end
             msk = this.buildTrainingMask(raichle.sessionData, nmae);
-            msk.save();
+            this.saveAllFormats(msk)
             popd(pwd0)
         end
         function [cbv,msk] = constructCbvByRegion(varargin)
-            %% CONSTRUCTKSBYREGION
+            %% CONSTRUCTCBVBYREGION
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param required cpuIndex is char or is numeric (compatibility). 
             %  @param sessionsExpr is char, e.g., 'ses-E67890'.
             %  @param region is char:  'wmparc', 'wbrain'.
-            %  @return kss as mlfourd.ImagingContext2 or cell array.
+            %  @return cbv as mlfourd.ImagingContext2 or cell array.
             %  @return msk, the mask of kss, as mlfourd.ImagingContext2 or cell array.
             
             import mlraichle.*
@@ -82,11 +88,11 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             cbv.save()
             cbv = cbv.blurred(4.3);
             cbv.save()             
-            %msk = this.ensureTailoredMask();            
+            msk = this.ensureTailoredMask();            
             popd(pwd0)
         end  
-        function [cmrglc,Ks,msk] = constructCmrglc(varargin)
-            %% CONSTRUCTCMRGLC
+        function [cmrglc,Ks,msk] = constructCmrglcAndSupportInfo(varargin)
+            %% CONSTRUCTCMRGLCANDSUPPORTINFO
             %  @param required sessionData is mlpipeline.ISessionData.
             %  @return cmrglc in mumoles/hg/min as mlfourd.ImagingContext2.
             %  @return Ks in (s^{-1}) as mlfourd.ImagingContext2.
@@ -113,12 +119,12 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             popd(pwd0)
         end
         function [fs,msk]  = constructFsByRegion(varargin)
-            %% CONSTRUCTFBYREGION
+            %% CONSTRUCTFSBYREGION
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
             %  @param required cpuIndex is char or is numeric (compatibility). 
             %  @param sessionsExpr is char, e.g., 'ses-E67890'.
             %  @param region is char:  'wmparc', 'wbrain'.
-            %  @return kss as mlfourd.ImagingContext2 or cell array.
+            %  @return fs as mlfourd.ImagingContext2 or cell array.
             %  @return msk, the mask of kss, as mlfourd.ImagingContext2 or cell array.
             
             import mlraichle.*
@@ -130,16 +136,62 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             sesd = ip.Results.sessionData;
             Region = [upper(sesd.region(1)) sesd.region(2:end)];
             
-            % build Ks and their masks
+            % build Fs and their masks
             pwd0 = pushd(sesd.subjectPath);             
             this = DispersedAerobicGlycolysisKit.createFromSession(sesd);
             sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
             this.constructWmparc1OnAtlas(sesd)
             fs = this.(['buildFsBy' Region])(); 
-            fs.save()
+            this.saveAllFormats(fs)
             fs = fs.blurred(4.3);
-            fs.save()             
-            msk = this.ensureTailoredMask();            
+            this.saveAllFormats(fs)
+            msk = this.ensureTailoredMask();
+
+%            fs = []; % DEBUGGING
+            
+            % build mat files for cbf, msk            
+            [cbf_,msk_] = DispersedAerobicGlycolysisKit.constructCbfAndSupportInfo(sesd);
+            Fsc_ = DispersedAerobicGlycolysisKit.iccrop(cbf_, 1:3);
+            DispersedAerobicGlycolysisKit.ic2mat(Fsc_)
+            DispersedAerobicGlycolysisKit.ic2mat(msk_)
+            popd(pwd0)
+        end  
+        function [gs,msk]  = constructGsByRegion(varargin)
+            %% CONSTRUCTGSBYREGION
+            %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
+            %  @param required cpuIndex is char or is numeric (compatibility). 
+            %  @param sessionsExpr is char, e.g., 'ses-E67890'.
+            %  @param region is char:  'wmparc', 'wbrain'.
+            %  @return gs as mlfourd.ImagingContext2 or cell array.
+            %  @return msk, the mask of kss, as mlfourd.ImagingContext2 or cell array.
+            
+            import mlraichle.*
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
+            parse(ip, varargin{:})
+            sesd = ip.Results.sessionData;
+            Region = [upper(sesd.region(1)) sesd.region(2:end)];
+            
+            % build Gs and their masks
+            pwd0 = pushd(sesd.subjectPath);             
+            this = DispersedAerobicGlycolysisKit.createFromSession(sesd);
+            sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
+            this.constructWmparc1OnAtlas(sesd)
+            gs = this.(['buildGsBy' Region])(); 
+            this.saveAllFormats(gs)
+            gs = gs.blurred(4.3);
+            this.saveAllFormats(gs)
+            msk = this.ensureTailoredMask();
+
+%            gs = []; % DEBUGGING
+            
+            % build mat files for cbf, msk            
+            [cbf_,msk_] = DispersedAerobicGlycolysisKit.constructCbfAndSupportInfo(sesd);
+            Gsc_ = DispersedAerobicGlycolysisKit.iccrop(cbf_, 1:3);
+            DispersedAerobicGlycolysisKit.ic2mat(Gsc_)
+            DispersedAerobicGlycolysisKit.ic2mat(msk_)
             popd(pwd0)
         end  
         function [ks,msk]  = constructKsByRegion(varargin)
@@ -169,7 +221,14 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             ks.save()
             ks = ks.blurred(4.3);
             ks.save()             
-            msk = this.ensureTailoredMask();            
+            msk = this.ensureTailoredMask();               
+            
+            % build mat files for cbf, msk  
+            [cmrglc,Ks,msk] = DispersedAerobicGlycolysisKit.constructCmrglcAndSupportInfo(sesd);
+            Ksc = DispersedAerobicGlycolysisKit.iccrop(Ks, 1:4);
+            DispersedAerobicGlycolysisKit.ic2mat(Ksc)
+            DispersedAerobicGlycolysisKit.ic2mat(cmrglc)
+            DispersedAerobicGlycolysisKit.ic2mat(msk)
             popd(pwd0)
         end  
         function             constructSubjectByRegion(varargin)   
@@ -217,14 +276,6 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
                     end
                     
                     DispersedAerobicGlycolysisKit.(['constructKsBy' Region])(sesd); % memory ~ 5.5 GB
-                    
-                    [cmrglc,Ks,msk] = DispersedAerobicGlycolysisKit.constructCmrglc(sesd);
-                    if ipr.saveMat
-                        Ksc = DispersedAerobicGlycolysisKit.iccrop(Ks, 1:4);
-                        DispersedAerobicGlycolysisKit.ic2mat(Ksc)
-                        DispersedAerobicGlycolysisKit.ic2mat(cmrglc)
-                        DispersedAerobicGlycolysisKit.ic2mat(msk)
-                    end
                 catch ME
                     handwarning(ME)
                 end
@@ -326,11 +377,11 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             switch idx
                 case {3 42}
                     h = 'g';
-                case {2 7 16 27 28 41 46 59 60}
+                case {2 7 27 28 41 46 59 60}
                     h = 'w';
                 case num2cell([170:179 7100:7101])
                     h = 'w';
-                case num2cell([9:13 48:52])
+                case num2cell([9:13 16 18 48:52 54 101 102 104 105 107 110 111 113 114 116])
                     h = 's';
                 otherwise
             end
@@ -449,7 +500,12 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             title(sprintf('plotDxPrediction: index = %g', ipr.voxelIndex))         
             
             popd(pwd0)
-        end 		
+        end 	
+        function             saveAllFormats(ic)
+            assert(isa(ic, 'mlfourd.ImagingContext2'))
+            ic.fourdfp.save()
+            ic.nifti.save()
+        end
     end
     
     methods
@@ -598,11 +654,13 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             
             import mlraichle.DispersedAerobicGlycolysisKit.index2histology
             
-            indices = [1000:1001 1:85 1002:1035 2000:2035 3000:3035 4000:4035 5001:5002 6000 192:255];
+            indices = [1000:1035 2000:2035 3000:3035 4000:4035 5001:5002 6000 1:85 192:255];
+            indicesL = [14:16  1:13 17:20 25:39 21:24 72 73 77 78 80 81 83 85 192 193:196 201:255 1000:1035 3000:3035 5001 6000];
+            indicesR = [14:16 40:71             21:24 72 74 77 79 80 82 84 85 192 197:200 201:255 2000:2035 4000:4035 5002 6000];
             if isdeployed()
                 indicesToCheck = 0;
             else
-                indicesToCheck = [1 7:13 16:20 24 26:28 1000:1035];
+                indicesToCheck = [1 7:13 16:20 24 26:28 1000:1035 3000:3035];
             end
             
             ip = inputParser;
@@ -627,23 +685,28 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             lenKs = mloxygen.DispersedNumericRaichle1983.LENK + 1;
             fs.img = zeros([size(wmparc1) lenKs]);   
 
-            for idx = indices % parcs
+            for idx = 1:length(indicesL) % parcs
 
                 % for parcs, build roibin as logical, roi as single                    
-                fprintf('starting mlpet.DispersedAerobicGlycolysisKit.buildFsByWmparc1.idx -> %i\n', idx)
+                fprintf('starting mlpet.DispersedAerobicGlycolysisKit.buildFsByWmparc1.indices -> %i, %i\n', ...
+                    indicesL(idx), indicesR(idx))
                 tic
                 roi = copy(wmparc1);
-                roibin = wmparc1.img == idx;
+                roibin = wmparc1.img == indicesL(idx) | wmparc1.img == indicesR(idx);
                 roi.img = single(roibin);  
-                roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, idx);
+                roi.fileprefix = sprintf('%s_indices%i,%i', roi.fileprefix, indicesL(idx), indicesR(idx));
                 if 0 == dipsum(roi.img)
                     continue
                 end
 
                 % solve Raichle
+                model = mloxygen.DispersedRaichle1983Model( ...
+                    'histology', index2histology(indicesL(idx)));
                 raichle = mloxygen.DispersedNumericRaichle1983.createFromDeviceKit( ...
-                    devkit, 'roi', mlfourd.ImagingContext2(roi), 'histology', index2histology(idx));
-                raichle = raichle.solve();
+                    devkit, ...
+                    'roi', mlfourd.ImagingContext2(roi), ...
+                    'model', model);
+                raichle = raichle.solve(@mloxygen.DispersedRaichle1983Model.loss_function);
                 toc
 
                 % insert Raichle solutions on roibin(idx) into fs
@@ -656,18 +719,21 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
                 end
 
                 % Dx
-                if any(idx == ipr.indicesToCheck)                        
+                if any(indicesL(idx) == ipr.indicesToCheck)                        
                     h = raichle.plot();
-                    title(sprintf('DispersedAerobicGlycolysisKit.buildFsByWmparc1:  idx == %i\n%s', idx, datestr(sesd.datetime)))
+                    title(sprintf('DispersedAerobicGlycolysisKit.buildFsByWmparc1:  indices %i, %i\n%s', ...
+                        indicesL(idx), indicesR(idx), datestr(sesd.datetime)))
                     try
                         dtTag = lower(sesd.doseAdminDatetimeTag);
                         savefig(h, ...
                             fullfile(workdir, ...
-                            sprintf('DispersedAerobicGlycolysisKit_buildFsByWmparc1_idx%i_%s.fig', idx, dtTag)))
+                            sprintf('DispersedAerobicGlycolysisKit_buildFsByWmparc1_indices%i,%i_%s.fig', ...
+                            indicesL(idx), indicesR(idx), dtTag)))
                         figs = get(0, 'children');
                         saveas(figs(1), ...
                             fullfile(workdir, ...
-                            sprintf('DispersedAerobicGlycolysisKit_buildFsByWmparc1_idx%i_%s.png', idx, dtTag)))
+                            sprintf('DispersedAerobicGlycolysisKit_buildFsByWmparc1_indices%i,%i_%s.png', ...
+                            indicesL(idx), indicesR(idx), dtTag)))
                         close(figs(1))
                     catch ME
                         handwarning(ME)
@@ -675,6 +741,103 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
                 end                    
             end                
             fs = mlfourd.ImagingContext2(fs);
+            popd(pwd0)
+        end
+        function gs    = buildGsByWmparc1(this, varargin)
+            %% BUILDFBYWMPARC1
+            %  @param sessionData is mlpipeline.ISessionData.
+            %  @param indicesToCheck:  e.g., [6000 1 7:20 24].
+            %  @return gs as mlfourd.ImagingContext2, without saving to filesystems.
+            
+            import mlraichle.DispersedAerobicGlycolysisKit.index2histology
+            
+            indices = [1000:1035 2000:2035 3000:3035 4000:4035 5001:5002 6000 1:85 192:255];
+            indicesL = [14:16  1:13 17:20 25:39 21:24 72 73 77 78 80 81 83 85 192 193:196 201:255 1000:1035 3000:3035 5001 6000];
+            indicesR = [14:16 40:71             21:24 72 74 77 79 80 82 84 85 192 197:200 201:255 2000:2035 4000:4035 5002 6000];
+            if isdeployed()
+                indicesToCheck = 0;
+            else
+                indicesToCheck = [1 7:13 16:20 24 26:28 1000:1035 3000:3035];
+            end
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'sessionData', this.sessionData, @(x) isa(x, 'mlpipeline.ISessionData'))
+            addParameter(ip, 'indicesToCheck', indicesToCheck, @(x) any(x == indices) || isempty(x))
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            disp(ipr)
+            
+            sesd = ipr.sessionData;
+            sesd.region = 'wmparc1';
+            workdir = sesd.tracerResolvedOpSubject('typ', 'path');
+            
+            pwd0 = pushd(workdir);            
+            this.buildDataAugmentation(sesd);            
+            devkit = mlpet.ScannerKit.createFromSession(sesd);  
+            wmparc1 = sesd.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
+            wmparc1 = wmparc1.fourdfp;
+            gs = copy(wmparc1);
+            gs.fileprefix = sesd.gsOnAtlas('typ', 'fp', 'tags', [this.blurTag '_wmparc1']);
+            lenKs = mloxygen.DispersedNumericRaichle1983.LENK + 1;
+            gs.img = zeros([size(wmparc1) lenKs]);   
+
+            for idx = 1:length(indicesL) % parcs
+
+                % for parcs, build roibin as logical, roi as single                    
+                fprintf('starting mlpet.DispersedAerobicGlycolysisKit.buildGsByWmparc1.indices -> %i, %i\n', ...
+                    indicesL(idx), indicesR(idx))
+                tic
+                roi = copy(wmparc1);
+                roibin = wmparc1.img == indicesL(idx) | wmparc1.img == indicesR(idx);
+                roi.img = single(roibin);  
+                roi.fileprefix = sprintf('%s_indices%i,%i', roi.fileprefix, indicesL(idx), indicesR(idx));
+                if 0 == dipsum(roi.img)
+                    continue
+                end
+
+                % solve Raichle
+                model = mloxygen.ConstantERaichle1983Model( ...
+                    'histology', index2histology(indicesL(idx)));
+                raichle = mloxygen.DispersedNumericRaichle1983.createFromDeviceKit( ...
+                    devkit, ...
+                    'roi', mlfourd.ImagingContext2(roi), ...
+                    'model', model);
+                raichle = raichle.solve(@mloxygen.ConstantERaichle1983Model.loss_function);
+                toc
+
+                % insert Raichle solutions on roibin(idx) into fs
+                fscache = raichle.ks();
+                fscache(raichle.LENK+1) = raichle.Dt;
+                for ik = 1:raichle.LENK+1
+                    rate = gs.img(:,:,:,ik);
+                    rate(roibin) = fscache(ik);
+                    gs.img(:,:,:,ik) = rate;
+                end
+
+                % Dx
+                if any(indicesL(idx) == ipr.indicesToCheck)                        
+                    h = raichle.plot();
+                    title(sprintf('DispersedAerobicGlycolysisKit.buildGsByWmparc1:  indices %i, %i\n%s', ...
+                        indicesL(idx), indicesR(idx), datestr(sesd.datetime)))
+                    try
+                        dtTag = lower(sesd.doseAdminDatetimeTag);
+                        savefig(h, ...
+                            fullfile(workdir, ...
+                            sprintf('DispersedAerobicGlycolysisKit_buildGsByWmparc1_indices%i,%i_%s.fig', ...
+                            indicesL(idx), indicesR(idx), dtTag)))
+                        figs = get(0, 'children');
+                        saveas(figs(1), ...
+                            fullfile(workdir, ...
+                            sprintf('DispersedAerobicGlycolysisKit_buildGsByWmparc1_indices%i,%i_%s.png', ...
+                            indicesL(idx), indicesR(idx), dtTag)))
+                        close(figs(1))
+                    catch ME
+                        handwarning(ME)
+                    end
+                end                    
+            end                
+            gs = mlfourd.ImagingContext2(gs);
             popd(pwd0)
         end
         function ks    = buildKsByWmparc1(this, varargin)
@@ -809,19 +972,18 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             this.devkit_ = mlpet.ScannerKit.createFromSession(this.sessionData);
             cbv = mlfourd.ImagingContext2(this.sessionData.cbvOnAtlas('dateonly', true));
             mask = this.maskOnAtlasTagged();
-            ks = this.ksOnAtlasTagged();
+            m = this.metricOnAtlasTagged();
             r = mlglucose.DispersedImagingHuang1980.createFromDeviceKit(this.devkit_, 'cbv', cbv, 'roi', mask);
-            r.ks = ks;
+            r.ks = m;
         end
-        function h     = loadImagingRaichle(this, varargin)
-            %%
-            %  @return mloxygen.DispersedImagingRaichle1983  
+        function ir    = loadImagingRaichle(this, varargin)
+            %% LOADIMAGINGRAICHLE
+            %  @return mloxygen.DispersedImagingRaichle1983 
             
             this.devkit_ = mlpet.ScannerKit.createFromSession(this.sessionData);
             mask = this.maskOnAtlasTagged();
-            fs = this.fsOnAtlasTagged();
-            h = mloxygen.DispersedImagingRaichle1983.createFromDeviceKit(this.devkit_, 'roi', mask);
-            h.fs = fs;
+            ir = mloxygen.DispersedImagingRaichle1983.createFromDeviceKit(this.devkit_, 'roi', mask);
+            ir.metric = this.metricOnAtlasTagged();
         end
         function h     = loadNumericHuang(this, roi, varargin)
             %%
