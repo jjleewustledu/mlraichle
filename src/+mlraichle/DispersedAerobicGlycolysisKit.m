@@ -720,9 +720,9 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
 
                 % Dx
                 if any(indicesL(idx) == ipr.indicesToCheck)                        
-                    h = raichle.plot();
-                    title(sprintf('DispersedAerobicGlycolysisKit.buildFsByWmparc1:  indices %i, %i\n%s', ...
-                        indicesL(idx), indicesR(idx), datestr(sesd.datetime)))
+                    h = raichle.plot('zoom', 10);
+                    title(sprintf('DispersedAerobicGlycolysisKit.buildFsByWmparc1:  indices %i, %i\n%s; TAC zoom x%i', ...
+                        indicesL(idx), indicesR(idx), datestr(sesd.datetime), 10))
                     try
                         dtTag = lower(sesd.doseAdminDatetimeTag);
                         savefig(h, ...
