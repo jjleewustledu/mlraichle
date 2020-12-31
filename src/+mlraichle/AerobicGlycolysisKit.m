@@ -12,6 +12,142 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             msk = nmae.numlt(0.95);
             msk.fileprefix = strrep(nmae.fileprefix, 'fdg', 'mask');
         end
+        function             construct(varargin)
+            %% CONSTRUCT
+            %  e.g.:  construct('cbv', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 1, 'region', 'wholebrain')
+            %  e.g.:  construct('cbv', 'debug', true)
+            %  @param required metric is char, e.g., cbv, cbf, cmro2, cmrglc.
+            %  @param subjectsExpr is char, e.g., 'sub-S58163*'.
+            %  @param Nthreads is numeric|char.
+            %  @param region is char, e.g., wholebrain, wmparc1.
+            %  @param debug is logical.
+            
+            import mlraichle.*
+            import mlraichle.AerobicGlycolysisKit.*
+            import mlraichle.DispersedAerobicGlycolysisKit.*
+
+            ip = inputParser;
+            addRequired( ip, 'metric', @ischar)
+            addParameter(ip, 'subjectsExpr', 'sub-S58163', @ischar)
+            addParameter(ip, 'Nthreads', 1, @(x) isnumeric(x) || ischar(x))
+            addParameter(ip, 'region', 'wholebrain', @ischar)
+            addParameter(ip, 'scanIndex', 1:4, @isnumeric)
+            addParameter(ip, 'debug', false, @islogical)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            if ischar(ipr.Nthreads)
+                ipr.Nthreads = str2double(ipr.Nthreads);
+            end            
+            switch ipr.metric
+                case 'cbv'
+                    tracer = 'oc';
+                    ses_metric = '';
+                    if strcmp('wholebrain', ipr.region)
+                        construction = @DispersedAerobicGlycolysisKit.constructCbvWholebrain;
+                    else
+                        construction = @DispersedAerobicGlycolysisKit.constructCbvByRegion;
+                    end
+                case 'cbf'
+                    tracer = 'ho';
+                    ses_metric = 'fs';
+                    if strcmp('wholebrain', ipr.region)
+                        construction = @DispersedAerobicGlycolysisKit.constructCbfWholebrain;
+                    else
+                        construction = @DispersedAerobicGlycolysisKit.constructCbfByRegion;
+                    end
+                case 'cmro2'
+                    tracer = 'oo';
+                    ses_metric = 'os';
+                    if strcmp('wholebrain', ipr.region)
+                        construction = @DispersedAerobicGlycolysisKit.constructCmro2Wholebrain;
+                    else
+                        construction = @DispersedAerobicGlycolysisKit.constructCmro2ByRegion;
+                    end
+                case 'cmrglc'
+                    tracer = 'fdg';
+                    ses_metric = 'ks';
+                    if strcmp('wholebrain', ipr.region)
+                        construction = @DispersedAerobicGlycolysisKit.constructCmrglcWholebrain;
+                    else
+                        construction = @DispersedAerobicGlycolysisKit.constructCmrglcByRegion;
+                    end
+                otherwise
+                    errror('mlpet:RuntimeError', 'AerobicGlycolysisKit.construct.ipr.metric->%s', ipr.metric)
+            end
+            TRACER = upper(tracer);
+
+            registry = MatlabRegistry.instance(); %#ok<NASGU>
+            subjectsDir = fullfile(getenv('SINGULARITY_HOME'), 'subjects');
+            setenv('SUBJECTS_DIR', subjectsDir)
+            setenv('PROJECTS_DIR', fileparts(subjectsDir))
+            pwd1 = pushd(subjectsDir);
+
+            % gather subjects, sessions, scans
+            idx = 1;
+            subjects = globFoldersT(ipr.subjectsExpr); % e.g., 'sub-S3*'
+            for sub = subjects
+                pwd0 = pushd(fullfile(subjectsDir, sub{1}));
+                subd = mlraichle.SubjectData('subjectFolder', sub{1});
+                sesfs = subd.subFolder2sesFolders(sub{1});
+
+                for ses = sesfs
+                    if ~ipr.debug || strcmp(ses{1}, sesfs{3})
+                        for scan_idx = ipr.scanIndex
+                            try
+                                sesd = SessionData( ...
+                                    'studyData', StudyData(), ...
+                                    'projectData', ProjectData('sessionStr', ses{1}), ...
+                                    'subjectData', subd, ...
+                                    'sessionFolder', ses{1}, ...
+                                    'scanIndex', scan_idx, ...
+                                    'tracer', TRACER, ...
+                                    'ac', true, ...
+                                    'region', ipr.region, ...
+                                    'metric', ses_metric);            
+                                if sesd.datetime < mlraichle.StudyRegistry.instance.earliestCalibrationDatetime
+                                    continue
+                                end
+                                tracerfn = sesd.([tracer 'OnAtlas']);
+                                if ~isfile(tracerfn)
+                                    sesd.jitOn222(tracerfn)
+                                end
+                                if ~isfile([myfileprefix(tracerfn) '_b43.mat'])
+                                    ic = mlfourd.ImagingContext2(tracerfn);
+                                    ic = ic.blurred(4.3);
+                                    AerobicGlycolysisKit.ic2mat(ic)
+                                end
+                                filesys(idx).sesd = sesd; %#ok<AGROW>
+                                idx = idx + 1;
+                            catch ME
+                                handwarning(ME)
+                            end
+                        end
+                    end
+                end
+                popd(pwd0)
+            end        
+            
+            % do construction            
+            if ipr.Nthreads > 1
+                parfor (p = 1:length(filesys), ipr.Nthreads)
+                    try
+                        construction(filesys(p).sesd); %#ok<PFBNS> % RAM ~ 5.5 GB
+                    catch ME
+                        handwarning(ME)
+                    end
+                end
+            else
+                for p = 1:length(filesys)
+                    try
+                        construction(filesys(p).sesd); % RAM ~ 5.5 GB
+                    catch ME
+                        handwarning(ME)
+                    end
+                end
+            end
+            
+            popd(pwd1)
+        end
         function [cbf,msk] = constructCbfAndSupportInfo(varargin)
             %% CONSTRUCTCBFSUPPORTINFO
             %  @param required sessionData is mlpipeline.ISessionData.
@@ -49,7 +185,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             cbf = cbf.blurred(4.3);
             cbf.save()                      
             popd(pwd0)
-        end
+        end        
         function [cmrglc,Ks,msk] = constructCmrglcAndSupportInfo(varargin)
             %% CONSTRUCTCMRGLCANDSUPPORTINFO
             %  @param required foldersExpr is char, e.g., 'subjects/sub-S12345'.
@@ -574,12 +710,12 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             msk = msk.binarized();
             msk.save()
         end   
-        function sess = filesExpr2sessions(this, fexp)
+        function sesds = filesExpr2sessions(this, fexp)
             % @param fexp is char, e.g., 'subjects/sub-S58163/resampling_restricted/ocdt20190523122016_on_T1001.4dfp.hdr'
             % @return instance from this.sessionData_.create()
             
             assert(ischar(fexp))
-            sess = {};
+            sesds = {};
             ss = strsplit(fexp, filesep);
             assert(strcmp(ss{1}, 'subjects'))
             assert(strcmp(ss{3}, 'resampling_restricted'))
@@ -592,12 +728,12 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                 for ccir = {'CCIR_00559' 'CCIR_00754'}
                     sesf = fullfile(ccir{1}, globTracer{1});
                     if isfolder(fullfile(getenv('SINGULARITY_HOME'), sesf))
-                        sess = [sess {this.sessionData_.create(sesf)}]; %#ok<AGROW>
+                        sesds = [sesds {this.sessionData_.create(sesf)}]; %#ok<AGROW>
                     end
                 end
             end            
             popd(pwd0)
-        end  
+        end
     end
 		
     %% PROTECTED

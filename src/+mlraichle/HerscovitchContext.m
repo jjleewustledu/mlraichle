@@ -73,6 +73,7 @@ classdef HerscovitchContext < mlraichle.SessionData
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end
         function obj  = tracerResolvedSubj(this, varargin)
+            %% DEPRECATED
             obj = this.tracerResolvedFinal(varargin{:});
         end
         function obj  = tracerRevision(this, varargin)
