@@ -148,7 +148,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             popd(pwd0)
         end
         function aif       = constructCbvWholebrain(varargin)
-            %% CONSTRUCTFSWHOLEBRAIN
+            %% CONSTRUCTCBVWHOLEBRAIN
             %  @param required sessionData is mlpipeline.ISessionData.
             %  @param mask is char, e.g., 'brain_222.4dfp.hdr'
             %  @return numeric aif.
@@ -579,7 +579,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             % define venous
             ven = sesd.cbvOnAtlas('typ', 'ImagingContext2', 'dateonly', true);
             ven = ven.blurred(4.3);
-            ven = ven.thresh(10.8); % 10 sigmas per Ito 2004
+            ven = ven.thresh(10.29); % mean + 10 sigmas (mL/hg) per Ito 2004
             ven = ven.binarized();
             ven.fqfilename = sesd.venousOnAtlas();
             try
@@ -587,7 +587,8 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             catch ME
                 handwarning(ME)
             end
-            wmparc1.img(logical(ven.fourdfp.img)) = 6000;
+            selected = logical(ven.fourdfp.img) & wmparc1.img < 2;
+            wmparc1.img(selected) = 6000;
             
             % construct wmparc1
             ic = ImagingContext2(wmparc1);
@@ -815,15 +816,15 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             cbv.fileprefix = sesd.cbvOnAtlas('typ', 'fp', 'tags', [this.blurTag '_wmparc1']);
             cbv.img = zeros(size(wmparc1));  
 
-            for idx = 1:length(this.indicesL) % parcs
+            for idx = 1:length(this.indices) % parcs
 
                 % for parcs, build roibin as logical, roi as single                    
-                fprintf('starting %s.indices -> %i, %i\n', dbs(1).name, this.indicesL(idx), this.indicesR(idx))
+                fprintf('starting %s.index -> %i\n', dbs(1).name, this.indices(idx))
                 tic
                 roi = copy(wmparc1);
-                roibin = wmparc1.img == this.indicesL(idx) | wmparc1.img == this.indicesR(idx);
+                roibin = wmparc1.img == this.indices(idx);
                 roi.img = single(roibin);  
-                roi.fileprefix = sprintf('%s_indices%i,%i', roi.fileprefix, this.indicesL(idx), this.indicesR(idx));
+                roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, this.indices(idx));
                 if 0 == dipsum(roi.img)
                     continue
                 end
@@ -839,19 +840,19 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
                 toc                
 
                 % Dx
-                if any(this.indicesL(idx) == ipr.indicesToCheck)     
-                    h = martin.plot('index', [this.indicesL(idx) this.indicesR(idx)], 'roi', roi);                    
-                    title(sprintf('%s:  indices %i, %i\n%s', ...
-                        mname, this.indicesL(idx), this.indicesR(idx), datestr(sesd.datetime)))
+                if any(this.indices(idx) == ipr.indicesToCheck)     
+                    h = martin.plot('index', this.indices(idx), 'roi', roi);                    
+                    title(sprintf('%s:  indices %i\n%s', ...
+                        mname, this.indices(idx), datestr(sesd.datetime)))
                     try
                         dtTag = lower(sesd.doseAdminDatetimeTag);
                         savefig(h, ...
                             fullfile(workdir, ...
-                            sprintf('%s_indices%i,%i_%s.fig', mname, this.indicesL(idx), this.indicesR(idx), dtTag)))
+                            sprintf('%s_indices%i_%s.fig', mname, this.indices(idx), dtTag)))
                         figs = get(0, 'children');
                         saveas(figs(1), ...
                             fullfile(workdir, ...
-                            sprintf('%s_indices%i,%i_%s.png', mname, this.indicesL(idx), this.indicesR(idx), dtTag)))
+                            sprintf('%s_indices%i_%s.png', mname, this.indices(idx), dtTag)))
                         close(figs(1))
                     catch ME
                         handwarning(ME)
@@ -1127,7 +1128,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlraichle.AerobicGlycolysisKit
             ks = mlfourd.ImagingContext2(ks);
             popd(pwd0)
         end
-        function os    = buildOsByWmparc1(this, varargin)            
+        function os    = buildOsByWmparc1(this, varargin)
             %% BUILDOSBYWMPARC1
             %  @param sessionData is mlpipeline.ISessionData.
             %  @param indicesToCheck:  e.g., [6000 1 7:20 24].

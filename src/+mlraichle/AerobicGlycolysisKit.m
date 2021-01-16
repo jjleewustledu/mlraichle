@@ -30,7 +30,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             addRequired( ip, 'metric', @ischar)
             addParameter(ip, 'subjectsExpr', 'sub-S58163', @ischar)
             addParameter(ip, 'Nthreads', 1, @(x) isnumeric(x) || ischar(x))
-            addParameter(ip, 'region', 'wholebrain', @ischar)
+            addParameter(ip, 'region', 'wmparc1', @ischar)
             addParameter(ip, 'scanIndex', 1:4, @isnumeric)
             addParameter(ip, 'debug', false, @islogical)
             parse(ip, varargin{:})
@@ -39,6 +39,10 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                 ipr.Nthreads = str2double(ipr.Nthreads);
             end            
             switch ipr.metric
+                case 'wmparc1'
+                    tracer = 'oc';
+                    ses_metric = '';
+                    construction = @DispersedAerobicGlycolysisKit.constructWmparc1OnAtlas;
                 case 'cbv'
                     tracer = 'oc';
                     ses_metric = '';
@@ -80,6 +84,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             subjectsDir = fullfile(getenv('SINGULARITY_HOME'), 'subjects');
             setenv('SUBJECTS_DIR', subjectsDir)
             setenv('PROJECTS_DIR', fileparts(subjectsDir))
+            setenv('NOPLOT', '1')
             pwd1 = pushd(subjectsDir);
 
             % gather subjects, sessions, scans
