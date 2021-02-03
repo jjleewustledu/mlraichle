@@ -13,6 +13,7 @@ classdef AugmentedAerobicGlycolysisKit < handle
         model
         sessionData
         sessionData2
+        similarGlycemias = false
     end
     
     properties (Dependent)
@@ -44,8 +45,8 @@ classdef AugmentedAerobicGlycolysisKit < handle
             subjectsDir = fullfile(getenv('SINGULARITY_HOME'), 'subjects');
             setenv('SUBJECTS_DIR', subjectsDir)
             setenv('PROJECTS_DIR', fileparts(subjectsDir)) 
-            setenv('DEBUG', '1')
-            setenv('NOPLOT', '')
+            setenv('DEBUG', '')
+            setenv('NOPLOT', '1')
             warning('off', 'MATLAB:table:UnrecognizedVarNameCase')
             warning('off', 'mlnipet:ValueError:getScanFolder')
             
@@ -53,7 +54,7 @@ classdef AugmentedAerobicGlycolysisKit < handle
             addRequired( ip, 'physiology', @ischar)
             addParameter(ip, 'subjectsExpr', 'sub-S58163', @ischar)
             addParameter(ip, 'region', 'wmparc1', @ischar)
-            addParameter(ip, 'debug', false, @islogical)
+            addParameter(ip, 'debug', ~isempty(getenv('DEBUG')), @islogical)
             addParameter(ip, 'Nthreads', 1, @(x) isnumeric(x) || ischar(x))
             parse(ip, varargin{:})
             ipr = ip.Results;
@@ -65,36 +66,41 @@ classdef AugmentedAerobicGlycolysisKit < handle
             switch ipr.physiology
                 case 'cbv'
                     tracer = 'oc';
-                    metric = '';
+                    metric = 'v1';
+                    region = 'voxel';
                     construction = @AugmentedAerobicGlycolysisKit.constructCbvByRegion;
                 case 'cbf'
                     tracer = 'ho';
                     metric = 'fs';
+                    region = 'voxel';
                     construction = @AugmentedAerobicGlycolysisKit.constructCbfByRegion;
                 case 'cmro2'
                     tracer = 'oo';
                     metric = 'os';
+                    region = 'voxel';
                     construction = @AugmentedAerobicGlycolysisKit.constructCmro2ByRegion;
                 case 'cmrglc'
                     tracer = 'fdg';
                     metric = 'ks';
+                    region = ipr.region;
                     construction = @AugmentedAerobicGlycolysisKit.constructCmrglcByRegion;
                 otherwise
                     error('mlpet:RuntimeError', 'AugmentedAerobicGlycolysisKit.construct.ipr.physiology->%s', ipr.physiology)
             end
             
-            % construct
+            % construct            
             pwd1 = pushd(subjectsDir);           
             theSessionData = AugmentedAerobicGlycolysisKit.constructSessionData( ...
                 metric, ...
                 'subjectsExpr', ipr.subjectsExpr, ...
                 'tracer', tracer, ...
                 'debug', ipr.debug, ...
-                'region', ipr.region);
+                'region', region); % length(theSessionData) ~ 60
             if ipr.Nthreads > 1
                 parfor (p = 1:length(theSessionData), ipr.Nthreads)
                     for q = 1:length(theSessionData)
-                        if p ~= q
+                        if (p ~= q) && ...
+                                strcmp(theSessionData(p).subjectFolder, theSessionData(q).subjectFolder)
                             try
                                 construction(theSessionData(p), theSessionData(q)); %#ok<PFBNS>
                             catch ME
@@ -104,11 +110,17 @@ classdef AugmentedAerobicGlycolysisKit < handle
                     end
                 end
             else
-                for p = 5 % 1:length(theSessionData)
-                    for q = 3 % 1:length(theSessionData)
-                        if p ~= q
+                for p = 1:length(theSessionData)
+                    for q = 1:length(theSessionData)
+                        if (p ~= q) && ...
+                                strcmp(theSessionData(p).subjectFolder, theSessionData(q).subjectFolder)
                             try
-                                construction(theSessionData(p), theSessionData(q)); % RAM ~ 3 GB
+                                %sp = theSessionData(p);
+                                %sq = theSessionData(q);
+                                %if lstrfind('dt20190110114021dt20190110103134', lower(sp.doseAdminDatetimeTag)) && ...
+                                %    lstrfind('dt20190110114021dt20190110103134', lower(sq.doseAdminDatetimeTag))
+                                    construction(theSessionData(p), theSessionData(q)); % RAM ~ 3.3 GB
+                                %end
                             catch ME
                                 handwarning(ME)
                             end
@@ -119,6 +131,32 @@ classdef AugmentedAerobicGlycolysisKit < handle
             
             popd(pwd1)
         end
+        function constructCbvByRegion(varargin)
+            %% CONSTRUCTCBVBYREGION
+            %  @param required sessionData is mlpipeline.ISessionData.
+            %  @param required another sessionData for augmentation by averaging.
+            %  @return cbv as mlfourd.ImagingContext2 or cell array.
+            %  @return msk, the mask of kss, as mlfourd.ImagingContext2 or cell array.
+            
+            this = mlraichle.AugmentedAerobicGlycolysisKit(varargin{:});
+            Region = [upper(this.sessionData.region(1)) this.sessionData.region(2:end)];
+            pwd0 = pushd(this.sessionData.subjectPath);            
+            
+            [~, cbv_,aifs_] = this.(['buildV1By' Region])(); 
+            oc_ = this.tracerMixed();
+            
+            % save mat files for physiology
+            %this.ic2mat(cbv_)
+            %this.ic2mat(aifs_)
+            %this.ic2mat(oc_)
+            
+            % save ImagingContext2
+            cbv_.nifti.save()
+            aifs_.nifti.save()
+            oc_.nifti.save()
+            
+            popd(pwd0)
+        end  
         function constructCmrglcByRegion(varargin)
             %% CONSTRUCTCMRGLCBYREGION
             %  @param required sessionData.
@@ -133,21 +171,21 @@ classdef AugmentedAerobicGlycolysisKit < handle
             % build Ks and their masks           
             [ks_,cbv_,aifs_] = this.(['buildKsBy' Region])();
             cmrglc_ = this.ks2cmrglc(ks_, cbv_, this.model);
-            fdg_ = this.fdgMixed();  
+            fdg_ = this.tracerMixed();  
             
             % save ImagingContext2
-            ks_.save()
-            cbv_.save()
-            aifs_.save()
-            cmrglc_.save()
-            fdg_.save()
+            ks_.nifti.save()
+            cbv_.nifti.save()
+            aifs_.nifti.save()
+            cmrglc_.nifti.save()
+            fdg_.nifti.save()
             
             % save mat files for physiology
-            this.ic2mat(ks_)
-            this.ic2mat(cbv_)
-            this.ic2mat(aifs_)
-            this.ic2mat(cmrglc_)
-            this.ic2mat(fdg_)
+            %this.ic2mat(ks_)
+            %this.ic2mat(cbv_)
+            %this.ic2mat(aifs_)
+            %this.ic2mat(cmrglc_)
+            %this.ic2mat(fdg_)
             
             %this.constructCmrglcSupport(varargin{:});
             
@@ -230,7 +268,7 @@ classdef AugmentedAerobicGlycolysisKit < handle
             addRequired( ip, 'metric', @ischar)
             addParameter(ip, 'subjectsExpr', 'sub-S*', @ischar)
             addParameter(ip, 'tracer', '', @ischar)
-            addParameter(ip, 'debug', false, @islogical)
+            addParameter(ip, 'debug', ~isempty(getenv('DEBUG')), @islogical)
             addParameter(ip, 'region', 'wmparc1', @ischar)
             addParameter(ip, 'scanIndex', 1:4, @isnumeric)
             parse(ip, varargin{:})
@@ -284,7 +322,13 @@ classdef AugmentedAerobicGlycolysisKit < handle
             bin = flip(bin, 2);
             
             sz = size(ic);
-            img = ic.fourdfp.img;
+            img = ic.fourdfp.img;            
+            if length(sz) < 3
+                dat = img;
+                matfn = [ic.fqfileprefix '.mat'];
+                save(matfn, 'dat')
+                return
+            end
             img = flip(img, 2);
             if 4 == length(sz)
                 dat = zeros(dipsum(msk), sz(4));
@@ -352,6 +396,13 @@ classdef AugmentedAerobicGlycolysisKit < handle
                 dtstr = datestr(physiologyObjToDatetime(ipr.obj), 'yyyymmddHHMMSS') ;
             end
         end
+        function twi = twiliteRepaired(twi, scanner)
+            c = twi.countRate();
+            [~,idxPeak] = max(c);
+            [~,indexCliff] = min(c(idxPeak:end));
+            tauBeforeCliff = idxPeak + indexCliff - 10;
+            twi.imputeSteadyStateActivityDensity(twi.time0 + tauBeforeCliff, twi.time0 + scanner.timeWindow)
+        end
     end
     
     methods
@@ -383,21 +434,106 @@ classdef AugmentedAerobicGlycolysisKit < handle
         %%
         
         function obj = aifsOnAtlas(this, varargin)
-            obj = this.metricOnAtlas('aif', varargin{:});
+            tr = lower(this.sessionData.tracer);
+            obj = this.metricOnAtlas(['aif_' tr], varargin{:});
+        end
+        function [v1_,cbv_,aifs_] = buildV1ByVoxel(this, varargin)
+            %% BUILDVSBYVOXEL
+            %  @return v1_ in R^ as mlfourd.ImagingContext2, without saving to filesystems.  
+            %  @return cbv_ in R^3, without saving.
+            %  @return aifs_ in R, without saving.
+            
+            import mloxygen.AugmentedNumericMartin1987.mix
+            
+            ensuredir(this.dataPath)
+            pwd0 = pushd(this.dataPath);  
+                                   
+            devkit = mlpet.ScannerKit.createFromSession(this.sessionData); 
+            devkit2 = mlpet.ScannerKit.createFromSession(this.sessionData2); 
+            
+            scanner = devkit.buildScannerDevice();
+            scanner = scanner.blurred(this.sessionData.petPointSpread);
+            scanner2 = devkit2.buildScannerDevice();
+            scanner2 = scanner2.blurred(this.sessionData.petPointSpread);
+            
+            counter = devkit.buildArterialSamplingDevice(scanner);
+            counter = this.twiliteRepaired(counter, scanner);
+            counter2 = devkit2.buildArterialSamplingDevice(scanner2);  
+            counter2 = this.twiliteRepaired(counter2, scanner2);
+            this.Dt_aif = mloxygen.AugmentedNumericMartin1987.DTimeToShiftAifs( ...
+                counter, counter2, scanner, scanner2) + ...
+                2*randn();
+            %this.resetModelSampler()
+            
+            wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
+            wmparc1 = wmparc1.binarized();
+            
+            v1_ = copy(wmparc1.fourdfp);
+            v1_.filepath = this.dataPath;
+            v1_.fileprefix = this.v1OnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
+            lenV1 = 1;
+            v1mat_ = reshape(v1_.img, [numel(wmparc1) lenV1]);
+            v1found_ = find(v1mat_);
+
+            martin = mloxygen.AugmentedNumericMartin1987.createFromDeviceKit( ...
+                devkit, devkit2, ...
+                'scanner', scanner, ...
+                'scanner2', scanner2, ...
+                'counter', counter, ...
+                'counter2', counter2, ...
+                'roi', wmparc1, ...
+                'roi2', wmparc1, ...
+                'Dt_aif', this.Dt_aif, ...
+                'fracMixing', this.fracMixing);
+            
+            aifs_ = copy(v1_);
+            aifs_.fileprefix = this.aifsOnAtlas('typ', 'fp');
+            aifs_.img = martin.mixAifs( ...
+                'scanner', scanner, ...
+                'scanner2', scanner2, ...
+                'counter', counter, ...
+                'counter2', counter2, ...
+                'roi', wmparc1, ...
+                'Dt_aif', this.Dt_aif, ...
+                'fracMixing', this.fracMixing);
+            atimes = 0:numel(aifs_.img)-1;
+            if this.Dt_aif < 0 % interpolate aifs_ to scanner
+                aifs_.img = makima(atimes, aifs_.img, scanner.times);
+            else % interpolate aifs_ to scanner2
+                aifs_.img = makima(atimes, aifs_.img, scanner2.times);
+            end
+
+            for v1index = v1found_' % voxels
+
+                % fprintf('starting mlraichle.AugmentedAerobicGlycolysisKit.buildV1ByVoxel.idx -> %i\n', idx)
+                
+                roivecbin_ = false(size(v1mat_, 1), 1);
+                roivecbin_(v1index) = true;
+
+                % solve Martin model
+                martin = martin.solve(roivecbin_);
+
+                % insert Martin solutions on into v1mat_
+                v1mat_(roivecbin_) = martin.v1();
+            end
+            v1_.img = reshape(v1mat_, [size(wmparc1) lenV1]);
+            v1_ = mlfourd.ImagingContext2(v1_);
+            cbv_ = v1_ .* (100/mlpet.TracerKinetics.DENSITY_BRAIN);
+            cbv_.fileprefix = strrep(v1_.fileprefix, 'v1', 'cbv');
+            aifs_ = mlfourd.ImagingContext2(aifs_);
+            popd(pwd0)
         end
         function [ks_,cbv_,aifs_] = buildKsByWmparc1(this, varargin)
             %% BUILDKSBYWMPARC1
             %  @return ks_ in R^4 as mlfourd.ImagingContext2, without saving to filesystems.  
-            %  @return cbv_ in R^3.
-            %  @return aifs_ in R^4.
+            %  @return cbv_ in R^3, without saving.
+            %  @return aifs_ in R^4, without saving.
             
             import mlglucose.AugmentedNumericHuang1980.mix
             
             ensuredir(this.dataPath)
             pwd0 = pushd(this.dataPath);  
-            
-            this.sessionData.region = 'wmparc1';
-            this.sessionData2.region = 'wmparc1';                         
+                                    
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData); 
             devkit2 = mlpet.ScannerKit.createFromSession(this.sessionData2); 
             this.checkFdgIntegrity(devkit, devkit2)
@@ -407,9 +543,10 @@ classdef AugmentedAerobicGlycolysisKit < handle
             scanner2 = devkit2.buildScannerDevice();
             scanner2 = scanner2.blurred(this.sessionData.petPointSpread);
             
-            counter = devkit.buildCountingDevice();
-            counter2 = devkit2.buildCountingDevice();            
-            this.Dt_aif = mlglucose.AugmentedNumericHuang1980.DTimeToShiftAifs(counter, counter2)*rand();
+            counter = devkit.buildCountingDevice(scanner);
+            counter2 = devkit2.buildCountingDevice(scanner2);            
+            this.Dt_aif = mlglucose.AugmentedNumericHuang1980.DTimeToShiftAifs(counter, counter2, scanner, scanner2) + ...
+                3*randn();
             this.resetModelSampler()
             
             cbv = this.sessionData.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', ...
@@ -437,8 +574,7 @@ classdef AugmentedAerobicGlycolysisKit < handle
             for idx = this.indices % parcs
 
                 % for parcs, build roibin as logical, roi as single                    
-                fprintf('starting mlpet.AugmentedAerobicGlycolysisKit.buildKsByWmparc1.idx -> %i\n', idx)
-                tic
+                % fprintf('starting mlpet.AugmentedAerobicGlycolysisKit.buildKsByWmparc1.idx -> %i\n', idx)
                 roi = mlfourd.ImagingContext2(wmparc1);
                 roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, idx);
                 roi = roi.numeq(idx);
@@ -464,9 +600,8 @@ classdef AugmentedAerobicGlycolysisKit < handle
                     'fracMixing', this.fracMixing);
                 huang = huang.solve();
                 this.model = huang.model;
-                toc
 
-                % insert Huang solutions on roibin(idx) into ks
+                % insert Huang solutions into ksmat_
                 kscache = huang.ks();
                 kscache(lenKs) = huang.Dt;                
                 ksmat_(roivec_, :) = repmat(kscache, N_roivec_, 1);
@@ -475,7 +610,8 @@ classdef AugmentedAerobicGlycolysisKit < handle
                 if isempty(aifsmat_)
                     aifsmat_ = zeros([numel(wmparc1) length(huang.artery_sampled)]);
                 end
-                aifsmat_(roivec_, :) = repmat(huang.artery_sampled, N_roivec_, 1); %#ok<AGROW>
+                aifsmat_(roivec_, :) = repmat( ...
+                    huang.artery_local(kscache(lenKs-1)), N_roivec_, 1); %#ok<AGROW>
 
                 % Dx
                 if any(idx == this.indicesToCheck)  
@@ -504,7 +640,7 @@ classdef AugmentedAerobicGlycolysisKit < handle
             aifs_ = mlfourd.ImagingContext2(aifs_);
             popd(pwd0)
         end
-        function checkFdgIntegrity(~, devkit, devkit2)
+        function checkFdgIntegrity(this, devkit, devkit2)
             
             import mlglucose.Huang1980
             
@@ -520,29 +656,17 @@ classdef AugmentedAerobicGlycolysisKit < handle
                     'AugmentedNumericHuang1980.checkFdgIntegrity found no dynamic data in %s', ...
                     scanner2.imagingContext.fileprefix)
             end
-            counting = devkit.buildCountingDevice();
-            counting2 = devkit2.buildCountingDevice();
-            glc = Huang1980.glcFromRadMeasurements(counting.radMeasurements);
-            glc2 = Huang1980.glcFromRadMeasurements(counting2.radMeasurements);
-            if abs(glc - glc2) > min(glc, glc2)
-                error('mlglucose:RuntimeError', ...
-                    'AugmentedNumericHuang1980.checkFdgIntegrity:  glc (%g) and glc2 (%g) are too discrepant', ...
-                    glc, glc2)
+            if this.similarGlycemias                
+                counting = devkit.buildCountingDevice();
+                counting2 = devkit2.buildCountingDevice();
+                glc = Huang1980.glcFromRadMeasurements(counting.radMeasurements);
+                glc2 = Huang1980.glcFromRadMeasurements(counting2.radMeasurements);
+                if abs(glc - glc2) > min(glc, glc2)
+                    error('mlglucose:RuntimeError', ...
+                        'AugmentedNumericHuang1980.checkFdgIntegrity:  glc (%g) and glc2 (%g) are too discrepant', ...
+                        glc, glc2)
+                end
             end
-        end
-        function fdg_ = fdgMixed(this)
-            fdg = this.sessionData.fdgOnAtlas('typ', 'mlfourd.ImagingContext2');
-            fdg2 = this.sessionData2.fdgOnAtlas('typ', 'mlfourd.ImagingContext2');
-            times = this.sessionData.times;
-            times2 = this.sessionData2.times;
-            if this.Dt_aif > 10
-                fdg2 = fdg2.makima(times2 - this.Dt_aif, times);
-            end
-            if this.Dt_aif < -10                
-                fdg = fdg.makima(times + this.Dt_aif, times2);
-            end
-            fdg_ = mlglucose.AugmentedNumericHuang1980.mix(fdg, fdg2, this.fracMixing);
-            fdg_.filepath = this.dataPath;
         end
         function obj = cbvOnAtlas(this, varargin)
             obj = this.metricOnAtlas('cbv', varargin{:});
@@ -615,9 +739,9 @@ classdef AugmentedAerobicGlycolysisKit < handle
                     adatestr2 = ['dt' datestr(ipr.datetime2, 'yyyymmddHHMMSS')];
                 end
             end
-            fracstr = sprintf('mix%s', strrep(num2str(this.fracMixing, 4), '.', 'p'));
+            fracstr = sprintf('_mix%s', strrep(num2str(this.fracMixing, 4), '.', 'p'));
             assert(~isempty(this.Dt_aif))
-            daifstr = sprintf('daif%s', strrep(num2str(this.Dt_aif, 4), '.', 'p'));
+            daifstr = sprintf('_daif%s', strrep(num2str(this.Dt_aif, 4), '.', 'p'));
             
             fqfn = fullfile( ...
                 this.dataPath, ...
@@ -634,6 +758,30 @@ classdef AugmentedAerobicGlycolysisKit < handle
         end
         function resetModelSampler(~)
             mlpet.TracerKineticsModel.sampleOnScannerFrames([], [])
+        end        
+        function tr_ = tracerMixed(this)
+            tr = this.sessionData.tracerOnAtlas('typ', 'mlfourd.ImagingContext2');
+            tr2 = this.sessionData2.tracerOnAtlas('typ', 'mlfourd.ImagingContext2');
+            times = this.sessionData.times;
+            times2 = this.sessionData2.times;
+            taus = this.sessionData.alternativeTaus();
+            annotate_Dt_aif = nan;
+            if this.Dt_aif < -taus(1) % shift oc2 to left
+                tr2 = tr2.makima(times2 + this.Dt_aif, times);
+                annotate_Dt_aif = this.Dt_aif;
+            end
+            if this.Dt_aif > taus(1) % shift oc to left
+                tr = tr.makima(times - this.Dt_aif, times2);
+                annotate_Dt_aif = this.Dt_aif;
+            end
+            tr_ = mlpet.AugmentedData.mix(tr, tr2, this.fracMixing, annotate_Dt_aif);
+            ifc = tr_.fourdfp;
+            ifc.img(ifc.img < 0) = 0;
+            ifc.filepath = this.dataPath;
+            tr_ = mlfourd.ImagingContext2(ifc);
+        end
+        function obj = v1OnAtlas(this, varargin)
+            obj = this.metricOnAtlas('v1', varargin{:});
         end
     end
 
