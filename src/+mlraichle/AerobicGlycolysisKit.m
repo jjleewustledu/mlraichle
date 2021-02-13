@@ -24,7 +24,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             
             import mlraichle.*
             import mlraichle.AerobicGlycolysisKit.*
-            import mlraichle.DispersedAerobicGlycolysisKit.*
+            import mlraichle.AerobicsGlycolysisKit2.*
 
             ip = inputParser;
             addRequired( ip, 'metric', @ischar)
@@ -42,38 +42,38 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                 case 'wmparc1'
                     tracer = 'oc';
                     ses_metric = '';
-                    construction = @DispersedAerobicGlycolysisKit.constructWmparc1OnAtlas;
+                    construction = @AerobicsGlycolysisKit2.constructWmparc1OnAtlas;
                 case 'cbv'
                     tracer = 'oc';
                     ses_metric = '';
                     if strcmp('wholebrain', ipr.region)
-                        construction = @DispersedAerobicGlycolysisKit.constructCbvWholebrain;
+                        construction = @AerobicsGlycolysisKit2.constructCbvWholebrain;
                     else
-                        construction = @DispersedAerobicGlycolysisKit.constructCbvByRegion;
+                        construction = @AerobicsGlycolysisKit2.constructCbvByRegion;
                     end
                 case 'cbf'
                     tracer = 'ho';
                     ses_metric = 'fs';
                     if strcmp('wholebrain', ipr.region)
-                        construction = @DispersedAerobicGlycolysisKit.constructCbfWholebrain;
+                        construction = @AerobicsGlycolysisKit2.constructCbfWholebrain;
                     else
-                        construction = @DispersedAerobicGlycolysisKit.constructCbfByRegion;
+                        construction = @AerobicsGlycolysisKit2.constructCbfByRegion;
                     end
                 case 'cmro2'
                     tracer = 'oo';
                     ses_metric = 'os';
                     if strcmp('wholebrain', ipr.region)
-                        construction = @DispersedAerobicGlycolysisKit.constructCmro2Wholebrain;
+                        construction = @AerobicsGlycolysisKit2.constructCmro2Wholebrain;
                     else
-                        construction = @DispersedAerobicGlycolysisKit.constructCmro2ByRegion;
+                        construction = @AerobicsGlycolysisKit2.constructCmro2ByRegion;
                     end
                 case 'cmrglc'
                     tracer = 'fdg';
                     ses_metric = 'ks';
                     if strcmp('wholebrain', ipr.region)
-                        construction = @DispersedAerobicGlycolysisKit.constructCmrglcWholebrain;
+                        construction = @AerobicsGlycolysisKit2.constructCmrglcWholebrain;
                     else
-                        construction = @DispersedAerobicGlycolysisKit.constructCmrglcByRegion;
+                        construction = @AerobicsGlycolysisKit2.constructCmrglcByRegion;
                     end
                 otherwise
                     errror('mlpet:RuntimeError', 'AerobicGlycolysisKit.construct.ipr.metric->%s', ipr.metric)
@@ -543,7 +543,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             scanner = devkit.buildScannerDevice();
             scanner = scanner.blurred(4.3);
             scanner = scanner.volumeAveraged(roi);
-            Dt = mlglucose.NumericHuang1980.DTimeToShift(counting, scanner);
+            Dt = counting.Dt;
             timesInterp = 0:scanner.times(end);
             aif0 = cbv.fourdfp.img * pchip(counting.times, counting.activityDensity(), timesInterp);     
             aif1 = cbv.fourdfp.img * pchip(counting.times + Dt, counting.activityDensity(), timesInterp);    
