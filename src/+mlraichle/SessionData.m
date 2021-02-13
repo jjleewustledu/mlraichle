@@ -96,6 +96,10 @@ classdef SessionData < mlnipet.ResolvingSessionData
     end
 
     methods
+        function obj  = aifsOnAtlas(this, varargin)
+            tr = lower(this.tracer);
+            obj = this.metricOnAtlas(['aif_' tr], varargin{:});
+        end
         function obj  = brainOnAtlas(this, varargin)
             obj = this.metricOnAtlas('brain', 'datetime', '',varargin{:});
         end
@@ -166,17 +170,7 @@ classdef SessionData < mlnipet.ResolvingSessionData
             loc = this.tracerConvertedLocation(varargin{:});
         end        
         function obj  = tracerOnAtlas(this, varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'tags', '', @ischar)
-            addParameter(ip, 'getAugmented', true, @islogical)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            if ipr.getAugmented
-                ipr.tags = [ipr.tags this.dataAugmentationTags];
-            end
-            
-            obj = this.metricOnAtlas(this.tracer, varargin{:}, 'tags', ipr.tags);
+            obj = this.metricOnAtlas(this.tracer, varargin{:});
         end
         function obj  = venousOnAtlas(this, varargin)
             obj = this.metricOnAtlas('venous', 'datetime', '',varargin{:});
@@ -217,166 +211,46 @@ classdef SessionData < mlnipet.ResolvingSessionData
             obj = this.metricOnAtlas('cbv', varargin{:});
         end
         function obj  = chiOnAtlas(this, varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'tags', '', @ischar)
-            addParameter(ip, 'getAugmented', true, @islogical)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            if ipr.getAugmented
-                ipr.tags = [ipr.tags this.dataAugmentationTags];
-            end
-            
-            obj = this.metricOnAtlas('chi', varargin{:}, 'tags', ipr.tags);
+            obj = this.metricOnAtlas('chi', varargin{:});
         end
         function obj  = cmrglcOnAtlas(this, varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'tags', '', @ischar)
-            addParameter(ip, 'getAugmented', true, @islogical)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            if ipr.getAugmented
-                ipr.tags = [ipr.tags this.dataAugmentationTags];
-            end
-            
-            obj = this.metricOnAtlas('cmrglc', varargin{:}, 'tags', ipr.tags);
+            obj = this.metricOnAtlas('cmrglc', varargin{:});
         end
         function obj  = cmro2OnAtlas(this, varargin)
             obj = this.metricOnAtlas('cmro', varargin{:});
         end
         function obj  = coOnAtlas(this, varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'tags', '', @ischar)
-            addParameter(ip, 'getAugmented', true, @islogical)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            if ipr.getAugmented
-                ipr.tags = [ipr.tags this.dataAugmentationTags];
-            end
-            
-            obj = this.metricOnAtlas('co', varargin{:}, 'tags', ipr.tags);
+            obj = this.metricOnAtlas('co', varargin{:});
         end
-        function obj  = fdgOnAtlas(this, varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'tags', '', @ischar)
-            addParameter(ip, 'getAugmented', true, @islogical)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            if ipr.getAugmented
-                ipr.tags = [ipr.tags this.dataAugmentationTags];
-            end
-            
-            obj = this.metricOnAtlas('fdg', varargin{:}, 'tags', ipr.tags);
+        function obj  = fdgOnAtlas(this, varargin)            
+            obj = this.metricOnAtlas('fdg', varargin{:});
         end
         function obj  = fsOnAtlas(this, varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'tags', '', @ischar)
-            addParameter(ip, 'getAugmented', true, @islogical)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            if ipr.getAugmented
-                ipr.tags = [ipr.tags this.dataAugmentationTags];
-            end
-            
-            obj = this.metricOnAtlas('fs', varargin{:}, 'tags', ipr.tags);
+            obj = this.metricOnAtlas('fs', varargin{:});
         end
         function obj  = gsOnAtlas(this, varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'tags', '', @ischar)
-            addParameter(ip, 'getAugmented', true, @islogical)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            if ipr.getAugmented
-                ipr.tags = [ipr.tags this.dataAugmentationTags];
-            end
-            
-            obj = this.metricOnAtlas('gs', varargin{:}, 'tags', ipr.tags);
+            obj = this.metricOnAtlas('gs', varargin{:});
         end
         function obj  = hoOnAtlas(this, varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'tags', '', @ischar)
-            addParameter(ip, 'getAugmented', true, @islogical)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            if ipr.getAugmented
-                ipr.tags = [ipr.tags this.dataAugmentationTags];
-            end
-            
-            obj = this.metricOnAtlas('ho', varargin{:}, 'tags', ipr.tags);
+            obj = this.metricOnAtlas('ho', varargin{:});
         end
         function obj  = KsOnAtlas(this, varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'tags', '', @ischar)
-            addParameter(ip, 'getAugmented', true, @islogical)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            if ipr.getAugmented
-                ipr.tags = [ipr.tags this.dataAugmentationTags];
-            end
-            
-            obj = this.metricOnAtlas('Ks', varargin{:}, 'tags', ipr.tags);
+            obj = this.metricOnAtlas('Ks', varargin{:});
         end
         function obj  = ksOnAtlas(this, varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'tags', '', @ischar)
-            addParameter(ip, 'getAugmented', true, @islogical)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            if ipr.getAugmented
-                ipr.tags = [ipr.tags this.dataAugmentationTags];
-            end
-            
-            obj = this.metricOnAtlas('ks', varargin{:}, 'tags', ipr.tags);
+            obj = this.metricOnAtlas('ks', varargin{:});
         end
         function obj  = maskOnAtlas(this, varargin)
             obj = this.metricOnAtlas('mask', varargin{:});
         end
         function obj  = ocOnAtlas(this, varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'tags', '', @ischar)
-            addParameter(ip, 'getAugmented', true, @islogical)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            if ipr.getAugmented
-                ipr.tags = [ipr.tags this.dataAugmentationTags];
-            end
-            
-            obj = this.metricOnAtlas('oc', varargin{:}, 'tags', ipr.tags);
+            obj = this.metricOnAtlas('oc', varargin{:});
         end
         function obj  = ooOnAtlas(this, varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'tags', '', @ischar)
-            addParameter(ip, 'getAugmented', true, @islogical)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            if ipr.getAugmented
-                ipr.tags = [ipr.tags this.dataAugmentationTags];
-            end
-            
-            obj = this.metricOnAtlas('oo', varargin{:}, 'tags', ipr.tags);
+            obj = this.metricOnAtlas('oo', varargin{:});
         end
         function obj  = osOnAtlas(this, varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'tags', '', @ischar)
-            addParameter(ip, 'getAugmented', true, @islogical)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            if ipr.getAugmented
-                ipr.tags = [ipr.tags this.dataAugmentationTags];
-            end
-            
-            obj = this.metricOnAtlas('os', varargin{:}, 'tags', ipr.tags);
+            obj = this.metricOnAtlas('os', varargin{:});
         end
         function obj  = oefOnAtlas(this, varargin)
             obj = this.metricOnAtlas('oef', varargin{:});
@@ -386,6 +260,9 @@ classdef SessionData < mlnipet.ResolvingSessionData
         end
         function obj  = v1OnAtlas(this, varargin)
             obj = this.metricOnAtlas('v1', varargin{:});
+        end
+        function obj  = vsOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('vs', varargin{:});
         end
                 
         %% 
