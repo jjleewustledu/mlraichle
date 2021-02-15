@@ -333,13 +333,10 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             ensuredir(this.dataPath);
             pwd0 = pushd(this.dataPath);  
                                     
-            devkit = mlpet.ScannerKit.createFromSession(this.sessionData); 
-            
+            devkit = mlpet.ScannerKit.createFromSession(this.sessionData);             
             scanner = devkit.buildScannerDevice();
-            scanner = scanner.blurred(this.sessionData.petPointSpread);
-            
+            scanner = scanner.blurred(this.sessionData.petPointSpread);            
             arterial = devkit.buildArterialSamplingDevice(scanner);
-            this.resetModelSampler()
             
             wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingFormatContext');          
             
@@ -370,8 +367,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                     'scanner', scanner, ...
                     'arterial', arterial, ...
                     'roi', roi, ...
-                    'histology', AbstractAerobicGlycolysisKit.index2histology(idx), ...
-                    'T', DispersedNumericRaichle1983.T);  
+                    'histology', AbstractAerobicGlycolysisKit.index2histology(idx));  
                 raichle = raichle.solve(@mloxygen.DispersedRaichle1983Model.loss_function);
                 this.model = raichle.model;
                 
@@ -417,12 +413,9 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             pwd0 = pushd(this.dataPath);  
                                     
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData); 
-            
             scanner = devkit.buildScannerDevice();
-            scanner = scanner.blurred(this.sessionData.petPointSpread);
-            
+            scanner = scanner.blurred(this.sessionData.petPointSpread);            
             arterial = devkit.buildCountingDevice(scanner);
-            this.resetModelSampler()
             
             cbv = this.sessionData.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', ...
                 'dateonly', true, 'tags', [this.blurTag this.sessionData.regionTag]);
@@ -458,8 +451,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                     'scanner', scanner, ...
                     'arterial', arterial, ...
                     'cbv', cbv, ...
-                    'roi', roi, ...
-                    'T', DispersedNumericHuang1980.T);
+                    'roi', roi);
                 huang = huang.solve(@mlglucose.DispersedHuang1980Model.loss_function);
                 this.model = huang.model;
 
@@ -504,13 +496,10 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             ensuredir(this.dataPath);
             pwd0 = pushd(this.dataPath);  
                                     
-            devkit = mlpet.ScannerKit.createFromSession(this.sessionData); 
-            
+            devkit = mlpet.ScannerKit.createFromSession(this.sessionData);            
             scanner = devkit.buildScannerDevice();
-            scanner = scanner.blurred(this.sessionData.petPointSpread);
-            
+            scanner = scanner.blurred(this.sessionData.petPointSpread);            
             arterial = devkit.buildArterialSamplingDevice(scanner);
-            this.resetModelSampler()
             
             wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingFormatContext');           
             
@@ -540,8 +529,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                     devkit, ...
                     'scanner', scanner, ...
                     'arterial', arterial, ...
-                    'roi', roi, ...
-                    'T', DispersedNumericMintun1984.T);  
+                    'roi', roi);  
                 mintun = mintun.solve(@mloxygen.DispersedMintun1984Model.loss_function);
                 this.model = mintun.model;
                 
@@ -592,14 +580,12 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             %scanner = scanner.blurred(this.sessionData.petPointSpread);
             scannerWmparc1 = scanner.volumeAveraged(wmparc1.binarized());            
             arterial = devkit.buildArterialSamplingDevice(scannerWmparc1, 'deconvCatheter', false); 
-            %this.resetModelSampler()
             
             vs_ = copy(wmparc1.fourdfp);
             vs_.filepath = this.dataPath;
             vs_.fileprefix = this.vsOnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
             lenKs = 1;
             vs_.img = zeros([size(wmparc1) lenKs], 'single'); 
-%             aifs_ = copy(wmparc1.fourdfp);
             aifs_ = copy(vs_);
             aifs_.fileprefix = this.aifsOnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
             aifs_.img = 0;
@@ -620,17 +606,11 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                     devkit, ...
                     'scanner', scanner, ...
                     'arterial', arterial, ...
-                    'roi', roi, ...
-                    'T', DispersedNumericMartin1987.T);
+                    'roi', roi);
                 martin = martin.solve();                
                 
                 % insert Martin solutions into fs
                 vs_.img = vs_.img + martin.vs('typ', 'single');
-                
-                % collect aif and assigned to all voxels of wmparc1
-%                 if idx == this.indices(2)
-%                     aifs_ = martin.artery_global(aifs_);
-%                 end
                 
                 % collect delay & dipsersion adjusted aifs
                 aifs_.img = aifs_.img + martin.artery_local('typ', 'single');
@@ -713,6 +693,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             this.sessionData = ipr.sessionData;
             
             this.dataFolder = 'resampling_restricted';
+            this.resetModelSampler()
         end
  	end 
 

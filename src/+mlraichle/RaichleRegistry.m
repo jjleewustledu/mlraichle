@@ -9,14 +9,17 @@ classdef RaichleRegistry < handle & mlnipet.Resources
  	%% It was developed on Matlab 8.5.0.197613 (R2015a) for MACI64.
  	
     properties 
-        noclobber = true
+        Ddatetime0 % seconds
+        noclobber = true        
         umapType = 'ct'
+        T = 60 % sec at the start of artery_interpolated used for model but not described by scanner frames
     end
     
     properties (Dependent)
         rawdataDir
         projectsDir
         subjectsDir
+        tBuffer
         YeoDir
     end
     
@@ -40,6 +43,9 @@ classdef RaichleRegistry < handle & mlnipet.Resources
         function     set.subjectsDir(~, s)
             assert(isdir(s));
             setenv('SUBJECTS_DIR', s);
+        end
+        function g = get.tBuffer(this)
+            g = max(0, this.Ddatetime0) + this.T;
         end
         function g = get.YeoDir(this)
             g = this.subjectsDir;
