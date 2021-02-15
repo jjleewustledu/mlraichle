@@ -38,7 +38,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             subjectsDir = fullfile(getenv('SINGULARITY_HOME'), 'subjects');
             setenv('SUBJECTS_DIR', subjectsDir)
             setenv('PROJECTS_DIR', fileparts(subjectsDir)) 
-            setenv('DEBUG', '')
+            setenv('DEBUG', '1')
             setenv('NOPLOT', '')
             warning('off', 'MATLAB:table:UnrecognizedVarNameCase')
             warning('off', 'mlnipet:ValueError:getScanFolder')
@@ -143,6 +143,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             
             [vs_,aifs_] = this.(['buildVsBy' Region])(); 
             cbv_ = this.vs2cbv(vs_);
+            cbv_.fileprefix = [cbv_.fileprefix '_experimental'];
             
             % save ImagingContext2
             vs_.save()
