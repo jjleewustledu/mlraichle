@@ -413,6 +413,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             pwd0 = pushd(this.dataPath);  
                                     
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData); 
+            this.checkFdgIntegrity(devkit)            
             scanner = devkit.buildScannerDevice();
             scanner = scanner.blurred(this.sessionData.petPointSpread);            
             arterial = devkit.buildCountingDevice(scanner);
