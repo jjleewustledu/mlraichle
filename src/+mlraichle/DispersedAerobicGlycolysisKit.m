@@ -639,6 +639,17 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             aifs_ = mlfourd.ImagingContext2(aifs_);
             popd(pwd0);
         end 
+        function checkFdgIntegrity(~, devkit)
+            
+            import mlglucose.Huang1980
+            
+            scanner = devkit.buildScannerDevice();
+            if rank(scanner.imagingContext) < 4 
+                error('mlraichle:RuntimeError', ...
+                    'AugmentedNumericHuang1980.checkFdgIntegrity found no dynamic data in %s', ...
+                    scanner.imagingContext.fileprefix)
+            end
+        end
         function obj = metricOnAtlas(this, metric, varargin)
             %% METRICONATLAS appends fileprefixes with information from this.dataAugmentation
             %  @param required metric is char.
