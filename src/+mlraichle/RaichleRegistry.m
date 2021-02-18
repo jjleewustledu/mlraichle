@@ -12,7 +12,8 @@ classdef RaichleRegistry < handle & mlnipet.Resources
         Ddatetime0 % seconds
         noclobber = true        
         umapType = 'ct'
-        T = 60 % sec at the start of artery_interpolated used for model but not described by scanner frames
+        scatterFraction = 0
+        T = 10 % sec at the start of artery_interpolated used for model but not described by scanner frames
     end
     
     properties (Dependent)
@@ -34,18 +35,19 @@ classdef RaichleRegistry < handle & mlnipet.Resources
             g = getenv('PROJECTS_DIR');
         end        
         function     set.projectsDir(~, s)
-            assert(isdir(s));
+            assert(isfolder(s));
             setenv('PROJECTS_DIR', s);
         end
         function g = get.subjectsDir(~)
             g = getenv('SUBJECTS_DIR');
         end        
         function     set.subjectsDir(~, s)
-            assert(isdir(s));
+            assert(isfolder(s));
             setenv('SUBJECTS_DIR', s);
         end
         function g = get.tBuffer(this)
-            g = max(0, this.Ddatetime0) + this.T;
+            %g = 0;
+            g = max(0, -this.Ddatetime0) + this.T;
         end
         function g = get.YeoDir(this)
             g = this.subjectsDir;
