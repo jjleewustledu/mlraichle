@@ -12,9 +12,10 @@ classdef RaichleRegistry < handle & mlnipet.Resources
         Ddatetime0 % seconds
         noclobber = true    
         normalizationFactor = 1
-        umapType = 'ct'
         scatterFraction = 0
         T = 10 % sec at the start of artery_interpolated used for model but not described by scanner frames
+        umapType = 'ct'
+        stableToInterpolation = true
     end
     
     properties (Dependent)
