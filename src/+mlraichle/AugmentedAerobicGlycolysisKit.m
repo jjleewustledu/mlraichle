@@ -10,6 +10,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
         dataFolder
         Dt_aif
         fracMixing
+        indexCliff
         model
         sessionData
         sessionData2
@@ -44,7 +45,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             setenv('SUBJECTS_DIR', subjectsDir)
             setenv('PROJECTS_DIR', fileparts(subjectsDir)) 
             setenv('DEBUG', '1')
-            setenv('NOPLOT', '1')
+            setenv('NOPLOT', '')
             warning('off', 'MATLAB:table:UnrecognizedVarNameCase')
             warning('off', 'mlnipet:ValueError:getScanFolder')
             
@@ -53,8 +54,8 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             addParameter(ip, 'subjectsExpr', 'sub-S58163', @ischar)
             addParameter(ip, 'region', 'wmparc1', @ischar)
             addParameter(ip, 'debug', ~isempty(getenv('DEBUG')), @islogical)
+            addParameter(ip, 'indexCliff', [], @isnumeric)
             addParameter(ip, 'Nthreads', 1, @(x) isnumeric(x) || ischar(x))
-            addParameter(ip, 'augment', true, @islogical)
             parse(ip, varargin{:})
             ipr = ip.Results;
             if ischar(ipr.Nthreads)
@@ -88,7 +89,8 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             end
             
             % construct            
-            pwd1 = pushd(subjectsDir);           
+            pwd1 = pushd(subjectsDir);    
+            AugmentedAerobicGlycolysisKit.initialize()       
             theSessionData = AugmentedAerobicGlycolysisKit.constructSessionData( ...
                 metric, ...
                 'subjectsExpr', ipr.subjectsExpr, ...
@@ -98,10 +100,10 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             if ipr.Nthreads > 1
                 parfor (p = 1:length(theSessionData), ipr.Nthreads)
                     for q = 1:length(theSessionData)
-                        if (p ~= q) && ...
-                                strcmp(theSessionData(p).subjectFolder, theSessionData(q).subjectFolder)
+                        if strcmp(theSessionData(p).subjectFolder, theSessionData(q).subjectFolder)
                             try
-                                construction(theSessionData(p), theSessionData(q), 'augment', ipr.augment); %#ok<PFBNS>
+                                construction(theSessionData(p), theSessionData(q), ...
+                                    'indexCliff', ipr.indexCliff); %#ok<PFBNS>
                             catch ME
                                 handwarning(ME)
                             end
@@ -109,12 +111,12 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                     end
                 end
             elseif ipr.Nthreads == 1
-                for p = 1:length(theSessionData)
-                    for q = 1:length(theSessionData)
-                        if (p ~= q) && ...
-                                strcmp(theSessionData(p).subjectFolder, theSessionData(q).subjectFolder)
+                for p = length(theSessionData):-1:1
+                    for q = length(theSessionData):-1:1
+                        if strcmp(theSessionData(p).subjectFolder, theSessionData(q).subjectFolder)
                             try
-                                construction(theSessionData(p), theSessionData(q), 'augment', ipr.augment); % RAM ~ 3.3 GB
+                                construction(theSessionData(p), theSessionData(q), ...
+                                    'indexCliff', ipr.indexCliff); % RAM ~ 3.3 GB
                             catch ME
                                 handwarning(ME)
                             end
@@ -136,6 +138,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             Region = [upper(this.sessionData.region(1)) this.sessionData.region(2:end)];
             pwd0 = pushd(this.sessionData.subjectPath);            
             
+            this.indexCliff = 120;
             [fs_,aifs_] = this.(['buildFsBy' Region])();             
             cbf_ = this.fs2cbf(fs_);
             ho_ = this.tracerMixed();
@@ -207,6 +210,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             Region = [upper(this.sessionData.region(1)) this.sessionData.region(2:end)];
             pwd0 = pushd(this.sessionData.subjectPath);            
             
+            this.indexCliff = 120;
             [os_,aifs_] = this.(['buildOsBy' Region])();             
             cbf_ = this.sessionData.cbfOnAtlas( ...
                 'typ', 'mlfourd.ImagingContext2', ...
@@ -258,28 +262,26 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             
             ensuredir(this.dataPath);
             pwd0 = pushd(this.dataPath);  
-                                    
+                                  
+            wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
+            wmparc12 = this.sessionData2.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');    
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData); 
-            devkit2 = mlpet.ScannerKit.createFromSession(this.sessionData2); 
-            
+            devkit2 = mlpet.ScannerKit.createFromSession(this.sessionData2);            
             scanner = devkit.buildScannerDevice();
             scanner = scanner.blurred(this.sessionData.petPointSpread);
+            scannerWmparc1 = scanner.volumeAveraged(wmparc1.binarized()); 
             scanner2 = devkit2.buildScannerDevice();
-            scanner2 = scanner2.blurred(this.sessionData.petPointSpread);
-            
-            arterial = devkit.buildArterialSamplingDevice(scanner);
-            arterial2 = devkit2.buildArterialSamplingDevice(scanner2);  
+            scanner2 = scanner2.blurred(this.sessionData.petPointSpread);  
+            scanner2Wmparc12 = scanner2.volumeAveraged(wmparc12.binarized());           
+            arterial = devkit.buildArterialSamplingDevice(scannerWmparc1, 'indexCliff', this.indexCliff);
+            arterial2 = devkit2.buildArterialSamplingDevice(scanner2Wmparc12, 'indexCliff', this.indexCliff);  
             taus = this.sessionData.alternativeTaus();
-            this.Dt_aif = taus(1)*abs(randn());
-            this.resetModelSampler()
+            this.Dt_aif = 1 + taus(1)*abs(randn());                      
             
-            wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingFormatContext');
-            wmparc12 = this.sessionData2.wmparc1OnAtlas('typ', 'mlfourd.ImagingFormatContext');            
-            
-            fs_ = copy(wmparc1);
+            fs_ = copy(wmparc1.fourdfp);
             fs_.filepath = this.dataPath;
             fs_.fileprefix = this.fsOnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
-            lenKs = mloxygen.AugmentedNumericRaichle1983.LENK + 1;
+            lenKs = mloxygen.AugmentedNumericRaichle1983.LENK;
             fs_.img = zeros([size(wmparc1) lenKs], 'single'); 
             aifs_ = copy(fs_);
             aifs_.fileprefix = this.aifsOnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
@@ -290,10 +292,10 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 % for parcs, build roibin as logical, roi as single 
                 fprintf('%s\n', datestr(now))
                 fprintf('starting mlpet.AugmentedAerobicGlycolysisKit.buildFsByWmparc1.idx -> %i\n', idx)
-                roi = mlfourd.ImagingContext2(wmparc1);
+                roi = copy(wmparc1);
                 roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, idx);
                 roi = roi.numeq(idx);
-                roi2 = mlfourd.ImagingContext2(wmparc12);
+                roi2 = copy(wmparc12);
                 roi2.fileprefix = sprintf('%s_index%i', roi2.fileprefix, idx);
                 roi2 = roi2.numeq(idx);
                 if 0 == dipsum(roi) || 0 == dipsum(roi2)
@@ -311,7 +313,6 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                     'roi', roi, ...
                     'roi2', roi2, ...
                     'histology', AbstractAerobicGlycolysisKit.index2histology(idx), ...
-                    'T', AugmentedNumericRaichle1983.T, ...
                     'Dt_aif', this.Dt_aif, ...
                     'fracMixing', this.fracMixing);  
                 raichle = raichle.solve(@mloxygen.DispersedRaichle1983Model.loss_function);
@@ -358,22 +359,23 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             import mlglucose.AugmentedNumericHuang1980.mix
             
             ensuredir(this.dataPath);
-            pwd0 = pushd(this.dataPath);  
-                                    
+            pwd0 = pushd(this.dataPath);                                 
+            
+            wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
+            wmparc12 = this.sessionData2.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');   
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData); 
             devkit2 = mlpet.ScannerKit.createFromSession(this.sessionData2); 
-            this.checkFdgIntegrity(devkit, devkit2)
-            
+            this.checkFdgIntegrity(devkit, devkit2)            
             scanner = devkit.buildScannerDevice();
             scanner = scanner.blurred(this.sessionData.petPointSpread);
+            scannerWmparc1 = scanner.volumeAveraged(wmparc1.binarized()); 
             scanner2 = devkit2.buildScannerDevice();
-            scanner2 = scanner2.blurred(this.sessionData.petPointSpread);
-            
-            arterial = devkit.buildCountingDevice(scanner);
-            arterial2 = devkit2.buildCountingDevice(scanner2);            
+            scanner2 = scanner2.blurred(this.sessionData.petPointSpread); 
+            scanner2Wmparc1 = scanner2.volumeAveraged(wmparc12.binarized());            
+            arterial = devkit.buildCountingDevice(scannerWmparc1);
+            arterial2 = devkit2.buildCountingDevice(scanner2Wmparc1);            
             taus = this.sessionData.alternativeTaus();
-            this.Dt_aif = taus(1)*abs(randn());
-            this.resetModelSampler()
+            this.Dt_aif = 1 + taus(1)*abs(randn());
             
             cbv = this.sessionData.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', ...
                 'dateonly', true, 'tags', [this.blurTag this.sessionData.regionTag]);
@@ -383,13 +385,10 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             cbv_.filepath = this.dataPath;
             cbv_.fileprefix = this.cbvOnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
             
-            wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
-            wmparc12 = this.sessionData2.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
-            
             ks_ = copy(wmparc1.fourdfp);
             ks_.filepath = this.dataPath;
             ks_.fileprefix = this.ksOnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
-            lenKs = mlglucose.AugmentedNumericHuang1980.LENK + 1;
+            lenKs = mlglucose.AugmentedNumericHuang1980.LENK;
             ks_.img = zeros([size(wmparc1) lenKs], 'single');              
             aifs_ = copy(ks_);
             aifs_.fileprefix = this.aifsOnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]); 
@@ -400,10 +399,10 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 % for parcs, build roibin as logical, roi as single 
                 fprintf('%s\n', datestr(now))
                 fprintf('starting mlpet.AugmentedAerobicGlycolysisKit.buildKsByWmparc1.idx -> %i\n', idx)
-                roi = mlfourd.ImagingContext2(wmparc1);
+                roi = copy(wmparc1);
                 roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, idx);
                 roi = roi.numeq(idx);
-                roi2 = mlfourd.ImagingContext2(wmparc12);
+                roi2 = copy(wmparc12);
                 roi2.fileprefix = sprintf('%s_index%i', roi2.fileprefix, idx);
                 roi2 = roi2.numeq(idx);
                 if 0 == dipsum(roi) || 0 == dipsum(roi2)
@@ -422,7 +421,6 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                     'cbv2', cbv2, ...
                     'roi', roi, ...
                     'roi2', roi2, ...
-                    'T', AugmentedNumericHuang1980.T, ...
                     'Dt_aif', this.Dt_aif, ...
                     'fracMixing', this.fracMixing);
                 huang = huang.solve(@mlglucose.DispersedHuang1980Model.loss_function);
@@ -470,28 +468,27 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             
             ensuredir(this.dataPath);
             pwd0 = pushd(this.dataPath);  
-                                    
+                         
+            wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
+            wmparc12 = this.sessionData2.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');             
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData); 
-            devkit2 = mlpet.ScannerKit.createFromSession(this.sessionData2); 
-            
+            devkit2 = mlpet.ScannerKit.createFromSession(this.sessionData2);             
             scanner = devkit.buildScannerDevice();
             scanner = scanner.blurred(this.sessionData.petPointSpread);
+            scannerWmparc1 = scanner.volumeAveraged(wmparc1.binarized()); 
             scanner2 = devkit2.buildScannerDevice();
             scanner2 = scanner2.blurred(this.sessionData.petPointSpread);
-            
-            arterial = devkit.buildArterialSamplingDevice(scanner);
-            arterial2 = devkit2.buildArterialSamplingDevice(scanner2);  
+            scanner2Wmparc12 = scanner2.volumeAveraged(wmparc12.binarized());             
+            arterial = devkit.buildArterialSamplingDevice(scannerWmparc1, 'indexCliff', this.indexCliff);
+            arterial2 = devkit2.buildArterialSamplingDevice(scanner2Wmparc12, 'indexCliff', this.indexCliff);  
             taus = this.sessionData.alternativeTaus();
-            this.Dt_aif = taus(1)*abs(randn());
-            this.resetModelSampler()
+            this.Dt_aif = 1 + taus(1)*abs(randn());
+                      
             
-            wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingFormatContext');
-            wmparc12 = this.sessionData2.wmparc1OnAtlas('typ', 'mlfourd.ImagingFormatContext');            
-            
-            os_ = copy(wmparc1);
+            os_ = copy(wmparc1.fourdfp);
             os_.filepath = this.dataPath;
             os_.fileprefix = this.osOnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
-            lenKs = mloxygen.AugmentedNumericMintun1984.LENK + 1;
+            lenKs = mloxygen.AugmentedNumericMintun1984.LENK;
             os_.img = zeros([size(wmparc1) lenKs], 'single'); 
             aifs_ = copy(os_);
             aifs_.fileprefix = this.aifsOnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
@@ -501,11 +498,11 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
 
                 % for parcs, build roibin as logical, roi as single 
                 fprintf('%s\n', datestr(now))
-                fprintf('starting mlpet.AugmentedAerobicGlycolysisKit.buildFsByWmparc1.idx -> %i\n', idx)
-                roi = mlfourd.ImagingContext2(wmparc1);
+                fprintf('starting mlpet.AugmentedAerobicGlycolysisKit.buildOsByWmparc1.idx -> %i\n', idx)
+                roi = copy(wmparc1);
                 roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, idx);
                 roi = roi.numeq(idx);
-                roi2 = mlfourd.ImagingContext2(wmparc12);
+                roi2 = copy(wmparc12);
                 roi2.fileprefix = sprintf('%s_index%i', roi2.fileprefix, idx);
                 roi2 = roi2.numeq(idx);
                 if 0 == dipsum(roi) || 0 == dipsum(roi2)
@@ -522,7 +519,6 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                     'arterial2', arterial2, ...
                     'roi', roi, ...
                     'roi2', roi2, ...
-                    'T', AugmentedNumericMintun1984.T, ...
                     'Dt_aif', this.Dt_aif, ...
                     'fracMixing', this.fracMixing);  
                 mintun = mintun.solve(@mloxygen.DispersedMintun1984Model.loss_function);
@@ -582,8 +578,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             arterial = devkit.buildArterialSamplingDevice(scanner);
             arterial2 = devkit2.buildArterialSamplingDevice(scanner2);  
             taus = this.sessionData.alternativeTaus();
-            this.Dt_aif = taus(1)*abs(randn());
-            %this.resetModelSampler()
+            this.Dt_aif = 1 + taus(1)*abs(randn());
             
             wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
             wmparc1 = wmparc1.binarized();
@@ -603,7 +598,6 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 'arterial2', arterial2, ...
                 'roi', wmparc1, ...
                 'roi2', wmparc1, ...
-                'T', AugmentedNumericMartin1987.T, ...
                 'Dt_aif', this.Dt_aif, ...
                 'fracMixing', this.fracMixing);
             
@@ -656,22 +650,20 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             ensuredir(this.dataPath);
             pwd0 = pushd(this.dataPath);  
                                    
+            wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
+            wmparc12 = this.sessionData2.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');             
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData); 
-            devkit2 = mlpet.ScannerKit.createFromSession(this.sessionData2); 
-            
+            devkit2 = mlpet.ScannerKit.createFromSession(this.sessionData2);             
             scanner = devkit.buildScannerDevice();
             scanner = scanner.blurred(this.sessionData.petPointSpread);
+            scannerWmparc1 = scanner.volumeAveraged(wmparc1.binarized()); 
             scanner2 = devkit2.buildScannerDevice();
             scanner2 = scanner2.blurred(this.sessionData.petPointSpread);
-            
-            arterial = devkit.buildArterialSamplingDevice(scanner);
-            arterial2 = devkit2.buildArterialSamplingDevice(scanner2);  
+            scanner2Wmparc12 = scanner2.volumeAveraged(wmparc12.binarized());            
+            arterial = devkit.buildArterialSamplingDevice(scannerWmparc1);
+            arterial2 = devkit2.buildArterialSamplingDevice(scanner2Wmparc12);  
             taus = this.sessionData.alternativeTaus();
-            this.Dt_aif = taus(1)*abs(randn());
-            %this.resetModelSampler()
-            
-            wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
-            wmparc12 = this.sessionData2.wmparc1OnAtlas('typ', 'mlfourd.ImagingFormatContext'); 
+            this.Dt_aif = 1 + taus(1)*abs(randn());            
             
             vs_ = copy(wmparc1.fourdfp);
             vs_.filepath = this.dataPath;
@@ -687,10 +679,10 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 % for parcs, build roibin as logical, roi as single 
                 fprintf('%s\n', datestr(now))
                 fprintf('starting mlpet.AugmentedAerobicGlycolysisKit.buildVsByWmparc1.idx -> %i\n', idx)
-                roi = mlfourd.ImagingContext2(wmparc1);
+                roi = copy(wmparc1);
                 roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, idx);
                 roi = roi.numeq(idx);
-                roi2 = mlfourd.ImagingContext2(wmparc12);
+                roi2 = copy(wmparc12);
                 roi2.fileprefix = sprintf('%s_index%i', roi2.fileprefix, idx);
                 roi2 = roi2.numeq(idx);
                 if 0 == dipsum(roi) || 0 == dipsum(roi2)
@@ -706,7 +698,8 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                     'arterial2', arterial2, ...
                     'roi', roi, ...
                     'roi2', roi2, ...
-                    'T', AugmentedNumericMartin1987.T, ...
+                    'T0', 120, ...
+                    'Tf', 240, ...
                     'Dt_aif', this.Dt_aif, ...
                     'fracMixing', this.fracMixing);
                 martin = martin.solve();                
@@ -859,13 +852,16 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             ip.PartialMatching = false;
             addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             addRequired(ip, 'sessionData2', @(x) isa(x, 'mlpipeline.ISessionData'))
+            addParameter(ip, 'indexCliff', [], @isnumeric)
             parse(ip, varargin{:})
             ipr = ip.Results;
             this.sessionData = ipr.sessionData;
             this.sessionData2 = ipr.sessionData2;
+            this.indexCliff = ipr.indexCliff;
             
             this.dataFolder = 'data_augmentation';
             this.fracMixing = 0.49*rand() + 0.5;
+            this.resetModelSampler()
  		end
  	end 
 
