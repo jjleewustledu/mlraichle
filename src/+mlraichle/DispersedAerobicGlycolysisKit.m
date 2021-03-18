@@ -40,7 +40,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             setenv('SUBJECTS_DIR', subjectsDir)
             setenv('PROJECTS_DIR', fileparts(subjectsDir)) 
             setenv('DEBUG', '')
-            setenv('NOPLOT', '')
+            setenv('NOPLOT', '1')
             warning('off', 'MATLAB:table:UnrecognizedVarNameCase')
             
             ip = inputParser;
@@ -101,7 +101,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                     end
                 end
             elseif ipr.Nthreads == 1
-                for p = 1:length(theSessionData)
+                for p = length(theSessionData):-1:1
                     try
                         construction(theSessionData(p), ...
                             'indexCliff', ipr.indexCliff); % RAM ~ 3.3 GB
@@ -312,6 +312,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             cohortMetric.save()
         end     
         function ic = constructPhysiologyDateOnly(varargin)
+            %% e.g., constructPhysiologyDateOnly('cbv', 'subjectFolder', 'sub-S58163')
             
             import mlraichle.DispersedAerobicGlycolysisKit
             
@@ -727,7 +728,6 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             scanner = scanner.blurred(this.sessionData.petPointSpread);
             scannerWmparc1 = scanner.volumeAveraged(wmparc1.binarized());            
             arterial = devkit.buildArterialSamplingDevice(scannerWmparc1, 'sameWorldline', false); 
-                                                                        % 'deconvCatheter', false); 
             h = plot(arterial.radialArteryKit);
             this.savefig(h, 0, 'tags', 'CO radial artery')
             % empirical normalization
