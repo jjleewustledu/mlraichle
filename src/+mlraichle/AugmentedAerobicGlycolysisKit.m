@@ -568,10 +568,10 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 'Dt_aif', this.Dt_aif, ...
                 'fracMixing', this.fracMixing);
             atimes = 0:numel(aifs_.img)-1;
-            if this.Dt_aif < 0 % interpolate aifs_ to scanner
-                aifs_.img = makima(atimes, aifs_.img, scanner.times);
+            if this.DtMixing < 0 % interpolate aifs_ to scanner
+                aifs_.img = interp1(atimes, aifs_.img, scanner.times);
             else % interpolate aifs_ to scanner2
-                aifs_.img = makima(atimes, aifs_.img, scanner2.times);
+                aifs_.img = interp1(atimes, aifs_.img, scanner2.times);
             end
 
             for v1index = v1found_' % voxels
@@ -799,14 +799,14 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             times = this.sessionData.times;
             times2 = this.sessionData2.times;
             taus = this.sessionData.alternativeTaus();
-            annotate_Dt_aif = nan;
-            if this.Dt_aif < -taus(1) % shift oc2 to left
-                tr2 = tr2.makima(times2 + this.Dt_aif, times);
-                annotate_Dt_aif = this.Dt_aif;
+            annotate_DtMixing = nan;
+            if this.DtMixing < -taus(1) % shift oc2 to left
+                tr2 = tr2.interp1(times2 + this.DtMixing, times);
+                annotate_DtMixing = this.DtMixing;
             end
-            if this.Dt_aif > taus(1) % shift oc to left
-                tr = tr.makima(times - this.Dt_aif, times2);
-                annotate_Dt_aif = this.Dt_aif;
+            if this.DtMixing > taus(1) % shift oc to left
+                tr = tr.interp1(times - this.DtMixing, times2);
+                annotate_DtMixing = this.DtMixing;
             end
             tr_ = mlpet.AugmentedData.mix(tr, tr2, this.fracMixing, annotate_Dt_aif);
             ifc = tr_.fourdfp;
