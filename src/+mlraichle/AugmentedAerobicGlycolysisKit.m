@@ -15,6 +15,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
         sessionData
         sessionData2
         similarGlycemias = false
+        tausForMixing = 3
     end
     
     properties (Dependent)
@@ -276,7 +277,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             arterial = devkit.buildArterialSamplingDevice(scannerWmparc1, 'indexCliff', this.indexCliff);
             arterial2 = devkit2.buildArterialSamplingDevice(scanner2Wmparc12, 'indexCliff', this.indexCliff);  
             taus = this.sessionData.alternativeTaus();
-            this.Dt_aif = 1 + taus(1)*abs(randn());                      
+            this.DtMixing = taus(1) + this.tausForMixing*taus(1)*abs(randn());                      
             
             fs_ = copy(wmparc1.fourdfp);
             fs_.filepath = this.dataPath;
@@ -360,7 +361,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             arterial = devkit.buildCountingDevice(scannerWmparc1);
             arterial2 = devkit2.buildCountingDevice(scanner2Wmparc1);            
             taus = this.sessionData.alternativeTaus();
-            this.Dt_aif = 1 + taus(1)*abs(randn());
+            this.DtMixing = taus(1) + this.tausForMixing*taus(1)*abs(randn());
             
             cbv = this.sessionData.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', ...
                 'dateonly', true, 'tags', [this.blurTag this.sessionData.regionTag]);
@@ -452,7 +453,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             arterial = devkit.buildArterialSamplingDevice(scannerWmparc1, 'indexCliff', this.indexCliff);
             arterial2 = devkit2.buildArterialSamplingDevice(scanner2Wmparc12, 'indexCliff', this.indexCliff);  
             taus = this.sessionData.alternativeTaus();
-            this.Dt_aif = 1 + taus(1)*abs(randn());
+            this.DtMixing = taus(1) + this.tausForMixing*taus(1)*abs(randn());
                       
             
             os_ = copy(wmparc1.fourdfp);
@@ -533,7 +534,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             arterial = devkit.buildArterialSamplingDevice(scanner);
             arterial2 = devkit2.buildArterialSamplingDevice(scanner2);  
             taus = this.sessionData.alternativeTaus();
-            this.Dt_aif = 1 + taus(1)*abs(randn());
+            this.DtMixing = taus(1) + this.tausForMixing*taus(1)*abs(randn());
             
             wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
             wmparc1 = wmparc1.binarized();
@@ -618,7 +619,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             arterial = devkit.buildArterialSamplingDevice(scannerWmparc1);
             arterial2 = devkit2.buildArterialSamplingDevice(scanner2Wmparc12);  
             taus = this.sessionData.alternativeTaus();
-            this.Dt_aif = 1 + taus(1)*abs(randn());            
+            this.DtMixing = taus(1) + this.tausForMixing*taus(1)*abs(randn());            
             
             vs_ = copy(wmparc1.fourdfp);
             vs_.filepath = this.dataPath;
@@ -834,7 +835,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             this.indexCliff = ipr.indexCliff;
             
             this.dataFolder = 'data_augmentation';
-            this.fracMixing = 0.49*rand() + 0.5;
+            this.fracMixing = 0.45*rand() + 0.5;
             this.resetModelSampler()
  		end
  	end 
