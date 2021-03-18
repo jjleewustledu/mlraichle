@@ -327,22 +327,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 % Dx
                 if any(idx == this.indicesToCheck)  
                     h = raichle.plot();
-                    dtStr = [datestr(this.sessionData.datetime) ', ' datestr(this.sessionData2.datetime)];
-                    title(sprintf('AugmentedAerobicGlycolysisKit.buildFsByWmparc1:  idx == %i\n%s', idx, dtStr))
-                    try
-                        dtTag = [lower(this.sessionData.doseAdminDatetimeTag) ...
-                                 lower(this.sessionData2.doseAdminDatetimeTag)];
-                        savefig(h, ...
-                            fullfile(this.dataPath, ...
-                            sprintf('AugmentedAerobicGlycolysisKit_buildFsByWmparc1_idx%i_%s.fig', idx, dtTag)))
-                        figs = get(0, 'children');
-                        saveas(figs(1), ...
-                            fullfile(this.dataPath, ...
-                            sprintf('AugmentedAerobicGlycolysisKit_buildFsByWmparc1_idx%i_%s.png', idx, dtTag)))
-                        close(figs(1))
-                    catch ME
-                        handwarning(ME)
-                    end
+                    this.savefig(h, idx)
                 end                    
             end
             fs_ = mlfourd.ImagingContext2(fs_);
@@ -436,22 +421,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 
                 if any(idx == this.indicesToCheck)  
                     h = huang.plot();
-                    dtStr = [datestr(this.sessionData.datetime) ', ' datestr(this.sessionData2.datetime)];
-                    title(sprintf('AugmentedAerobicGlycolysisKit.buildKsByWmparc1:  idx == %i\n%s', idx, dtStr))
-                    try
-                        dtTag = [lower(this.sessionData.doseAdminDatetimeTag) ...
-                                 lower(this.sessionData2.doseAdminDatetimeTag)];
-                        savefig(h, ...
-                            fullfile(this.dataPath, ...
-                            sprintf('AugmentedAerobicGlycolysisKit_buildKsByWmparc1_idx%i_%s.fig', idx, dtTag)))
-                        figs = get(0, 'children');
-                        saveas(figs(1), ...
-                            fullfile(this.dataPath, ...
-                            sprintf('AugmentedAerobicGlycolysisKit_buildKsByWmparc1_idx%i_%s.png', idx, dtTag)))
-                        close(figs(1))
-                    catch ME
-                        handwarning(ME)
-                    end
+                    this.savefig(h, idx)
                 end                    
             end
             ks_ = mlfourd.ImagingContext2(ks_);
@@ -533,22 +503,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 % Dx
                 if any(idx == this.indicesToCheck)  
                     h = mintun.plot();
-                    dtStr = [datestr(this.sessionData.datetime) ', ' datestr(this.sessionData2.datetime)];
-                    title(sprintf('AugmentedAerobicGlycolysisKit.buildOsByWmparc1:  idx == %i\n%s', idx, dtStr))
-                    try
-                        dtTag = [lower(this.sessionData.doseAdminDatetimeTag) ...
-                                 lower(this.sessionData2.doseAdminDatetimeTag)];
-                        savefig(h, ...
-                            fullfile(this.dataPath, ...
-                            sprintf('AugmentedAerobicGlycolysisKit_buildOsByWmparc1_idx%i_%s.fig', idx, dtTag)))
-                        figs = get(0, 'children');
-                        saveas(figs(1), ...
-                            fullfile(this.dataPath, ...
-                            sprintf('AugmentedAerobicGlycolysisKit_buildOsByWmparc1_idx%i_%s.png', idx, dtTag)))
-                        close(figs(1))
-                    catch ME
-                        handwarning(ME)
-                    end
+                    this.savefig(h, idx)
                 end                    
             end
             os_ = mlfourd.ImagingContext2(os_);
@@ -713,22 +668,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 % Dx
                 if any(idx == this.indicesToCheck)  
                     h = martin.plot();
-                    dtStr = [datestr(this.sessionData.datetime) ', ' datestr(this.sessionData2.datetime)];
-                    title(sprintf('AugmentedAerobicGlycolysisKit.buildVsByWmparc1:  idx == %i\n%s', idx, dtStr))
-                    try
-                        dtTag = [lower(this.sessionData.doseAdminDatetimeTag) ...
-                                 lower(this.sessionData2.doseAdminDatetimeTag)];
-                        savefig(h, ...
-                            fullfile(this.dataPath, ...
-                            sprintf('AugmentedAerobicGlycolysisKit_buildVsByWmparc1_idx%i_%s.fig', idx, dtTag)))
-                        figs = get(0, 'children');
-                        saveas(figs(1), ...
-                            fullfile(this.dataPath, ...
-                            sprintf('AugmentedAerobicGlycolysisKit_buildVsByWmparc1_idx%i_%s.png', idx, dtTag)))
-                        close(figs(1))
-                    catch ME
-                        handwarning(ME)
-                    end
+                    this.savefig(h, idx)
                 end  
             end
             vs_ = mlfourd.ImagingContext2(vs_);
