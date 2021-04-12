@@ -15,7 +15,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
         sessionData
         sessionData2
         similarGlycemias = false
-        tausForMixing = 3
+        tausForMixing = 4
     end
     
     properties (Dependent)
@@ -29,7 +29,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
 	methods (Static)        
         function construct(varargin)
             %% CONSTRUCT
-            %  e.g.:  construct('cbv', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 1, 'region', 'wholebrain')
+            %  e.g.:  construct('cbv', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 1, 'region', 'wmparc1')
             %  e.g.:  construct('cbv', 'debug', true)
             %  @param required physiolog is char, e.g., cbv, cbf, cmro2, cmrglc.
             %  @param subjectsExpr is char, e.g., 'sub-S58163*'.
@@ -45,8 +45,8 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             subjectsDir = fullfile(getenv('SINGULARITY_HOME'), 'subjects');
             setenv('SUBJECTS_DIR', subjectsDir)
             setenv('PROJECTS_DIR', fileparts(subjectsDir)) 
-            setenv('DEBUG', '1')
-            setenv('NOPLOT', '')
+            setenv('DEBUG', '')
+            setenv('NOPLOT', '1')
             warning('off', 'MATLAB:table:UnrecognizedVarNameCase')
             warning('off', 'mlnipet:ValueError:getScanFolder')
             
@@ -139,7 +139,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             Region = [upper(this.sessionData.region(1)) this.sessionData.region(2:end)];
             pwd0 = pushd(this.sessionData.subjectPath);            
             
-            this.indexCliff = 120;
+            this.tausForMixing = 8;
             [fs_,aifs_] = this.(['buildFsBy' Region])();             
             cbf_ = this.fs2cbf(fs_);
             ho_ = this.tracerMixed();
@@ -161,8 +161,9 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             
             this = mlraichle.AugmentedAerobicGlycolysisKit(varargin{:});
             Region = [upper(this.sessionData.region(1)) this.sessionData.region(2:end)];
-            pwd0 = pushd(this.sessionData.subjectPath);            
+            pwd0 = pushd(this.sessionData.subjectPath);                        
             
+            this.tausForMixing = 8;
             [vs_,aifs_] = this.(['buildVsBy' Region])(); 
             cbv_ = this.vs2cbv(vs_);
             oc_ = this.tracerMixed();
@@ -186,7 +187,8 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             Region = [upper(this.sessionData.region(1)) this.sessionData.region(2:end)];
             pwd0 = pushd(this.sessionData.subjectPath);  
             
-            % build Ks and their masks           
+            % build Ks and their masks            
+            this.tausForMixing = 4;
             [ks_,cbv_,aifs_] = this.(['buildKsBy' Region])();
             cmrglc_ = this.ks2cmrglc(ks_, cbv_, this.model);
             fdg_ = this.tracerMixed();  
@@ -210,8 +212,8 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             this = mlraichle.AugmentedAerobicGlycolysisKit(varargin{:});
             Region = [upper(this.sessionData.region(1)) this.sessionData.region(2:end)];
             pwd0 = pushd(this.sessionData.subjectPath);            
-            
-            this.indexCliff = 120;
+                        
+            this.tausForMixing = 4;
             [os_,aifs_] = this.(['buildOsBy' Region])();             
             cbf_ = this.sessionData.cbfOnAtlas( ...
                 'typ', 'mlfourd.ImagingContext2', ...
@@ -277,7 +279,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             arterial = devkit.buildArterialSamplingDevice(scannerWmparc1, 'indexCliff', this.indexCliff);
             arterial2 = devkit2.buildArterialSamplingDevice(scanner2Wmparc12, 'indexCliff', this.indexCliff);  
             taus = this.sessionData.alternativeTaus();
-            this.DtMixing = taus(1) + this.tausForMixing*taus(1)*abs(randn());                      
+            this.DtMixing = taus(1) + this.tausForMixing*taus(1)*abs(rand());                      
             
             fs_ = copy(wmparc1.fourdfp);
             fs_.filepath = this.dataPath;
@@ -361,7 +363,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             arterial = devkit.buildCountingDevice(scannerWmparc1);
             arterial2 = devkit2.buildCountingDevice(scanner2Wmparc1);            
             taus = this.sessionData.alternativeTaus();
-            this.DtMixing = taus(1) + this.tausForMixing*taus(1)*abs(randn());
+            this.DtMixing = taus(1) + this.tausForMixing*taus(1)*abs(rand());
             
             cbv = this.sessionData.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', ...
                 'dateonly', true, 'tags', [this.blurTag this.sessionData.regionTag]);
@@ -453,7 +455,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             arterial = devkit.buildArterialSamplingDevice(scannerWmparc1, 'indexCliff', this.indexCliff);
             arterial2 = devkit2.buildArterialSamplingDevice(scanner2Wmparc12, 'indexCliff', this.indexCliff);  
             taus = this.sessionData.alternativeTaus();
-            this.DtMixing = taus(1) + this.tausForMixing*taus(1)*abs(randn());
+            this.DtMixing = taus(1) + this.tausForMixing*taus(1)*abs(rand());
                       
             
             os_ = copy(wmparc1.fourdfp);
@@ -511,89 +513,6 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             aifs_ = mlfourd.ImagingContext2(aifs_);
             popd(pwd0);
         end
-        function [v1_,cbv_,aifs_] = buildV1ByVoxel(this, varargin)
-            %% BUILDVSBYVOXEL
-            %  @return v1_ in R^ as mlfourd.ImagingContext2, without saving to filesystems.  
-            %  @return cbv_ in R^3, without saving.
-            %  @return aifs_ in R, without saving.
-            
-            import mloxygen.AugmentedNumericMartin1987
-            import mloxygen.AugmentedNumericMartin1987.mix
-            
-            ensuredir(this.dataPath);
-            pwd0 = pushd(this.dataPath);  
-                                   
-            devkit = mlpet.ScannerKit.createFromSession(this.sessionData); 
-            devkit2 = mlpet.ScannerKit.createFromSession(this.sessionData2); 
-            
-            scanner = devkit.buildScannerDevice();
-            scanner = scanner.blurred(this.sessionData.petPointSpread);
-            scanner2 = devkit2.buildScannerDevice();
-            scanner2 = scanner2.blurred(this.sessionData.petPointSpread);
-            
-            arterial = devkit.buildArterialSamplingDevice(scanner);
-            arterial2 = devkit2.buildArterialSamplingDevice(scanner2);  
-            taus = this.sessionData.alternativeTaus();
-            this.DtMixing = taus(1) + this.tausForMixing*taus(1)*abs(randn());
-            
-            wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
-            wmparc1 = wmparc1.binarized();
-            
-            v1_ = copy(wmparc1.fourdfp);
-            v1_.filepath = this.dataPath;
-            v1_.fileprefix = this.v1OnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
-            lenV1 = 1;
-            v1mat_ = reshape(v1_.img, [numel(wmparc1) lenV1]);
-            v1found_ = find(v1mat_);
-
-            martin = AugmentedImagingMartin1987.createFromDeviceKit( ...
-                devkit, devkit2, ...
-                'scanner', scanner, ...
-                'scanner2', scanner2, ...
-                'arterial', arterial, ...
-                'arterial2', arterial2, ...
-                'roi', wmparc1, ...
-                'roi2', wmparc1, ...
-                'DtMixing', this.DtMixing, ...
-                'fracMixing', this.fracMixing);
-            
-            aifs_ = copy(v1_);
-            aifs_.fileprefix = this.aifsOnAtlas('typ', 'fp');
-            aifs_.img = martin.mixAifs( ...
-                'scanner', scanner, ...
-                'scanner2', scanner2, ...
-                'arterial', arterial, ...
-                'arterial2', arterial2, ...
-                'roi', wmparc1, ...
-                'DtMixing', this.DtMixing, ...
-                'fracMixing', this.fracMixing);
-            atimes = 0:numel(aifs_.img)-1;
-            if this.DtMixing < 0 % interpolate aifs_ to scanner
-                aifs_.img = interp1(atimes, aifs_.img, scanner.times);
-            else % interpolate aifs_ to scanner2
-                aifs_.img = interp1(atimes, aifs_.img, scanner2.times);
-            end
-
-            for v1index = v1found_' % voxels
-
-                % fprintf('starting mlraichle.AugmentedAerobicGlycolysisKit.buildV1ByVoxel.idx -> %i\n', idx)
-                
-                roivecbin_ = false(size(v1mat_, 1), 1);
-                roivecbin_(v1index) = true;
-
-                % solve Martin model
-                martin = martin.solve(roivecbin_);
-
-                % insert Martin solutions on into v1mat_
-                v1mat_(roivecbin_) = martin.v1();
-            end
-            v1_.img = reshape(v1mat_, [size(wmparc1) lenV1]);
-            v1_ = mlfourd.ImagingContext2(v1_);
-            cbv_ = mlpet.TracerKinetics.v1ToCbv(v1_);
-            cbv_.fileprefix = strrep(v1_.fileprefix, 'v1', 'cbv');
-            aifs_ = mlfourd.ImagingContext2(aifs_);
-            popd(pwd0);
-        end
         function [vs_,aifs_] = buildVsByWmparc1(this, varargin)
             %% BUILDVSBYVOXEL
             %  @return v1_ in R^ as mlfourd.ImagingContext2, without saving to filesystems.  
@@ -619,7 +538,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             arterial = devkit.buildArterialSamplingDevice(scannerWmparc1);
             arterial2 = devkit2.buildArterialSamplingDevice(scanner2Wmparc12);  
             taus = this.sessionData.alternativeTaus();
-            this.DtMixing = taus(1) + this.tausForMixing*taus(1)*abs(randn());            
+            this.DtMixing = taus(1) + this.tausForMixing*taus(1)*abs(rand());            
             
             vs_ = copy(wmparc1.fourdfp);
             vs_.filepath = this.dataPath;
@@ -794,25 +713,22 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             end
         end
         function tr_ = tracerMixed(this)
+            
             tr = this.sessionData.tracerOnAtlas('typ', 'mlfourd.ImagingContext2');
             tr2 = this.sessionData2.tracerOnAtlas('typ', 'mlfourd.ImagingContext2');
             times = this.sessionData.times;
             times2 = this.sessionData2.times;
-            taus = this.sessionData.alternativeTaus();
-            annotate_DtMixing = nan;
-            if this.DtMixing < -taus(1) % shift oc2 to left
-                tr2 = tr2.interp1(times2 + this.DtMixing, times);
-                annotate_DtMixing = this.DtMixing;
-            end
-            if this.DtMixing > taus(1) % shift oc to left
-                tr = tr.interp1(times - this.DtMixing, times2);
-                annotate_DtMixing = this.DtMixing;
-            end
-            tr_ = mlpet.AugmentedData.mix(tr, tr2, this.fracMixing, annotate_DtMixing);
+            
+            % this.DtMixing > times2(1) shifts tr2 to right
+            % this.DtMixing < times2(1) shifts tr2 to left
+            tr2 = tr2.interp1(times2 + this.DtMixing, times);
+            tr_ = mlpet.AugmentedData.mix(tr, tr2, this.fracMixing, this.DtMixing);
             ifc = tr_.fourdfp;
             ifc.img(ifc.img < 0) = 0;
             ifc.filepath = this.dataPath;
             tr_ = mlfourd.ImagingContext2(ifc);
+            re = regexp(this.aifsOnAtlas('typ', 'fp'), 'aif_(?<fileprefix>\S+)', 'names');
+            tr_.fileprefix = re.fileprefix;
         end
     end
 
@@ -835,7 +751,10 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             this.indexCliff = ipr.indexCliff;
             
             this.dataFolder = 'data_augmentation';
-            this.fracMixing = 0.45*rand() + 0.5;
+            if ~isfolder(this.dataPath)
+                mkdir(this.dataPath)
+            end
+            this.fracMixing = 0.45*rand() + 0.5; % favors the first tac/aif
             this.resetModelSampler()
  		end
  	end 
