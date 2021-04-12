@@ -39,8 +39,8 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             subjectsDir = fullfile(getenv('SINGULARITY_HOME'), 'subjects');
             setenv('SUBJECTS_DIR', subjectsDir)
             setenv('PROJECTS_DIR', fileparts(subjectsDir)) 
-            setenv('DEBUG', '')
-            setenv('NOPLOT', '1')
+            setenv('DEBUG', '1')
+            setenv('NOPLOT', '')
             warning('off', 'MATLAB:table:UnrecognizedVarNameCase')
             
             ip = inputParser;
@@ -351,11 +351,15 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 icfp = strrep(ic.fileprefix, ...
                     DispersedAerobicGlycolysisKit.physiologyObjToDatetimeStr(fns{1}), ...
                     DispersedAerobicGlycolysisKit.physiologyObjToDatetimeStr(fns{1}, 'dateonly', true));
+                ic_count = 0;
                 for fn = fns
                     incr = mlfourd.ImagingContext2(fn{1});
-                    ic = ic + incr;
+                    if dipsum(incr) > 0
+                        ic = ic + incr;
+                        ic_count = ic_count + 1;
+                    end
                 end
-                ic = ic / length(fns);
+                ic = ic / ic_count;
                 ic.fileprefix = icfp;
                 ic.save()
             end
