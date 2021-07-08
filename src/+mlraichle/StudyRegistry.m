@@ -9,7 +9,8 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
  	%% It was developed on Matlab 8.5.0.197613 (R2015a) for MACI64.
  	
     properties
-        atlasTag = '_222'
+        atlasTag = '_111'
+        blurTag = ''
         ignoredExperiments = {'52823' '53317' '53343' '178378' '186470'}
         tracerList = {'oc' 'oo' 'ho' 'fdg'}
     end
