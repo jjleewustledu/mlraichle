@@ -40,7 +40,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             setenv('SUBJECTS_DIR', subjectsDir)
             setenv('PROJECTS_DIR', fileparts(subjectsDir)) 
             setenv('DEBUG', '1')
-            setenv('NOPLOT', '')
+            setenv('NOPLOT', '1')
             warning('off', 'MATLAB:table:UnrecognizedVarNameCase')
             
             ip = inputParser;
@@ -117,10 +117,12 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             %% CONSTRUCTCBFBYREGION
             %  @param required sessionData is mlpipeline.ISessionData.
             %  @param required another sessionData for augmentation by averaging.
-            %  @return cbv as mlfourd.ImagingContext2 or cell array.
-            %  @return msk, the mask of kss, as mlfourd.ImagingContext2 or cell array.
+            %  @return fs on filesystem.
+            %  @return aifs on filesystem.
+            %  @return cbf on filesystem.
             
-            this = mlraichle.DispersedAerobicGlycolysisKit(varargin{:});
+            this = mlraichle.DispersedAerobicGlycolysisKit(varargin{:});            
+            this.constructPhysiologyDateOnly('cbv', 'subjectFolder', this.sessionData.subjectFolder)
             Region = [upper(this.sessionData.region(1)) this.sessionData.region(2:end)];
             pwd0 = pushd(this.sessionData.subjectPath);            
             
@@ -138,8 +140,9 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             %% CONSTRUCTCBVBYREGION
             %  @param required sessionData is mlpipeline.ISessionData.
             %  @param required another sessionData for augmentation by averaging.
-            %  @return cbv as mlfourd.ImagingContext2 or cell array.
-            %  @return msk, the mask of kss, as mlfourd.ImagingContext2 or cell array.
+            %  @return vs on filesystem.
+            %  @return aifs on filesystem.
+            %  @return cbv on filesystem.
             
             this = mlraichle.DispersedAerobicGlycolysisKit(varargin{:});
             Region = [upper(this.sessionData.region(1)) this.sessionData.region(2:end)];
@@ -159,8 +162,9 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             %% CONSTRUCTCMRGLCBYREGION
             %  @param required sessionData.
             %  @param required another sessionData for augmentation by averaging.
-            %  @return kss as mlfourd.ImagingContext2 or cell array.
-            %  @return msk, the mask of kss, as mlfourd.ImagingContext2 or cell array.
+            %  @return ks on filesystem.
+            %  @return aifs on filesystem.
+            %  @return cmrglc on filesystem.
             
             this = mlraichle.DispersedAerobicGlycolysisKit(varargin{:});
             Region = [upper(this.sessionData.region(1)) this.sessionData.region(2:end)];
@@ -181,10 +185,13 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             %% CONSTRUCTCMRO2BYREGION
             %  @param required sessionData is mlpipeline.ISessionData.
             %  @param required another sessionData for augmentation by averaging.
-            %  @return cbv as mlfourd.ImagingContext2 or cell array.
-            %  @return msk, the mask of kss, as mlfourd.ImagingContext2 or cell array.
+            %  @return os on filesystem.
+            %  @return aifs on filesystem.
+            %  @return cmro2 on filesystem.
+            %  @return oef on filesystem.
             
-            this = mlraichle.DispersedAerobicGlycolysisKit(varargin{:});
+            this = mlraichle.DispersedAerobicGlycolysisKit(varargin{:});            
+            this.constructPhysiologyDateOnly('cbf', 'subjectFolder', this.sessionData.subjectFolder)
             Region = [upper(this.sessionData.region(1)) this.sessionData.region(2:end)];
             pwd0 = pushd(this.sessionData.subjectPath);            
             
@@ -192,20 +199,21 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             cbf_ = this.sessionData.cbfOnAtlas( ...
                 'typ', 'mlfourd.ImagingContext2', ...
                 'dateonly', true, ...
-                'tags', [this.sessionData.petPointSpreadTag this.sessionData.regionTag]);
-            cmro2_ = this.os2cmro2(os_, cbf_, this.model);
+                'tags', [this.blurTag this.sessionData.regionTag]);
+            [cmro2_,oef_] = this.os2cmro2(os_, cbf_, this.model);
             
             % save ImagingContext2
             os_.save()
             aifs_.save()
             cmro2_.save()
+            oef_.save()
             
             popd(pwd0);
         end     
         function cohortMetric = constructCohortMetric(varargin)
             %% CONSTRUCTCOHORTMETRIC
             %  @param subjectsExpr is char, e.g., 'sub-S*'.
-            %  @return cohortCbv is mlfourd.ImagingContext2 containg entire cohort in R^{3+1}.
+            %  @return cohortCbv on the filesystem contains the entire cohort in R^{3+1}.
             
             import mlraichle.*
             import mlraichle.DispersedAerobicGlycolysisKit.*
@@ -311,183 +319,15 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             cohortMetric = mlfourd.ImagingContext2(cohortMetric);
             cohortMetric.save()
         end     
-        function ic = constructPhysiologyDateOnly(varargin)
-            %% e.g., constructPhysiologyDateOnly('cbv', 'subjectFolder', 'sub-S58163')
-            
-            import mlraichle.DispersedAerobicGlycolysisKit
-            
-            ip = inputParser;
-            addRequired(ip, 'physiology', @ischar)
-            addParameter(ip, 'subjectFolder', '', @ischar)
-            addParameter(ip, 'atlTag', '_222', @ischar)
-            addParameter(ip, 'blurTag', '_b43', @ischar)
-            addParameter(ip, 'region', 'wmparc1', @ischar)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            
-            pwd0 = pushd(fullfile(getenv('SINGULARITY_HOME'), 'subjects', ipr.subjectFolder, 'resampling_restricted')); 
-            fnPatt = sprintf('%sdt*%s%s_%s.4dfp.hdr', ipr.physiology, ipr.atlTag, ipr.blurTag, ipr.region);
-            g = globT(fnPatt);
-            if isempty(g); return; end
-            
-            %% segregate by dates
-            
-            m = containers.Map;            
-            for ig = 1:length(g)
-                dstr = DispersedAerobicGlycolysisKit.physiologyObjToDatetimeStr(g{ig}, 'dateonly', true);
-                if ~lstrfind(m.keys, dstr)
-                    m(dstr) = g(ig); % cell
-                else
-                    m(dstr) = [m(dstr) g{ig}];
-                end
-            end 
-            
-            %% average scans by dates
-            
-            for k = asrow(m.keys)
-                fns = m(k{1});
-                ic = mlfourd.ImagingContext2(fns{1});
-                ic = ic.zeros();
-                icfp = strrep(ic.fileprefix, ...
-                    DispersedAerobicGlycolysisKit.physiologyObjToDatetimeStr(fns{1}), ...
-                    DispersedAerobicGlycolysisKit.physiologyObjToDatetimeStr(fns{1}, 'dateonly', true));
-                ic_count = 0;
-                for fn = fns
-                    incr = mlfourd.ImagingContext2(fn{1});
-                    if dipsum(incr) > 0
-                        ic = ic + incr;
-                        ic_count = ic_count + 1;
-                    end
-                end
-                ic = ic / ic_count;
-                ic.fileprefix = icfp;
-                ic.save()
-            end
-            
-            %%
-            
-            popd(pwd0);
-        end 
-        function ic = constructWmparc1OnAtlas(sesd)
-            import mlfourd.ImagingFormatContext
-            import mlfourd.ImagingContext2
-            
-            deleteExisting([sesd.wmparc1OnAtlas('typ', 'fqfileprefix') '.4dfp.*'])
-            
-            % define CSF
-            wmparc = ImagingFormatContext(sesd.wmparcOnAtlas());
-            wmparc1 = ImagingFormatContext(sesd.brainOnAtlas());
-            wmparc1.fileprefix = sesd.wmparc1OnAtlas('typ', 'fp');
-            wmparc1.img(wmparc1.img > 0) = 1;
-            wmparc1.img(wmparc.img > 0) = wmparc.img(wmparc.img > 0);
-            
-            % define venous
-            ven = sesd.cbvOnAtlas('typ', 'ImagingContext2', 'dateonly', true);
-            ven = ven.blurred(4.3);
-            ven = ven.thresh(10.29); % mean + 10 sigmas (mL/hg) per Ito 2004
-            ven = ven.binarized();
-            ven.fqfilename = sesd.venousOnAtlas();
-            try
-                ven.save();
-            catch ME
-                handwarning(ME)
-            end
-            selected = logical(ven.fourdfp.img) & wmparc1.img < 2;
-            wmparc1.img(selected) = 6000;
-            
-            % construct wmparc1
-            ic = ImagingContext2(wmparc1);
-            ic.save()
-        end    
-        function [scanList,subList] = listSessionData(varargin)
-            
-            ip = inputParser;
-            addParameter(ip, 'subjectsExpr', 'sub-S*', @ischar)
-            addParameter(ip, 'metric', 'cbv', @ischar)
-            addParameter(ip, 'tracer', 'oc', @ischar)
-            parse(ip, varargin{:})
-            ipr = ip.Results;  
-            
-            % global
-            registry = MatlabRegistry.instance(); %#ok<NASGU>
-            subjectsDir = fullfile(getenv('SINGULARITY_HOME'), 'subjects');
-            setenv('SUBJECTS_DIR', subjectsDir)
-            setenv('PROJECTS_DIR', fileparts(subjectsDir)) 
-            warning('off', 'MATLAB:table:UnrecognizedVarNameCase')
-            warning('off', 'mlnipet:ValueError:getScanFolder')
-            
-            % subjects, sessions            
-            pwd0 = pushd(subjectsDir);
-            theSessionData = mlraichle.DispersedAerobicGlycolysisKit.constructSessionData( ...
-                ipr.metric, ...
-                'subjectsExpr', ipr.subjectsExpr, ...
-                'tracer', ipr.tracer); % length(theSessionData) ~ 60
-            popd(pwd0)
-            
-            % form list
-            scanList = {};
-            scanList = [scanList theSessionData.scanFolder];            
-            subList = {};
-            subList = [subList theSessionData.subjectFolder];
-        end
-        function dt = physiologyObjToDatetime(obj)
-            ic = mlfourd.ImagingContext2(obj);            
-            ss = split(ic.fileprefix, '_');
-            re = regexp(ss{1}, '\w+dt(?<datetime>\d{14})\w*', 'names');
-            dt = datetime(re.datetime, 'InputFormat', 'yyyyMMddHHmmss');
-        end
-        function dtstr = physiologyObjToDatetimeStr(varargin)
-            import mlraichle.DispersedAerobicGlycolysisKit 
-            ip = inputParser;
-            addRequired(ip, 'obj', @(x) ~isempty(x))
-            addParameter(ip, 'dateonly', false, @islogical)
-            parse(ip, varargin{:})
-            ipr = ip.Results;  
-            if ipr.dateonly
-                dtstr = [datestr(DispersedAerobicGlycolysisKit.physiologyObjToDatetime(ipr.obj), 'yyyymmdd') '000000'];
-            else
-                dtstr = datestr(DispersedAerobicGlycolysisKit.physiologyObjToDatetime(ipr.obj), 'yyyymmddHHMMSS') ;
-            end
-        end
-        function metricOut = reshapeOnWmparc1(wmparc1, metric, wmparc1Out)
-            %% Cf. semantics of pchip or makima.
-            
-            wmparc1 = mlfourd.ImagingContext2(wmparc1);
-            wmparc1 = wmparc1.fourdfp;
-            metric = mlfourd.ImagingContext2(metric);
-            metric = metric.fourdfp;
-            wmparc1Out = mlfourd.ImagingContext2(wmparc1Out);
-            wmparc1Out = wmparc1Out.fourdfp;
-            metricOut = copy(metric);
-            metricOut.img = zeros(size(metric));
-            
-            for idx = mlraichle.DispersedAerobicGlycolysisKit.indices % parcs
-                if 6000 == idx % venous structures
-                    continue
-                end
-                roibin = wmparc1.img == idx;
-                if 0 == dipsum(roibin) 
-                    continue
-                end
-                try
-                    m = dipsum(metric.img(roibin))/dipsum(roibin);
-                    roibinOut = wmparc1Out.img == idx;
-                    metricOut.img(roibinOut) = m;
-                catch ME
-                    handwarning(ME)
-                    continue
-                end
-            end
-            metricOut = mlfourd.ImagingContext2(metricOut);
-        end
     end
     
     methods
         
         %% GET
         
-        function g = get.blurTag(this)
-            g = this.sessionData.petPointSpreadTag;
+        function g = get.blurTag(~)
+            g = mlraichle.StudyRegistry.instance.blurTag;
+            %g = this.sessionData.petPointSpreadTag;
         end
         function g = get.dataPath(this)
             g = fullfile(this.sessionData.subjectPath, this.dataFolder, '');
@@ -515,7 +355,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2'); 
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData);             
             scanner = devkit.buildScannerDevice();
-            scanner = scanner.blurred(this.sessionData.petPointSpread);
+            %scanner = scanner.blurred(this.sessionData.petPointSpread);
             scannerWmparc1 = scanner.volumeAveraged(wmparc1.binarized());           
             arterial = devkit.buildArterialSamplingDevice(scannerWmparc1, ...
                                                           'sameWorldline', false, ...
@@ -525,8 +365,6 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             
             cbv_ = this.sessionData.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', ...
                 'dateonly', true, 'tags', [this.blurTag this.sessionData.regionTag]);
-            cbv_.filepath = this.dataPath;
-            cbv_.fileprefix = this.cbvOnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
             
             fs_ = copy(wmparc1.fourdfp);
             fs_.filepath = this.dataPath;
@@ -541,7 +379,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
 
                 % for parcs, build roibin as logical, roi as single 
                 fprintf('%s\n', datestr(now))
-                fprintf('starting mlpet.DispersedAerobicGlycolysisKit.buildFsByWmparc1.idx -> %i\n', idx)
+                fprintf('starting mlraichle.DispersedAerobicGlycolysisKit.buildFsByWmparc1.idx -> %i\n', idx)
                 roi = mlfourd.ImagingContext2(wmparc1);
                 roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, idx);
                 roi = roi.numeq(idx);
@@ -591,14 +429,12 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData); 
             this.checkFdgIntegrity(devkit)            
             scanner = devkit.buildScannerDevice();
-            scanner = scanner.blurred(this.sessionData.petPointSpread);   
+            %scanner = scanner.blurred(this.sessionData.petPointSpread);   
             scannerWmparc1 = scanner.volumeAveraged(wmparc1.binarized());          
             arterial = devkit.buildCountingDevice(scannerWmparc1);
             
             cbv_ = this.sessionData.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', ...
                 'dateonly', true, 'tags', [this.blurTag this.sessionData.regionTag]);
-            cbv_.filepath = this.dataPath;
-            cbv_.fileprefix = this.cbvOnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
                         
             ks_ = copy(wmparc1.fourdfp);
             ks_.filepath = this.dataPath;
@@ -613,7 +449,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
 
                 % for parcs, build roibin as logical, roi as single 
                 fprintf('%s\n', datestr(now))
-                fprintf('starting mlpet.DispersedAerobicGlycolysisKit.buildKsByWmparc1.idx -> %i\n', idx)
+                fprintf('starting mlraichle.DispersedAerobicGlycolysisKit.buildKsByWmparc1.idx -> %i\n', idx)
                 roi = mlfourd.ImagingContext2(wmparc1);
                 roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, idx);
                 roi = roi.numeq(idx);
@@ -661,7 +497,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2'); 
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData);            
             scanner = devkit.buildScannerDevice();
-            scanner = scanner.blurred(this.sessionData.petPointSpread);  
+            %scanner = scanner.blurred(this.sessionData.petPointSpread);  
             scannerWmparc1 = scanner.volumeAveraged(wmparc1.binarized());         
             arterial = devkit.buildArterialSamplingDevice(scannerWmparc1, ...
                                                           'sameWorldline', false, ...
@@ -682,7 +518,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
 
                 % for parcs, build roibin as logical, roi as single 
                 fprintf('%s\n', datestr(now))
-                fprintf('starting mlpet.DispersedAerobicGlycolysisKit.buildFsByWmparc1.idx -> %i\n', idx)
+                fprintf('starting mlraichle.DispersedAerobicGlycolysisKit.buildFsByWmparc1.idx -> %i\n', idx)
                 roi = mlfourd.ImagingContext2(wmparc1);
                 roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, idx);
                 roi = roi.numeq(idx);
@@ -690,7 +526,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                     continue
                 end
 
-                % solve Raichle
+                % solve Mintun
                 mintun = DispersedNumericMintun1984.createFromDeviceKit( ...
                     devkit, ...
                     'scanner', scanner, ...
@@ -729,7 +565,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             wmparc1 = this.sessionData.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData);             
             scanner = devkit.buildScannerDevice();
-            scanner = scanner.blurred(this.sessionData.petPointSpread);
+            %scanner = scanner.blurred(this.sessionData.petPointSpread);
             scannerWmparc1 = scanner.volumeAveraged(wmparc1.binarized());            
             arterial = devkit.buildArterialSamplingDevice(scannerWmparc1, 'sameWorldline', false); 
             h = plot(arterial.radialArteryKit);
@@ -750,7 +586,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
 
                 % for parcs, build roibin as logical, roi as single 
                 fprintf('%s\n', datestr(now))
-                fprintf('starting mlpet.DispersedAerobicGlycolysisKit.buildVsByWmparc1.idx -> %i\n', idx)
+                fprintf('starting mlraichle.DispersedAerobicGlycolysisKit.buildVsByWmparc1.idx -> %i\n', idx)
                 roi = mlfourd.ImagingContext2(wmparc1);
                 roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, idx);
                 roi = roi.numeq(idx);
@@ -790,7 +626,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             scanner = devkit.buildScannerDevice();
             if rank(scanner.imagingContext) < 4 
                 error('mlraichle:RuntimeError', ...
-                    'AugmentedNumericHuang1980.checkFdgIntegrity found no dynamic data in %s', ...
+                    'DispersedAerobicGlycolysisKit.checkFdgIntegrity found no dynamic data in %s', ...
                     scanner.imagingContext.fileprefix)
             end
         end
