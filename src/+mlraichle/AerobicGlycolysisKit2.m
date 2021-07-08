@@ -102,7 +102,7 @@ classdef AerobicGlycolysisKit2 < handle & mlraichle.AerobicGlycolysisKit
             % build Fs and their masks
             pwd0 = pushd(sesd.subjectPath);             
             this = AerobicGlycolysisKit2.createFromSession(sesd);
-            sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
+            sesd.jitOn111(sesd.wmparcOnAtlas(), '-n -O111');
             this.constructWmparc1OnAtlas(sesd)
             fs = this.(['buildFsBy' Region])(); 
             this.saveAllFormats(fs)
@@ -215,7 +215,7 @@ classdef AerobicGlycolysisKit2 < handle & mlraichle.AerobicGlycolysisKit
             % build Ks and their masks
             pwd0 = pushd(sesd.subjectPath);             
             this = AerobicGlycolysisKit2.createFromSession(sesd);
-            %sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
+            %sesd.jitOn111(sesd.wmparcOnAtlas(), '-n -O111');
             %this.constructWmparc1OnAtlas(sesd)
             cbv = this.(['buildCbvBy' Region])(); 
             cbv.save()
@@ -324,7 +324,7 @@ classdef AerobicGlycolysisKit2 < handle & mlraichle.AerobicGlycolysisKit
             % build Ks and their masks
             pwd0 = pushd(sesd.subjectPath);             
             this = AerobicGlycolysisKit2.createFromSession(sesd);
-            sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
+            sesd.jitOn111(sesd.wmparcOnAtlas(), '-n -O111');
             this.constructWmparc1OnAtlas(sesd)
             ks = this.(['buildKsBy' Region])(); 
             ks.save()
@@ -438,7 +438,7 @@ classdef AerobicGlycolysisKit2 < handle & mlraichle.AerobicGlycolysisKit
             % build Os and their masks
             pwd0 = pushd(sesd.subjectPath);             
             this = AerobicGlycolysisKit2.createFromSession(sesd);
-            sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
+            sesd.jitOn111(sesd.wmparcOnAtlas(), '-n -O111');
             this.constructWmparc1OnAtlas(sesd)
             os = this.(['buildOsBy' Region])(); 
             this.saveAllFormats(os)
@@ -488,7 +488,7 @@ classdef AerobicGlycolysisKit2 < handle & mlraichle.AerobicGlycolysisKit
             % build Gs and their masks
             pwd0 = pushd(sesd.subjectPath);             
             this = AerobicGlycolysisKit2.createFromSession(sesd);
-            sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
+            sesd.jitOn111(sesd.wmparcOnAtlas(), '-n -O111');
             this.constructWmparc1OnAtlas(sesd)
             gs = this.(['buildGsBy' Region])(); 
             this.saveAllFormats(gs)

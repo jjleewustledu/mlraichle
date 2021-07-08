@@ -114,7 +114,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                                 end
                                 tracerfn = sesd.([tracer 'OnAtlas']);
                                 if ~isfile(tracerfn)
-                                    sesd.jitOn222(tracerfn)
+                                    sesd.jitOn111(tracerfn)
                                 end
                                 if ~isfile([myfileprefix(tracerfn) '_b43.mat'])
                                     ic = mlfourd.ImagingContext2(tracerfn);
@@ -183,7 +183,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             this = mlraichle.AerobicGlycolysisKit.createFromSession(varargin{:});            
             sesd = this.sessionData;
             pwd0 = pushd(sesd.subjectPath);             
-            sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
+            sesd.jitOn111(sesd.wmparcOnAtlas(), '-n -O111');
             this.constructWmparc1OnAtlas(sesd)
             cbf = this.buildCbfByQuadModel();
             cbf.save()
@@ -245,7 +245,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
             % build Ks and their masks
             pwd0 = pushd(sesd.subjectPath);             
             this = AerobicGlycolysisKit.createFromSession(sesd);
-            sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
+            sesd.jitOn111(sesd.wmparcOnAtlas(), '-n -O111');
             this.constructWmparc1OnAtlas(sesd)
             fs = this.(['buildFsBy' Region])(); 
             fs.save()
@@ -292,7 +292,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.AerobicGlycolysisKit
                     'ac', true, ...
                     'region', ipr.region); 
                 this = AerobicGlycolysisKit.createFromSession(sesd);
-                sesd.jitOn222(sesd.wmparcOnAtlas(), '-n -O222');
+                sesd.jitOn111(sesd.wmparcOnAtlas(), '-n -O111');
                 this.constructWmparc1OnAtlas(sesd)
                 
                 fdgstr = split(sesd.tracerOnAtlas('typ', 'fqfn'), ['Singularity' filesep]);

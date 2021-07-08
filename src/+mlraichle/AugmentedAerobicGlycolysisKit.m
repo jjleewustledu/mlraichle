@@ -218,8 +218,8 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             cbf_ = this.sessionData.cbfOnAtlas( ...
                 'typ', 'mlfourd.ImagingContext2', ...
                 'dateonly', true, ...
-                'tags', [this.sessionData.petPointSpreadTag this.sessionData.regionTag]);
-            cmro2_ = this.os2cmro2(os_, cbf_, this.model);
+                'tags', [this.blurTag this.sessionData.regionTag]);
+            [cmro2_,oef_] = this.os2cmro2(os_, cbf_, this.model);
             oo_ = this.tracerMixed();
             
             % save ImagingContext2
