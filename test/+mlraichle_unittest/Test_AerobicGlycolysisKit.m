@@ -136,18 +136,47 @@ classdef Test_AerobicGlycolysisKit < matlab.unittest.TestCase
             popd(pwd0)
         end
         function test_subject(this)
+            import mlraichle.*
             cd(this.resampling_restricted)
             %DispersedAerobicGlycolysisKit_construct('cbv', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
             %DispersedAerobicGlycolysisKit_construct('cbf', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
-            DispersedAerobicGlycolysisKit_construct('cmro2', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
+            %DispersedAerobicGlycolysisKit_construct('cmro2', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
             %DispersedAerobicGlycolysisKit_construct('cmrglc', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
+            
+            %QuadraticAerobicGlycolysisKit.construct('cbv', 'subjectsExpr', 'sub-S58163', 'Nthreads', 1)
+            %QuadraticAerobicGlycolysisKit.construct('cbf', 'subjectsExpr', 'sub-S58163', 'Nthreads', 1)
+            QuadraticAerobicGlycolysisKit.construct('cmro2', 'subjectsExpr', 'sub-S58163', 'Nthreads', 1)
         end
         function test_QuadraticAerobicGlycolysisKit(this)
-            cd(this.resampling_restricted)
-            %DispersedAerobicGlycolysisKit_construct('cbv', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
-            %DispersedAerobicGlycolysisKit_construct('cbf', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
-            mlraichle.QuadraticAerobicGlycolysisKit.construct('cbf', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
+            import mlraichle.*
+            cd(fullfile(this.home, 'subjects'))
+            %DispersedAerobicGlycolysisKit_construct('cbv', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
+            %DispersedAerobicGlycolysisKit_construct('cbf', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
+            %DispersedAerobicGlycolysisKit_construct('cmro2', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
             %DispersedAerobicGlycolysisKit_construct('cmrglc', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
+            
+            QuadraticAerobicGlycolysisKit.construct('cbv', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
+            QuadraticAerobicGlycolysisKit.construct('cbf', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
+            QuadraticAerobicGlycolysisKit.construct('cmro2', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
+        end
+        function test_constructQC(this)
+            import mlraichle.*
+            cd(fullfile(this.home, 'subjects'))
+            QuadraticAerobicGlycolysisKit.constructQC('cbv', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
+            QuadraticAerobicGlycolysisKit.constructQC('cbf', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
+            QuadraticAerobicGlycolysisKit.constructQC('oef', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
+            QuadraticAerobicGlycolysisKit.constructQC('cmro2', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
+        end
+        function test_subS33789(this)
+            %% Diagnose creation of SessionData objects for sub-S33789, which is not getting 
+            %  tracer data through pipelines defined by QuadraticAerobicGlycolysis.            
+            
+            import mlraichle.*
+            cd(fullfile(this.home, 'subjects'))
+            QuadraticAerobicGlycolysisKit.constructQC('cbv', 'subjectsExpr', 'sub-S33789', 'Nthreads', 14)
+            QuadraticAerobicGlycolysisKit.constructQC('cbf', 'subjectsExpr', 'sub-S33789', 'Nthreads', 14)
+            QuadraticAerobicGlycolysisKit.constructQC('oef', 'subjectsExpr', 'sub-S33789', 'Nthreads', 14)
+            QuadraticAerobicGlycolysisKit.constructQC('cmro2', 'subjectsExpr', 'sub-S33789', 'Nthreads', 14)
         end
 	end
 
