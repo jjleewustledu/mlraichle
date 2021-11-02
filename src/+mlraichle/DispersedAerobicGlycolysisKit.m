@@ -122,7 +122,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             %  @return cbf on filesystem.
             
             this = mlraichle.DispersedAerobicGlycolysisKit(varargin{:});            
-            this.constructPhysiologyDateOnly('cbv', 'subjectFolder', this.sessionData.subjectFolder)
+            %this.constructPhysiologyDateOnly('cbv', 'subjectFolder', this.sessionData.subjectFolder)
             Region = [upper(this.sessionData.region(1)) this.sessionData.region(2:end)];
             pwd0 = pushd(this.sessionData.subjectPath);            
             
@@ -191,7 +191,8 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             %  @return oef on filesystem.
             
             this = mlraichle.DispersedAerobicGlycolysisKit(varargin{:});            
-            this.constructPhysiologyDateOnly('cbf', 'subjectFolder', this.sessionData.subjectFolder)
+            this.constructPhysiologyDateOnly('cbf', 'subjectFolder', this.sessionData.subjectFolder)            
+            this.constructPhysiologyDateOnly('cbv', 'subjectFolder', this.sessionData.subjectFolder)
             Region = [upper(this.sessionData.region(1)) this.sessionData.region(2:end)];
             pwd0 = pushd(this.sessionData.subjectPath);            
             

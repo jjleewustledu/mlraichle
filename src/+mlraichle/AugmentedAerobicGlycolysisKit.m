@@ -136,7 +136,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             %  @return msk, the mask of kss, as mlfourd.ImagingContext2 or cell array.
             
             this = mlraichle.AugmentedAerobicGlycolysisKit(varargin{:});
-            this.constructPhysiologyDateOnly('cbv', 'subjectFolder', this.sessionData.subjectFolder)
+            %this.constructPhysiologyDateOnly('cbv', 'subjectFolder', this.sessionData.subjectFolder)
             Region = [upper(this.sessionData.region(1)) this.sessionData.region(2:end)];
             pwd0 = pushd(this.sessionData.subjectPath);            
             
