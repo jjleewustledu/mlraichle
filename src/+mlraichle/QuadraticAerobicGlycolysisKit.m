@@ -63,7 +63,7 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                     tracer = 'oc';
                     metric = 'vs';
                     region = ipr.region;
-                    construction = @QuadraticAerobicGlycolysisKit.constructCbvByRegion;
+                    construction = @QuadraticAerobicGlycolysisKit.constructCbvByRegion;                            
                 case 'cbf'
                     tracer = 'ho';
                     metric = 'fs';
@@ -112,7 +112,6 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
         function constructCbfByRegion(varargin)
             %% CONSTRUCTCBFBYREGION
             %  @param required sessionData is mlpipeline.ISessionData.
-            %  @param required another sessionData for augmentation by averaging.
             %  @return cbf on filesystem.
             
             this = mlraichle.QuadraticAerobicGlycolysisKit(varargin{:});            
@@ -130,7 +129,6 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
         function constructCbvByRegion(varargin)
             %% CONSTRUCTCBVBYREGION
             %  @param required sessionData is mlpipeline.ISessionData.
-            %  @param required another sessionData for augmentation by averaging.
             %  @return cbv on filesystem.
             
             this = mlraichle.QuadraticAerobicGlycolysisKit(varargin{:});
@@ -148,12 +146,16 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
         function constructCmro2ByRegion(varargin)
             %% CONSTRUCTCMRO2BYREGION
             %  @param required sessionData is mlpipeline.ISessionData.
-            %  @param required another sessionData for augmentation by averaging.
             %  @return cmro2 on filesystem.
             %  @return oef on filesystem.
             
             this = mlraichle.QuadraticAerobicGlycolysisKit(varargin{:});            
-            this.constructPhysiologyDateOnly('cbf', 'subjectFolder', this.sessionData.subjectFolder)
+            this.constructPhysiologyDateOnly('cbf', ...
+                'subjectFolder', this.sessionData.subjectFolder, ...
+                'region', this.sessionData.region)
+            this.constructPhysiologyDateOnly('cbv', ...
+                'subjectFolder', this.sessionData.subjectFolder, ...
+                'region', this.sessionData.region)
             Region = [upper(this.sessionData.region(1)) this.sessionData.region(2:end)];
             pwd0 = pushd(this.sessionData.subjectPath);            
              
@@ -169,7 +171,140 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             oef_.save()
             
             popd(pwd0);
-        end     
+        end    
+        function constructQC(varargin)
+            %% CONSTRUCTQC
+            %  e.g.:  constructQC('cbv', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 1, 'region', 'wholebrain')
+            %  e.g.:  constructQC('cbv', 'debug', true)
+            %  @param required physiolog is char, e.g., cbv, cbf, cmro2, cmrglc.
+            %  @param subjectsExpr is char, e.g., 'sub-S58163*'.
+            %  @param region is char, e.g., wholebrain, voxels.
+            %  @param debug is logical.
+            %  @param Nthreads is numeric|char.
+            
+            import mlraichle.*
+            import mlraichle.QuadraticAerobicGlycolysisKit.*
+
+            % global
+            registry = MatlabRegistry.instance(); %#ok<NASGU>
+            subjectsDir = fullfile(getenv('SINGULARITY_HOME'), 'subjects');
+            setenv('SUBJECTS_DIR', subjectsDir)
+            setenv('PROJECTS_DIR', fileparts(subjectsDir)) 
+            setenv('DEBUG', '')
+            setenv('NOPLOT', '1')
+            warning('off', 'MATLAB:table:UnrecognizedVarNameCase')
+            
+            ip = inputParser;
+            addRequired( ip, 'physiology', @ischar)
+            addParameter(ip, 'subjectsExpr', 'sub-S58163', @ischar)
+            addParameter(ip, 'region', 'voxels', @ischar)
+            addParameter(ip, 'debug', ~isempty(getenv('DEBUG')), @islogical)
+            addParameter(ip, 'indexCliff', [], @isnumeric)
+            addParameter(ip, 'Nthreads', 1, @(x) isnumeric(x) || ischar(x))
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            if ischar(ipr.Nthreads)
+                ipr.Nthreads = str2double(ipr.Nthreads);
+            end 
+            
+            % switch strategy
+            switch ipr.physiology
+                case 'cbv'
+                    tracer = 'oc';
+                    metric = 'vs';
+                    region = ipr.region;
+                    averaging = 'wholebrain';
+                    construction = @QuadraticAerobicGlycolysisKit.construct_qc_wholebrain;                            
+                case 'cbf'
+                    tracer = 'ho';
+                    metric = 'fs';
+                    region = ipr.region;
+                    averaging = 'wholebrain';
+                    construction = @QuadraticAerobicGlycolysisKit.construct_qc_wholebrain;
+                case {'oef' 'cmro2'}
+                    tracer = 'oo';
+                    metric = 'os';
+                    region = ipr.region;
+                    averaging = 'wholebrain';
+                    construction = @QuadraticAerobicGlycolysisKit.construct_qc_wholebrain;
+                otherwise
+                    error('mlpet:RuntimeError', 'QuadraticAerobicGlycolysisKit.construct.ipr.physiology->%s', ipr.physiology)
+            end
+            
+            % construct
+            pwd1 = pushd(subjectsDir);
+            QuadraticAerobicGlycolysisKit.initialize()
+            theSessionData = QuadraticAerobicGlycolysisKit.constructSessionData( ...
+                metric, ...
+                'subjectsExpr', ipr.subjectsExpr, ...
+                'tracer', tracer, ...
+                'debug', ipr.debug, ...
+                'region', region); % length(theSessionData) ~ 60
+            qc_ = cell(1, length(theSessionData));
+            if ipr.Nthreads > 1                
+                parfor (p = 1:length(theSessionData), ipr.Nthreads)
+                    try
+                        qc_{p} = construction(ipr.physiology, theSessionData(p)); %#ok<PFBNS>
+                    catch ME
+                        handwarning(ME)
+                    end
+                end
+            elseif ipr.Nthreads == 1
+                for p = length(theSessionData):-1:1
+                    try
+                        qc_{p} = construction(ipr.physiology, theSessionData(p)); % RAM ~ 3.3 GB
+                    catch ME
+                        handwarning(ME)
+                    end
+                end
+            end
+            p_ = 1;
+            for p = 1:length(theSessionData)
+                try
+                    qc(p_) = qc_{p}; %#ok<AGROW>
+                    p_ = p_ + 1;
+                catch ME
+                    handwarning(ME)
+                end
+            end
+            QuadraticAerobicGlycolysisKit.writeqc(ipr.physiology, qc, averaging)            
+            popd(pwd1);
+        end 
+        function qc = construct_qc_wholebrain(physio, varargin)
+            %% CONSTRUCT_QC_WHOLEBRAIN
+            %  @param required physio is char:  'cbv', 'cbf', 'oef', cmro2', ...
+            %  @param required sessionData is mlpipeline.ISessionData.
+            %  @return qc as struct('subject', [], 'filename', [], 'datetime_', [], 'wholebrain', []).
+            
+            assert(ischar(physio))
+            this = mlraichle.QuadraticAerobicGlycolysisKit(varargin{:});
+            sd = this.sessionData;
+            pwd0 = pushd(sd.subjectPath);
+            
+            qc.subject = sd.subjectFolder;
+            qc.filename = sd.([physio 'OnAtlas'])('tags', sd.regionTag);
+            qc.datetime_ = datetime(sd);
+            
+            wm1 = mlfourd.ImagingFormatContext(sd.wmparc1OnAtlas);
+            wm1.img(wm1.img == 40) = 0;
+            wm1 = mlfourd.ImagingContext2(wm1);
+            wm1 = wm1.binarized();            
+            ic = mlfourd.ImagingContext2(qc.filename);
+            ic = ic.volumeAveraged(wm1);
+            wb = ic.fourdfp.img;
+            assert(isscalar(wb))
+            qc.wholebrain = wb;
+            
+            popd(pwd0);
+        end
+        function writeqc(physio, qc, averaging)
+            physiology = repmat({physio}, [length(qc) 1]);            
+            tbl = table( ...
+                physiology, {qc.subject}', {qc.filename}', {qc.datetime_}', {qc.(averaging)}', ...
+                'VariableNames', ...
+                {'Physiology', 'Subject', 'Filename', 'DateTime', averaging});
+            writetable(tbl, ['qc_' physio '_wholebrain.xlsx'])
+        end
     end
 
 	methods 
@@ -225,6 +360,7 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 'arterial', arterial, ...
                 'roi', brain.binarized());  
             raichle = raichle.solve();
+            this.model = raichle;
 
             % insert Raichle solutions into fs
             fs_.img = raichle.fs('typ', 'single');
@@ -264,6 +400,7 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 'arterial', arterial, ...
                 'roi', brain.binarized());  
             mintun = mintun.solve();
+            this.model = mintun;
 
             % insert Raichle solutions into fs
             os_.img = mintun.os('typ', 'single');
@@ -302,7 +439,8 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 'scanner', scanner, ...
                 'arterial', arterial, ...
                 'roi', brain.binarized());
-            martin = martin.solve();                
+            martin = martin.solve();  
+            this.model = martin;
 
             % insert Martin solutions into fs
             vs_.img = martin.vs('typ', 'single');
@@ -369,5 +507,5 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
  	end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
- end
+end
 
