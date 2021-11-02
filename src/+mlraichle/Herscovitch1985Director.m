@@ -173,9 +173,7 @@ classdef Herscovitch1985Director
             parse(ip, varargin{:});
             
             this.sessionContext_ = ip.Results.sessionContext;
-            this.labs_ = [];
-            
-            setenv('CCIR_RAD_MEASUREMENTS_DIR', fullfile(getenv('HOME'), 'Documents', 'private', ''));
+            this.labs_ = [];            
  		end
     end 
     

@@ -82,8 +82,6 @@ classdef RaichleRegistry < handle & mlnipet.Resources
 	methods (Access = protected)		  
  		function this = RaichleRegistry(varargin)
             this = this@mlnipet.Resources(varargin{:});
-            setenv('CCIR_RAD_MEASUREMENTS_DIR',  ...
-                   fullfile(getenv('HOME'), 'Documents', 'private', ''));
  		end
     end 
 

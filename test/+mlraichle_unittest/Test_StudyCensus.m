@@ -11,7 +11,7 @@ classdef Test_StudyCensus < matlab.unittest.TestCase
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2018 John Joowon Lee.
  	
 	properties
-        fqfilename = fullfile(getenv('HOME'), 'Documents/private/census 2018mar29.xlsx')
+        fqfilename = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), 'census 2018mar29.xlsx')
  		registry
         sessd
  		testObj

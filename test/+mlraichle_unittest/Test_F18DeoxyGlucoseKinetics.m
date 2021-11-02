@@ -11,9 +11,8 @@ classdef Test_F18DeoxyGlucoseKinetics < matlab.unittest.TestCase
  	%% It was developed on Matlab 9.2.0.538062 (R2017a) for MACI64.  Copyright 2017 John Joowon Lee.
  	
 	properties
-        ccirRadMeasurementsDir = fullfile(getenv('HOME'), 'Documents', 'private', '')
         dta
-        fqfnman = fullfile(getenv('HOME'), 'Documents/private/CCIRRadMeasurements 2016sep23.xlsx')
+        fqfnman = fullfile(getenv('CCIR_RAD_MEASUREMENTS_DIR'), 'CCIRRadMeasurements 2016sep23.xlsx')
         frame = 0
         pwd0
  		registry
@@ -85,7 +84,6 @@ classdef Test_F18DeoxyGlucoseKinetics < matlab.unittest.TestCase
  	methods (TestClassSetup)
 		function setupF18DeoxyGlucoseKinetics(this)
  			import mlraichle.*;
-            setenv('CCIR_RAD_MEASUREMENTS_DIR', this.ccirRadMeasurementsDir);
             this.sessd = SessionData( ...
                 'studyData', StudyData, ...
                 'sessionPath', this.sessp, ...
