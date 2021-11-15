@@ -22,6 +22,7 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
         dilationRadius = 2 % Fung reported best results with radius ~ 2.5, but integers may be faster
         dyn_fileprefix % fileprefix for PET
         dyn_label % label for PET, useful for figures
+        iterations
         it10
         it25
         it50
@@ -35,6 +36,7 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             % rmse 
             % target_ics are averages of frames containing 10-25 pcnt, 10-50 pcnt, 10-75 pcnt of max emissions
         segmentation_ic % contains solid 3D volumes for carotids
+        smoothFactor
         taus % containers.Map
         times % containers.Map
         timesMid % containers.Map
@@ -156,7 +158,7 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             %  @param subFolder is a folder name for the subject.
             %  @param t1w is a filename string to glob.
             %  @param coords from fsleyes [ x y z; ... ], [ [RS]; [LS]; [RI]; [LI] ].
-            %  @param iterations ~ 130.
+            %  @param iterations ~ 80:130.
             %  @param smoothFactor ~ 0.
             %  @param alg is 'cpd' or 'fung', used by registerCenterline(). 
             
@@ -181,6 +183,8 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             this.plotdebug = ipr.plotdebug;
             this.coords = ipr.coords;
             this.BBBuf = ipr.BBBuf;
+            this.iterations = ipr.iterations;
+            this.smoothFactor = ipr.smoothFactor;
             this.alg = lower(ipr.alg);
             
             % gather requirements
@@ -272,8 +276,8 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             %  @return this.segmentation_ic.
             
             ip = inputParser;
-            addOptional(ip, 'iterations', 100, @isscalar)
-            addParameter(ip, 'smoothFactor', 0, @isscalar)
+            addOptional(ip, 'iterations', this.iterations, @isscalar)
+            addParameter(ip, 'smoothFactor', this.smoothFactor, @isscalar)
             parse(ip, varargin{:})
             ipr = ip.Results;
 
@@ -416,8 +420,8 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             
             ip = inputParser;
             addOptional(ip, 'toglob', this.pet_toglob, @ischar)
-            addParameter(ip, 'iterations', 80, @isscalar)
-            addParameter(ip, 'smoothFactor', 0, @isscalar)
+            addParameter(ip, 'iterations', this.iterations, @isscalar)
+            addParameter(ip, 'smoothFactor', this.smoothFactor, @isscalar)
             parse(ip, varargin{:})
             ipr = ip.Results;
 
@@ -427,6 +431,10 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
 
             niis = globT(ipr.toglob);
             niis = niis(~contains(niis, '_avgt'));
+
+            %% DEBUGGING
+            niis = niis(20:21);
+
             ics = cell(1, length(niis));
             NIfTI_Filename = cell(1, length(niis));
             tracer = cell(1, length(niis));
@@ -453,12 +461,11 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             end
 
             % construct table and write
-            t_fileprefix = strsplit(niis{end}, '_on_T1001');
-            [~,t_descr] = fileparts(t_fileprefix{1});
-            t_idif = table(NIfTI_Filename, tracer, IDIF);
+            t_descr = this.subFolder;
+            t_idif = table(NIfTI_Filename', tracer', IDIF');
             t_idif.Properties.Description = t_descr;
             t_idif.Properties.VariableUnits = {'', '', 'Bq/mL'};
-            t_fqfileprefix = fullfile(this.petPath, [t_descr '_idif']);
+            t_fqfileprefix = fullfile(this.destinationPath, [t_descr '_idif']);
             writetable(t_idif, [t_fqfileprefix '.csv']);
 
             % plot and save
@@ -494,9 +501,10 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             if contains(idif.fileprefix, 'fdg')
                 tracer = 'FDG';
             end
-            assert(all(size(decay_corrected) == size(this.taus(tracer))))
+            taus_ = this.taus(tracer);
+            N = min(length(decay_corrected), length(taus_));
             radio = mlpet.Radionuclides(tracer);
-            decay_uncorrected = decay_corrected ./ radio.decayCorrectionFactors('taus', this.taus(tracer));
+            decay_uncorrected = decay_corrected ./ radio.decayCorrectionFactors('taus', taus_(1));
         end
         function [h,h1] = plotRegistered(this, varargin)
             % @param required target, pointCloud.

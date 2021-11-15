@@ -501,9 +501,10 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             if contains(idif.fileprefix, 'fdg')
                 tracer = 'FDG';
             end
-            assert(all(size(decay_corrected) == size(this.taus(tracer))))
+            taus_ = this.taus(tracer);
+            N = min(length(decay_corrected), length(taus_));
             radio = mlpet.Radionuclides(tracer);
-            decay_uncorrected = decay_corrected ./ radio.decayCorrectionFactors('taus', this.taus(tracer));
+            decay_uncorrected = decay_corrected(1:N) ./ radio.decayCorrectionFactors('taus', taus_(1:N));
         end
         function [h,h1] = plotRegistered(this, varargin)
             % @param required target, pointCloud.
