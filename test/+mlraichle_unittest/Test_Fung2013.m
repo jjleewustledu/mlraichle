@@ -90,17 +90,17 @@ classdef Test_Fung2013 < matlab.unittest.TestCase
             %this.petPath = fullfile(getenv('HOME'), 'Singularity/CCIR_01211/derivatives/sub-108293/pet');
             %this.sourceAnatPath = fullfile(getenv('HOME'), 'Singularity/CCIR_01211/sourcedata/sub-108293/anat');
             %this.sourcePetPath = fullfile(getenv('HOME'), 'Singularity/CCIR_01211/sourcedata/sub-108293/pet');
-            this.anatPath = fullfile(getenv('HOME'), 'Singularity/subjects/sub-S58163/resampling_restricted');
-            this.petPath = fullfile(getenv('HOME'), 'Singularity/subjects/sub-S58163/resampling_restricted');
-            this.sourceAnatPath = fullfile(getenv('HOME'), 'Singularity/subjects/sub-S58163/resampling_restricted');
-            this.sourcePetPath = fullfile(getenv('HOME'), 'Singularity/subjects/sub-S58163/resampling_restricted');
+            this.anatPath = fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/derivatives/sub-S58163/anat');
+            this.petPath = fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/derivatives/sub-S58163/pet');
+            this.sourceAnatPath = fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/sourcedata/sub-S58163/anat');
+            this.sourcePetPath = fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/sourcedata/sub-S58163/pet');
             cd(this.petPath)         
             %this.corners = [113 178 140; 87 178 140; 136 149 58; 62 148 59] + 1; % long vglab
             %this.corners = [140 144 109; 60 144 105; 136 149 58; 62 148 59] + 1; % short vglab
             %this.corners = [121 102 25; 62 104 28; 117 98 1; 69 99 1]; % PPG T1001_111; [ x y z; ... ]; [ [RS]; [LS]; [RI]; [LI] ].
             this.corners = [159 120 81; 99 122 81; 156 116 31; 102 113 31]; % PPG T1001; [ x y z; ... ]; [ [RS]; [LS]; [RI]; [LI] ].
  			this.testObj_ = Fung2013('coords', this.corners, 'iterations', 80, 'BBBuf', [10 10 1], ...
-                'subFolder', 'sub-S58163', 'plotdebug', false, 'alg', 'fung');
+                'subFolder', 'sub-S58163', 'plotdebug', false, 'alg', 'cpd');
             %this.t1w = mlfourd.ImagingContext2(fullfile(this.sourceAnatPath, 'sub-108293_20210218081030_T1w.nii.gz'));
             this.t1w = mlfourd.ImagingContext2(fullfile(this.sourceAnatPath, 'T1001.4dfp.hdr'));
             %this.ho = mlfourd.ImagingContext2(fullfile(this.petPath, 'sub-108293_20210421134537_Water_Dynamic_13_on_T1w.nii.gz'));

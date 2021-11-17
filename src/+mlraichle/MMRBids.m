@@ -30,7 +30,7 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
         %% GET
 
         function g = get.anatPath(this)
-            g = fullfile(this.derivativesPath, '');
+            g = fullfile(this.derivativesPath, this.subFolder, 'anat');
             assert(isfolder(g))
         end
         function g = get.projPath(this)
@@ -38,7 +38,7 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             assert(isfolder(g))
         end
         function g = get.derivativesPath(this)
-            g = fullfile(this.projPath, this.subFolder, 'resampling_restricted', '');
+            g = fullfile(this.projPath, 'derivatives', '');
             assert(isfolder(g))
         end
         function g = get.destinationPath(this)
@@ -46,23 +46,23 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             assert(isfolder(g))
         end
         function g = get.mriPath(this)
-            g = fullfile(this.derivativesPath, '');
+            g = fullfile(this.derivativesPath, this.subFolder, 'mri', '');
             assert(isfolder(g))
         end
         function g = get.petPath(this)
-            g = fullfile(this.derivativesPath, '');
+            g = fullfile(this.derivativesPath, this.subFolder, 'pet', '');
             assert(isfolder(g))
         end
         function g = get.sourcedataPath(this)
-            g = fullfile(this.projPath, this.subFolder, 'resampling_restricted', '');
+            g = fullfile(this.projPath, 'sourcedata', '');
             assert(isfolder(g))
         end
         function g = get.sourceAnatPath(this)
-            g = fullfile(this.sourcedataPath, '');
+            g = fullfile(this.sourcedataPath, this.subFolder, 'anat', '');
             assert(isfolder(g))
         end
         function g = get.sourcePetPath(this)
-            g = fullfile(this.sourcedataPath, '');
+            g = fullfile(this.sourcedataPath, this.subFolder, 'pet', '');
             assert(isfolder(g))
         end
         function g = get.subFolder(this)
@@ -73,7 +73,7 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
                 g = this.T1w_ic_;
                 return
             end
-            fn = fullfile(this.anatPath, 'T1001.4dfp.hdr');
+            fn = fullfile(this.sourceAnatPath, 'T1001.4dfp.hdr');
             assert(isfile(fn))
             this.T1w_ic_ = mlfourd.ImagingContext2(fn);
             g = copy(this.T1w_ic_);
@@ -83,7 +83,7 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
                 g = this.wmparc_ic_;
                 return
             end
-            fn = fullfile(this.anatPath, 'wmparc.4dfp.hdr');
+            fn = fullfile(this.sourceAnatPath, 'wmparc.4dfp.hdr');
             assert(isfile(fn))
             this.wmparc_ic_ = mlfourd.ImagingContext2(fn);
             g = copy(this.wmparc_ic_);
@@ -99,7 +99,7 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'destPath', pwd, @isfolder)
-            addParameter(ip, 'projPath', fullfile(getenv('SINGULARITY_HOME'), 'subjects', ''), @isfolder)
+            addParameter(ip, 'projPath', fullfile(getenv('SINGULARITY_HOME'), 'CCIR_00559_00754', ''), @isfolder)
             addParameter(ip, 'subFolder', '', @ischar)
             parse(ip, varargin{:})
             ipr = ip.Results;
@@ -111,12 +111,12 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
         end
         
         function parseDestinationPath(this, dpath)
-            assert(contains(dpath, 'subjects'), 'mlraichle.MMRBids: destination path must include a project identifier')
+            assert(contains(dpath, 'CCIR_00559_00754'), 'mlraichle.MMRBids: destination path must include a project identifier')
             assert(contains(dpath, 'sub-'), 'mlraichle.MMRBids: destination path must include a subject identifier')
 
             this.destPath_ = dpath;
             ss = strsplit(dpath, filesep);
-            [~,idxProjFold] = max(contains(ss, 'subjects'));
+            [~,idxProjFold] = max(contains(ss, 'CCIR_'));
             this.projPath_ = [filesep fullfile(ss{1:idxProjFold})];
             this.subFolder_ = ss{contains(ss, 'sub-')}; % picks first occurance
         end

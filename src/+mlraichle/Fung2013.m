@@ -52,7 +52,6 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
     
     properties (Dependent)
         anatPath
-        projPath
         derivativesPath
         destinationPath
         NCenterlineSamples % 1 voxel/mm for coarse representation of b-splines
@@ -62,6 +61,7 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
         mriPath
         petPath
         pet_toglob
+        projPath
         sourcedataPath
         sourceAnatPath
         sourcePetPath
@@ -89,6 +89,8 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
 
                 popd(pwd0)
             end
+        end
+        function call_on_subject()
         end
     end
 
@@ -171,7 +173,7 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             addParameter(ip, 'plotmore', true, @islogical)
             addParameter(ip, 'plotdebug', false, @islogical)
             addParameter(ip, 'coords', [], @isnumeric)
-            addParameter(ip, 'BBBuf', [16 16 1], @isnumeric)
+            addParameter(ip, 'BBBuf', [10 10 1], @isnumeric)
             addParameter(ip, 'iterations', 80, @isscalar)
             addParameter(ip, 'smoothFactor', 0, @isscalar)
             addParameter(ip, 'alg', 'fung', @(x) strcmpi(x, 'cpd') || strcmpi(x, 'fung'))
@@ -350,7 +352,7 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             
             if this.plotmore
                 h = figure;
-                pcshow(pointCloud(this.T1w_ic, 'thresh', 1000))
+                pcshow(pointCloud(this.T1w_ic, 'thresh', 0.75*dipmax(this.T1w_ic)))
                 hold on; pcshow(pc.Location, '*m'); hold off;
                 fn_fig = fullfile(this.anatPath, sprintf('%s_%s_centerline.fig', this.T1w_ic.fileprefix, tag));
                 if ~isfile(fn_fig)
@@ -433,7 +435,7 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             niis = niis(~contains(niis, '_avgt'));
 
             %% DEBUGGING
-            niis = niis(20:21);
+            niis = niis(8:9);
 
             ics = cell(1, length(niis));
             NIfTI_Filename = cell(1, length(niis));
@@ -461,12 +463,13 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             end
 
             % construct table and write
-            t_descr = this.subFolder;
+            t_descr = ['Fung2013_' this.subFolder];
             t_idif = table(NIfTI_Filename', tracer', IDIF');
             t_idif.Properties.Description = t_descr;
             t_idif.Properties.VariableUnits = {'', '', 'Bq/mL'};
             t_fqfileprefix = fullfile(this.destinationPath, [t_descr '_idif']);
             writetable(t_idif, [t_fqfileprefix '.csv']);
+            save([t_fqfileprefix '_t_idif.mat'], 't_idif')
 
             % plot and save
             h = figure;
