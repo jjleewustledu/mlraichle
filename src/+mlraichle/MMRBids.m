@@ -106,6 +106,9 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             this.destPath_ = ipr.destPath;
             this.projPath_ = ipr.projPath;
             this.subFolder_ = ipr.subFolder;
+            if isempty(this.subFolder_)
+                this.parseDestinationPath(this.destPath_)
+            end
 
             this.pet_toglob = fullfile(this.petPath, '*dt*_on_T1001.4dfp.hdr');
         end
@@ -121,7 +124,7 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             this.subFolder_ = ss{contains(ss, 'sub-')}; % picks first occurance
         end
         function n = tracername(~, str)
-            if contains(str, 'co', 'IgnoreCase', true)
+            if contains(str, 'co', 'IgnoreCase', true) || contains(str, 'oc', 'IgnoreCase', true)
                 n = 'CO';
                 return
             end
