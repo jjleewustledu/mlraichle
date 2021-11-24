@@ -12,30 +12,36 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
     
     properties
         alg % prefer 'fung'; try 'cpd'
-        BBBuf % extra voxels padded to coords to create convex bounding box
+        BBBuf % extra voxels padded to coords to create convex bounding box for segmentation & centerline
         centerlines_ics % L, R in cell
         centerlines_pcs % L, R in cell
-        coords % 4 points at corners
-        coords_bb % {x1:xN, y1:yN, z1:zN} for bounding box
-        corners_ic
-        cornersb_ic
+        contract_bias % used by activecontour
+        coords % 4 coord points at corners
+        coords_bb % coord ranges {x1:xN, y1:yN, z1:zN} for bounding box
+        coords_bb2 % coord ranges {x1:xN, y1:yN, z1:zN} for bounding box 2
+        coords_ic
+        coords_bb_ic
         dilationRadius = 2 % Fung reported best results with radius ~ 2.5, but integers may be faster
-        dyn_fileprefix % fileprefix for PET
-        dyn_label % label for PET, useful for figures
+        dyn_ic % contains dynamic PET as ImagingContext (LARGE)
+        idifmask_ic % contains centerline expanded by dilationRadius as ImagingContext
         iterations
         it10
         it25
         it50
         it75
+        plotclose % close plots after saving
         plotdebug % show debugging plots
-        plotmore % show more plots for QA
         ploton % show final results
+        plotqc % show more plots for QA
         registration % struct
             % tform
             % centerlineOnTarget
             % rmse 
             % target_ics are averages of frames containing 10-25 pcnt, 10-50 pcnt, 10-75 pcnt of max emissions
+        segmentation_blur
+        segmentation_only
         segmentation_ic % contains solid 3D volumes for carotids
+        segmentation_thresh
         smoothFactor
         taus % containers.Map
         times % containers.Map
@@ -52,8 +58,10 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
     
     properties (Dependent)
         anatPath
+        BBBufMax % max voxels padded to coords to create convex bounding box for registration target by PET
         derivativesPath
         destinationPath
+        dyn_label % label for PET, useful for figures
         NCenterlineSamples % 1 voxel/mm for coarse representation of b-splines
         Nx
         Ny
@@ -65,6 +73,7 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
         sourcedataPath
         sourceAnatPath
         sourcePetPath
+        static_ic
         subFolder
         T1w_ic
         wmparc_ic
@@ -90,7 +99,35 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
                 popd(pwd0)
             end
         end
-        function call_on_subject()
+        function call_on_project(range, varargin)
+            %% CALL_ON_PROJECT performs essential computations needed to create tables of IDIFs.
+            %  @param required range is numeric, specifying subjects ordinally, e.g., 1:13.
+
+            assert(isnumeric(range))
+            deriv = fullfile(getenv('SINGULARITY_HOME'), 'CCIR_00559_00754', 'derivatives', '');
+            cd(deriv)
+            subfolders = globFoldersT('sub-S*');
+            if isempty(range)
+                range = 1:length(subfolders);
+            end
+            for s = range
+                try
+                    pwd0 = pushd(fullfile(deriv, subfolders{s}, 'pet', ''));
+                    this = mlraichle.Fung2013(varargin{:}); %#ok<PFBNS> 
+                    call(this)
+                    popd(pwd0)
+                catch ME
+                    handwarning(ME)
+                end
+            end
+        end
+        function tbls_idif = call_on_subject(varargin)
+            %% CALL_ON_SUBJECT performs essential computations needed to create tables of IDIFs.
+            %  @param for ctor.
+            %  @return tables for idif.
+
+            this = mlraichle.Fung2013(varargin{:});
+            tbls_idif = call(this);
         end
     end
 
@@ -101,14 +138,17 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
         function g = get.anatPath(this)
             g = this.bids_.anatPath;
         end
-        function g = get.projPath(this)
-            g = this.bids_.projPath;
+        function g = get.BBBufMax(this)
+            g = round([16 16 5]);
         end
         function g = get.derivativesPath(this)
             g = this.bids_.derivativesPath;
         end
         function g = get.destinationPath(this)
             g = this.bids_.destinationPath;
+        end
+        function g = get.dyn_label(this)
+            g = strrep(this.dyn_ic.fileprefix, '_', ' ');
         end
         function g = get.NCenterlineSamples(this)
             rngz = max(this.coords_bb{3}) - min(this.coords_bb{3});
@@ -132,6 +172,9 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
         function g = get.pet_toglob(this)
             g = this.bids_.pet_toglob;
         end
+        function g = get.projPath(this)
+            g = this.bids_.projPath;
+        end
         function g = get.sourcedataPath(this)
             g = this.bids_.sourcedataPath;
         end
@@ -140,6 +183,15 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
         end
         function g = get.sourcePetPath(this)
             g = this.bids_.sourcePetPath;
+        end
+        function g = get.static_ic(this)
+            assert(~isempty(this.dyn_ic))
+            static_fqfn = strrep(this.dyn_ic.fqfilename, '_on_T1001', '_avgt_on_T1001');
+            if isfile(static_fqfn)
+                g = mlfourd.ImagingContext2(static_fqfn);
+                return
+            end
+            g = this.dyn_ic.timeAveraged();
         end
         function g = get.subFolder(this)
             g = this.bids_.subFolder;
@@ -155,39 +207,74 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
         
         function this = Fung2013(varargin)
             %% FUNG2013
-            %  @param optional destPath is the path for writing outputs.  Default is pwd.  
+            %  @param destPath is the path for writing outputs.  Default is MMRBids.destinationPath.  
             %         Must specify project ID & subject ID.
             %  @param subFolder is a folder name for the subject.
-            %  @param t1w is a filename string to glob.
-            %  @param coords from fsleyes [ x y z; ... ], [ [RS]; [LS]; [RI]; [LI] ].
+            %  @param ploton is bool for showing IDIFs.
+            %  @param plotqc is bool for showing QC.
+            %  @param plotdebug is bool for showing information for debugging.
+            %  @param corners from fsleyes [ x y z; ... ], [ [RS]; [LS]; [RI]; [LI] ].
+            %  @param BBBuff is the bounding box buffer ~ [x y z].
             %  @param iterations ~ 80:130.
             %  @param smoothFactor ~ 0.
+            %  @param contractBias is the contraction bias for activecontour():  ~[-1 1], bias > 0 contracting.
             %  @param alg is 'cpd' or 'fung', used by registerCenterline(). 
+            %  @param segmentationOnly is logical.
+            %  @param segmentationBlur is scalar.
+            %  @param segmentationThresh is scalar.
             
-            this.bids_ = mlraichle.MMRBids(varargin{:}); % delegate
+            this.bids_ = mlraichle.MMRBids(varargin{:}); % delegate uses subFolder
 
             ip = inputParser;
-            addOptional(ip, 'destPath', pwd, @isfolder)
-            addParameter(ip, 'subFolder', '', @ischar)
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'destPath', this.bids_.destinationPath, @isfolder)
             addParameter(ip, 'ploton', true, @islogical)
-            addParameter(ip, 'plotmore', true, @islogical)
+            addParameter(ip, 'plotqc', true, @islogical)
             addParameter(ip, 'plotdebug', false, @islogical)
-            addParameter(ip, 'coords', [], @isnumeric)
-            addParameter(ip, 'BBBuf', [10 10 1], @isnumeric)
-            addParameter(ip, 'iterations', 80, @isscalar)
+            addParameter(ip, 'plotclose', true, @islogical)
+            addParameter(ip, 'corners', [], @(x) ismatrix(x) || isa(x, 'containers.Map'))
+            addParameter(ip, 'BBBuf', [3 3 0], @(x) isvector(x) || isa(x, 'containers.Map'))
+            addParameter(ip, 'iterations', 70, @(x) isscalar(x) || isa(x, 'containers.Map'))
             addParameter(ip, 'smoothFactor', 0, @isscalar)
-            addParameter(ip, 'alg', 'fung', @(x) strcmpi(x, 'cpd') || strcmpi(x, 'fung'))
+            addParameter(ip, 'contractBias', 0.02, @(x) isscalar(x) || isa(x, 'containers.Map'))
+            addParameter(ip, 'alg', 'fung', @(x) strcmpi(x, 'ndt') || strcmpi(x, 'icp') || strcmpi(x, 'cpd') || strcmpi(x, 'fung'))
+            addParameter(ip, 'segmentationOnly', false, @islogical)
+            addParameter(ip, 'segmentationBlur', 0, @(x) isscalar(x) || isa(x, 'containers.Map'))
+            addParameter(ip, 'segmentationThresh', 190, @(x) isscalar(x) || isa(x, 'containers.Map')) % tuned for PPG T1001
             parse(ip, varargin{:})
             ipr = ip.Results;
             this.parseDestinationPath(ipr.destPath);
+            if isa(ipr.corners, 'containers.Map')
+                ipr.corners = ipr.corners(this.subFolder);
+            end  
+            if isa(ipr.BBBuf, 'containers.Map')
+                ipr.BBBuf = ipr.BBBuf(this.subFolder);
+            end  
+            if isa(ipr.iterations, 'containers.Map')
+                ipr.iterations = ipr.iterations(this.subFolder);
+            end  
+            if isa(ipr.contractBias, 'containers.Map')
+                ipr.contractBias = ipr.contractBias(this.subFolder);
+            end  
+            if isa(ipr.segmentationBlur, 'containers.Map')
+                ipr.segmentationBlur = ipr.segmentationBlur(this.subFolder);
+            end  
+            if isa(ipr.segmentationThresh, 'containers.Map')
+                ipr.segmentationThresh = ipr.segmentationThresh(this.subFolder);
+            end  
             this.ploton = ipr.ploton;
-            this.plotmore = ipr.plotmore;
+            this.plotqc = ipr.plotqc;
             this.plotdebug = ipr.plotdebug;
-            this.coords = ipr.coords;
+            this.plotclose = ipr.plotclose;          
+            this.coords = ipr.corners;
             this.BBBuf = ipr.BBBuf;
             this.iterations = ipr.iterations;
+            this.contract_bias = ipr.contractBias;
             this.smoothFactor = ipr.smoothFactor;
             this.alg = lower(ipr.alg);
+            this.segmentation_only = ipr.segmentationOnly;
+            this.segmentation_blur = ipr.segmentationBlur;
+            this.segmentation_thresh = ipr.segmentationThresh;
             
             % gather requirements
             this.hunyadi_ = mlvg.Hunyadi2021();
@@ -222,6 +309,7 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             %         coords is [ [RS]; [LS]; [RI]; [LI] ] for end points of arterial segmentation.
             %  @return this.corners*_ic, which represent corners of the bounding box with unit voxels in arrays of zeros.
             %  @return this.coords_bb, which are row arrays for bases [x y z] that describe the range of bounding box voxels.
+            %  @return this.coords_bb2, which are row arrays for bases [x y z] that describe the range of bounding box 2 voxels.
             
             %  f = mlraichle.Fung2013
             %  f.buildCorners([158 122 85; 96 126 88; 156 116 27; 101 113 28])
@@ -249,26 +337,31 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             end
             
             % build ImagingContexts with corners, and also with blurring, binarizing
-            this.corners_ic = this.T1w_ic.zeros;
-            this.corners_ic.fileprefix = 'corners_on_T1w';
-            nii = this.corners_ic.nifti;
+            this.coords_ic = this.T1w_ic.zeros;
+            this.coords_ic.fileprefix = 'corners_on_T1w';
+            nii = this.coords_ic.nifti;
             nii.img(cc{1,:}) = 1;
             nii.img(cc{2,:}) = 1;
             nii.img(cc{3,:}) = 1;
             nii.img(cc{4,:}) = 1;
-            this.corners_ic = mlfourd.ImagingContext2(nii);
-            assert(4 == dipsum(this.corners_ic))
+            this.coords_ic = mlfourd.ImagingContext2(nii);
+            assert(4 == dipsum(this.coords_ic))
             
-            this.cornersb_ic = this.corners_ic.blurred(1);
-            this.cornersb_ic = this.cornersb_ic.numgt(0.001);
-            this.cornersb_ic.fileprefix = 'corners_on_T1w_spheres';
+            this.coords_bb_ic = this.coords_ic.blurred(1);
+            this.coords_bb_ic = this.coords_bb_ic.numgt(0.001);
+            this.coords_bb_ic.fileprefix = 'corners_on_T1w_spheres';
             
-            % build coords_bb
+            % build coords_bb, coords_bb2
             sz = size(this.T1w_ic);
             for m = 1:3
                 this.coords_bb{m} = (min(ipr.coords(:,m)) - this.BBBuf(m)):(max(this.coords(:,m)) + this.BBBuf(m) + 1);
                 bb = this.coords_bb{m};
                 this.coords_bb{m} = bb(bb >=1 & bb <= sz(m));
+            end
+            for m = 1:3
+                this.coords_bb2{m} = (min(ipr.coords(:,m)) - this.BBBufMax(m)):(max(this.coords(:,m)) + this.BBBufMax(m) + 1);
+                bb2 = this.coords_bb2{m};
+                this.coords_bb2{m} = bb2(bb2 >=1 & bb2 <= sz(m));
             end
         end
         function this = buildSegmentation(this, varargin)
@@ -287,19 +380,24 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
                 return
             end
                         
-            T1wb_img = this.T1w_ic.nifti.img(this.coords_bb{:});
-            cornersb_img = this.cornersb_ic.nifti.img(this.coords_bb{:});
+            blurred = this.T1w_ic.blurred(this.segmentation_blur);
+            T1wb_img = blurred.nifti.img(this.coords_bb{:});
+            threshed_ic = this.T1w_ic.thresh(this.segmentation_thresh);
+            imfilled_ic = threshed_ic.imfill(6, 'holes'); % 6, 18, 26
+            if this.plotdebug
+                figure
+                pcshow(imfilled_ic.pointCloud)
+                figure
+                pcshow(threshed_ic.pointCloud)
+                %threshed_ic.fsleyes
+            end
+            imfilled_img = logical(imfilled_ic.nifti.img(this.coords_bb{:}));
+            coords_bb_img = logical(this.coords_bb_ic.nifti.img(this.coords_bb{:}));
             
             % call snakes, viz., iterate
-            ac = activecontour(T1wb_img, cornersb_img, ipr.iterations, 'Chan-Vese', 'SmoothFactor', ipr.smoothFactor);
-            if this.plotmore
-                this.plotSegmentation(ac)
-                title(sprintf('iterations %i, smooth %g', ipr.iterations, ipr.smoothFactor))
-                fn = fullfile(this.anatPath, [this.T1w_ic.fileprefix '_snakes.fig']);
-                if ~isfile(fn)
-                    savefig(fn)
-                end
-            end
+            ac = activecontour(T1wb_img, imfilled_img .* coords_bb_img, ipr.iterations, 'Chan-Vese', ...
+                'ContractionBias', this.contract_bias, 'SmoothFactor', ipr.smoothFactor);
+            this.plotSegmentation(ac, ipr.iterations, ipr.smoothFactor);
 
             % fit back into T1w
             ic = this.T1w_ic.zeros;
@@ -310,17 +408,16 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             %%nii.save()
             this.segmentation_ic = mlfourd.ImagingContext2(nii);
         end
-        function this = buildCenterlines(this)
+        function this = buildCenterlines(this, static_ic)
             %% builds left and right centerlines, calling this.buildCenterline() for each.
+            %  @param static_ic contains time-averaged PET used to delimit spatial extent of centerlines.
             %  @return this.centerlines_pcs are the pointCloud representation of the centerlines.
             %  @return this.Cs are {L,R} points of the B-spline curve.
             %  @return this.Ps are {L,R} matrices of B-spline control points.
 
-            if ~isempty(this.centerlines_pcs)
-                return
-            end
+            assert(isa(static_ic, 'mlfourd.ImagingContext2'))
 
-            img = logical(this.segmentation_ic);
+            img = logical(this.segmentation_ic) .* logical(static_ic);
             imgL = img(1:ceil(this.Nx/2),:,:);
             imgR = zeros(size(img));
             imgR(ceil(this.Nx/2)+1:end,:,:) = img(ceil(this.Nx/2)+1:end,:,:);
@@ -331,9 +428,12 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             this.Ps = {PL PR};
         end
         function [pc,C,P] = buildCenterline(this, img, tag)
-            %% builds a centerline using mlvg.Hunyadi2021.
+            %% Builds a centerline using mlvg.Hunyadi2021.
+            %  If not previously saved,
+            %  as requested by plotqc and plotdebug, plots centerline with thresholded T1w and,
+            %  as requested by plotclose, closes figures.
             %  @param img is the data upon which a centerline is built.
-            %  @param tag is unused.
+            %  @param tag is char.
             %  @return pc is the pointCloud representation of the centerline.
             %  @return C are points of the B-spline curve.
             %  @return P is the matrix of B-spline control points.
@@ -344,29 +444,27 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             M(1,:) = X'; % M are ints cast as double
             M(2,:) = Y';
             M(3,:) = Z';
-            this.U = this.NCenterlineSamples; 
-            
+            this.U = this.NCenterlineSamples;             
             P = bspline_estimate(this.k, this.t, M); % double
             C = bspline_deboor(this.k, this.t, P, this.U); % double, ~2x oversampling for Z
             pc = pointCloud(C');
             
-            if this.plotmore
+            fp = fullfile(this.destinationPath, sprintf('%s_centerline_in_%s', tag, this.T1w_ic.fileprefix));
+            if ~isfile([fp '.fig']) && this.plotqc
                 h = figure;
                 pcshow(pointCloud(this.T1w_ic, 'thresh', 0.75*dipmax(this.T1w_ic)))
-                hold on; pcshow(pc.Location, '*m'); hold off;
-                fn_fig = fullfile(this.anatPath, sprintf('%s_%s_centerline.fig', this.T1w_ic.fileprefix, tag));
-                if ~isfile(fn_fig)
-                    saveas(h, fn_fig)
-                end
-                fn_png = fullfile(this.anatPath, sprintf('%s_%s_centerline.png', this.T1w_ic.fileprefix, tag));
-                if ~isfile(fn_png)
-                    set(h, 'InvertHardCopy', 'off');
-                    set(h,'Color',[0 0 0]); % RGB values [0 0 0] indicates black color
-                    saveas(h, fn_png)
+                hold on; pcshow(pc.Location, '*m', 'MarkerSize', 12); hold off;
+                saveas(h, [fp '.fig'])
+                set(h, 'InvertHardCopy', 'off');
+                set(h,'Color',[0 0 0]); % RGB values [0 0 0] indicates black color
+                saveas(h, [fp '.png'])
+                if this.plotclose
+                    close(h)
                 end
             end
-            if this.plotdebug
-                figure;
+            fp1 = fullfile(this.destinationPath, sprintf('%s_centerline_in_segmentation', tag));
+            if ~isfile(fp1) && this.plotdebug
+                h1 = figure;
                 hold all;
                 plot3(M(1,:), M(2,:), M(3,:), 'k.');
                 plot3(P(1,:), P(2,:), P(3,:), 'b');
@@ -374,6 +472,11 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
                 legend('segmentation', 'control points', 'curve', ...
                     'Location', 'Best');
                 hold off;
+                saveas(h1, [fp1 '.fig'])
+                saveas(h1, [fp1 '.png'])
+                if this.plotclose
+                    close(h1)
+                end
             end
         end
         function this = buildCORegistrationTargets(this, dyn_ic)
@@ -386,135 +489,140 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
                 this.registration.target_ics{i} = timeAveraged_b25; 
             end
         end
-        function this = buildRegistrationTargets(this, dyn_ic)
-            %% builds registration targets comprising time-averaged emissions for times
+        function this = buildRegistrationTargets(this, dyn_ic_)
+            %% Builds registration targets comprising time-averaged emissions for times
             %  sampled at {0.1:0.25,0.25:0.5,0.5:0.75} of maximal whole-brain emissions.
-            %  Viz., whole-brain emissions determine the sampling intervals,
-            %  but registration targets are R^3 images.
+            %  Viz., whole-brain emissions determine the sampling intervals, but registration targets are R^3 images.
 
-            this.dyn_fileprefix = dyn_ic.fileprefix;
-            this.dyn_label = strrep(this.dyn_fileprefix, '_', ' ');
-            if contains(dyn_ic.fileprefix, 'CO') || contains(dyn_ic.fileprefix, 'OC')
-                this = this.buildCORegistrationTargets(dyn_ic);
+            if contains(dyn_ic_.fileprefix, 'CO') || contains(dyn_ic_.fileprefix, 'OC')
+                this = this.buildCORegistrationTargets(dyn_ic_);
                 return
             end
 
-            dyn_avgxyz = dyn_ic.volumeAveraged(logical(this.wmparc_ic));
+            dyn_avgxyz = dyn_ic_.volumeAveraged(logical(this.wmparc_ic));
             dyn_max = dipmax(dyn_avgxyz);
             img = dyn_avgxyz.nifti.img;
             [~,this.it10] = max(img > 0.1*dyn_max);
             [~,this.it25] = max(img > 0.25*dyn_max);
             [~,this.it50] = max(img > 0.5*dyn_max);
-            [~,this.it75] = max(img > 0.75*dyn_max);
-            
-            this.registration.target_ics{1} = dyn_ic.timeAveraged(this.it10:this.it25);
-            this.registration.target_ics{2} = dyn_ic.timeAveraged(this.it10:this.it50);
-            this.registration.target_ics{3} = dyn_ic.timeAveraged(this.it10:this.it75);
+            [~,this.it75] = max(img > 0.75*dyn_max);            
+            this.registration.target_ics{1} = dyn_ic_.timeAveraged(this.it10:this.it25);
+            this.registration.target_ics{2} = dyn_ic_.timeAveraged(this.it10:this.it50);
+            this.registration.target_ics{3} = dyn_ic_.timeAveraged(this.it10:this.it75);
             for i = 1:3
                 this.registration.target_ics{i} = this.registration.target_ics{i}.blurred(2.5); % 2.5 mm blurring specified by Fung & Carson
             end
         end
-        function [t_idif,ics] = call(this, varargin)
+        function tbl_idif = call(this, varargin)
             %% CALL
-            %  @param optional toglob, e.g., 'sub-*Dynamic*_on_T1w.nii.gz'
+            %  @param toglob, e.g., 'sub-*Dynamic*_on_T1w.nii.gz'
+            %  @param iterations for Chan-Vese snakes.
+            %  @param smoothFactor for Chan-Vese snakes.
             %  @return table of IDIFs; write table to text file.
-            %  @return {ImagingContext2 objects for centerlines}
             
             ip = inputParser;
-            addOptional(ip, 'toglob', this.pet_toglob, @ischar)
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'toglob', this.pet_toglob, @ischar)
             addParameter(ip, 'iterations', this.iterations, @isscalar)
             addParameter(ip, 'smoothFactor', this.smoothFactor, @isscalar)
             parse(ip, varargin{:})
             ipr = ip.Results;
 
-            % build intermediate objects
+            % build segmentation
             this.buildSegmentation(ipr.iterations, 'smoothFactor', ipr.smoothFactor);
-            this.buildCenterlines()
+            if this.segmentation_only
+                tbl_idif = [];
+                return
+            end
 
+            % build intermediate objects
             niis = globT(ipr.toglob);
-            niis = niis(~contains(niis, '_avgt'));
-
-            %% DEBUGGING
-            niis = niis(8:9);
-
-            ics = cell(1, length(niis));
-            NIfTI_Filename = cell(1, length(niis));
+            niis = niis(~contains(niis, '_avgt'));    
+            if ~isempty(getenv('DEBUG'))
+                niis = niis(8:9);
+            end
+            niifqfn = cell(1, length(niis));
             tracer = cell(1, length(niis));
             IDIF = cell(1, length(niis));
-            alg_ = this.alg;
 
             for inii = 1:length(niis)
 
                 % sample input function from dynamic PET             
-                dyn_ic = mlfourd.ImagingContext2(niis{inii});                
-                this.buildRegistrationTargets(dyn_ic)
-                this.registerCenterlines('alg', alg_)
-                ic = this.pointCloudsToIC();
-                ic.filepath = dyn_ic.filepath;
-                ic.fileprefix = [dyn_ic.fileprefix '_idifmask'];
-                ic.save()
-                ics{inii} = ic;
-                idif = dyn_ic.volumeAveraged(ic);
+                this.dyn_ic = mlfourd.ImagingContext2(niis{inii});
+                this.buildCenterlines(this.static_ic)
+                this.buildRegistrationTargets(this.dyn_ic)
+                this.registerCenterlines('alg', this.alg)
+                this.idifmask_ic = this.pointCloudsToIC(); % single ImagingContext
+                this.idifmask_ic.filepath = this.dyn_ic.filepath;
+                this.idifmask_ic.fileprefix = [this.dyn_ic.fileprefix '_idifmask'];
+                this.idifmask_ic.save()
+                idif = this.dyn_ic.volumeAveraged(this.idifmask_ic);
 
                 % construct table variables
-                NIfTI_Filename{inii} = ic.fqfilename;
-                tracer{inii} = this.tracername(ic.fileprefix);
-                IDIF{inii} = asrow(this.decay_uncorrected(idif));
+                niifqfn{inii} = this.idifmask_ic.fqfilename;
+                tracer_ = this.tracername(this.idifmask_ic.fileprefix);
+                tracer{inii} = tracer_;
+                IDIF_ = asrow(this.decay_uncorrected(idif));
+                IDIF{inii} = IDIF_;
+                this.writetable(this.timesMid(tracer_), IDIF_, this.dyn_ic.fileprefix)
             end
 
             % construct table and write
-            t_descr = ['Fung2013_' this.subFolder];
-            t_idif = table(NIfTI_Filename', tracer', IDIF');
-            t_idif.Properties.Description = t_descr;
-            t_idif.Properties.VariableUnits = {'', '', 'Bq/mL'};
-            t_fqfileprefix = fullfile(this.destinationPath, [t_descr '_idif']);
-            writetable(t_idif, [t_fqfileprefix '.csv']);
-            save([t_fqfileprefix '_t_idif.mat'], 't_idif')
+            tbl_idif = table(niifqfn', tracer', IDIF', 'VariableNames', {'niifqfn', 'tracer', 'IDIF'});
+            tbl_idif.Properties.Description = fullfile(this.destinationPath, sprintf('Fung2013_tbl_idif_%s.mat', this.subFolder));
+            tbl_idif.Properties.VariableUnits = {'', '', 'Bq/mL'};
+            save(tbl_idif.Properties.Description, 'tbl_idif')
 
             % plot and save
-            h = figure;
-            hold on
-            for irow = 1:length(NIfTI_Filename)
-                plot(this.timesMid(tracer{irow}), IDIF{irow}, 'o-')
-            end
-            xlim([0 350])
-            xlabel('time (s)')
-            ylabel('activity density (Bq/mL)')
-            title('Image-derived Input Functions')
-            legend(tracer')
-            hold off
-            saveas(h, [t_fqfileprefix '.fig'])
-            saveas(h, [t_fqfileprefix '.png'])
+            this.plotIdif(tbl_idif);
         end
-        function decay_uncorrected = decay_uncorrected(this, idif)
-            %  @param idif is an mlfourd.ImagingContext2 containing a double row.
-            %  @returns decay_uncorrected, the IDIF as a double row.
+        function h = plotIdif(this, tbl_idif)
+            %% As requested by ploton, plots then saves all IDIFs in the subject collection.  Clobbers previously saved.
+            %  As requested by plotclose, closes figures.
 
-            assert(isa(idif, 'mlfourd.ImagingContext2'))
-            decay_corrected = idif.nifti.img;
-            if contains(idif.fileprefix, 'co') || contains(idif.fileprefix, 'oc')
-                tracer = 'CO';
+            if this.ploton
+                h = figure;
+                hold on
+                tracer_ = tbl_idif.tracer;
+                for irow = 1:size(tbl_idif,1)
+                    timesMid_ = this.timesMid(tracer_{irow});
+                    IDIF_ = tbl_idif.IDIF{irow};
+                    N = min(length(timesMid_), length(IDIF_));
+                    switch tracer_{irow}
+                        case {'OC' 'CO'}
+                            linestyle = '-.';
+                        case 'OO'
+                            linestyle = '-';
+                        case 'HO'
+                            linestyle = '--';
+                        otherwise
+                            linestyle = ':';
+                    end
+                    plot(timesMid_(1:N), IDIF_(1:N), linestyle)
+                end
+                xlim([0 350])
+                xlabel('time (s)')
+                ylabel('activity density (Bq/mL)')
+                title('Image-derived Input Functions')
+                legend(tracer_')
+                hold off
+                [~,fqfp] = fileparts(tbl_idif.Properties.Description);
+                saveas(h, [fqfp '.fig'])
+                saveas(h, [fqfp '.png'])
+                if this.plotclose
+                    close(h)
+                end
             end
-            if contains(idif.fileprefix, 'ho')
-                tracer = 'HO';
-            end
-            if contains(idif.fileprefix, 'oo')
-                tracer = 'OO';
-            end
-            if contains(idif.fileprefix, 'fdg')
-                tracer = 'FDG';
-            end
-            taus_ = this.taus(tracer);
-            N = min(length(decay_corrected), length(taus_));
-            radio = mlpet.Radionuclides(tracer);
-            decay_uncorrected = decay_corrected(1:N) ./ radio.decayCorrectionFactors('taus', taus_(1:N));
         end
         function [h,h1] = plotRegistered(this, varargin)
-            % @param required target, pointCloud.
-            % @param required centerlineOnTarget, pointCloud.
-            % @param required centerline, pointCloud.
-            % @param required laterality, in {'' 'l' 'L' 'r' 'R'}.
-            % @return handle(s) for figure(s).
+            %% As requested by plotqc and plotdebug, plots then saves centerline registered to bounding-blox PET in green, 
+            %  centerline reregistered to PET in magenta.  Clobbers previously saved.
+            %  As requested by plotclose, closes figures.
+            %  @param required target, pointCloud.
+            %  @param required centerlineOnTarget, pointCloud.
+            %  @param required centerline, pointCloud.
+            %  @param required laterality, in {'' 'l' 'L' 'r' 'R'}.
+            %  @return handle(s) for figure(s).       
             
             ip = inputParser;
             addRequired(ip, 'target', @(x) isa(x, 'pointCloud'))
@@ -523,39 +631,62 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             addRequired(ip, 'laterality', @(x) ismember(x, {'', 'l', 'L', 'r', 'R'}))
             parse(ip, varargin{:})
             ipr = ip.Results;
-            Laterality = upper(ipr.laterality);
-        
-            h = figure;
-            pcshow(ipr.target)
-            hold on; 
-            pcshow(ipr.centerline.Location, '*g'); 
-            pcshow(ipr.centerlineOnTarget.Location, '*m'); 
-            hold off;
-            title(sprintf('centerline (green -> magenta) on target %s %s', upper(ipr.laterality), this.dyn_label))
-            saveas(h, fullfile(this.petPath, sprintf('%s_%s_centerline_target.fig', this.dyn_fileprefix, Laterality)))
-            set(h, 'InvertHardCopy', 'off');
-            set(h,'Color',[0 0 0]); % RGB values [0 0 0] indicates black color
-            saveas(h, fullfile(this.petPath, sprintf('%s_%s_centerline_target.png', this.dyn_fileprefix, Laterality)))
+            Laterality = upper(ipr.laterality);        
+
+            if this.plotqc
+                fp = fullfile(this.petPath, sprintf('%s_%s_centerline_target', this.dyn_ic.fileprefix, Laterality));
+                h = figure;
+                pcshow(ipr.target)
+                hold on; 
+                pcshow(ipr.centerline.Location, '*g', 'MarkerSize', 12); 
+                pcshow(ipr.centerlineOnTarget.Location, '*m', 'MarkerSize', 12); 
+                hold off;
+                title(sprintf('centerline (green -> magenta) on target %s %s', upper(ipr.laterality), this.dyn_label))
+                saveas(h, [fp '.fig'])
+                set(h, 'InvertHardCopy', 'off');
+                set(h,'Color',[0 0 0]); % RGB values [0 0 0] indicates black color
+                saveas(h, [fp '.png'])
+                if this.plotclose
+                    close(h)
+                end
+            end
             if this.plotdebug
+                fp1 = fullfile(this.petPath, sprintf('%s_%s_centerline_target_pair', this.dyn_ic.fileprefix, Laterality));
                 h1 = figure;
                 pcshowpair(ipr.target, ipr.centerlineOnTarget, 'VerticalAxis', 'Z') % only magenta & green available in R2021b
                 title(sprintf('centerline (green) on target (magenta) %s %s', upper(ipr.laterality), this.dyn_label))
-                saveas(h1, fullfile(this.petPath, sprintf('%s_%s_centerline_target_mag.fig', this.dyn_fileprefix, Laterality)))
+                saveas(h1, [fp1 '.fig'])
                 set(h1, 'InvertHardCopy', 'off');
                 set(h1,'Color',[0 0 0]); % RGB values [0 0 0] indicates black color
-                saveas(h1, fullfile(this.petPath, sprintf('%s_%s_centerline_target_mag.png', this.dyn_fileprefix, Laterality)))
+                saveas(h1, [fp1 '.png'])
+                if this.plotclose
+                    close(h1)
+                end
             end
         end
-        function h = plotSegmentation(~, ac)
+        function h = plotSegmentation(this, ac, iterations, smoothFactor)
+            %% As requested by plotqc, plots then saves segmentations by activecontour.
+            %  As requested by plotclose, closes figure.
             %  @param required activecontour result.
+            %  @param iterations is integer.
+            %  @param smoothFactor is scalar.
             
-            h = figure;
-            p = patch(isosurface(double(ac)));
-            p.FaceColor = 'red';
-            p.EdgeColor = 'none';
-            daspect([1 1 1])
-            camlight;
-            lighting phong            
+            fp = fullfile(this.destinationPath, [this.T1w_ic.fileprefix '_snakes']);
+            if this.plotqc
+                h = figure;
+                p = patch(isosurface(double(ac)));
+                p.FaceColor = 'red';
+                p.EdgeColor = 'none';
+                daspect([1 1 1])
+                camlight;
+                lighting phong
+                title(sprintf('iterations %i, smooth %g', iterations, smoothFactor))
+                saveas(h, [fp '.fig'])
+                saveas(h, [fp '.png'])
+                if this.plotclose
+                    close(h)
+                end
+            end
         end
         function ic = pointCloudsToIC(this, varargin)
             %% converts point clouds for both hemispheres into ImagingContext objects.
@@ -565,7 +696,7 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             icR = this.pointCloudToIC(this.registration.centerlineOnTarget{2}, varargin{:});
             icR = icR.imdilate(strel('sphere', this.dilationRadius));
             ic = icL + icR;
-            assert(1 == dipmax(ic))
+            ic = ic.binarized();
         end
         function ic = pointCloudToIC(this, pc, varargin)
             ip = inputParser;
@@ -610,12 +741,12 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             addRequired(ip, 'centerline', @(x) isa(x, 'pointCloud'))
             addOptional(ip, 'ic3d', this.registration.target_ics{3}, @(x) isa(x, 'mlfourd.ImagingContext2'))
             addParameter(ip, 'thresh', [], @isnumeric)
-            addParameter(ip, 'alg', 'cpd', @(x) ismember(x, {'ndt', 'icp', 'cpd', 'fung'}))
+            addParameter(ip, 'alg', this.alg, @(x) ismember(x, {'ndt', 'icp', 'cpd', 'fung'}))
             addParameter(ip, 'gridStep', 1, @isscalar)
             addParameter(ip, 'laterality', '', @(x) ismember(x, {'', 'l', 'L', 'r', 'R'})) % L has indices < Nx/2
             parse(ip, varargin{:})
             ipr = ip.Results;
-            ipr.ic3d = this.maskInBoundingBox(ipr.ic3d, ipr.laterality);
+            ipr.ic3d = this.maskInBoundingBox2(ipr.ic3d, ipr.laterality);
             if isempty(ipr.thresh)
                 img = ipr.ic3d.nifti.img;
                 img = img(img > 0);
@@ -628,11 +759,6 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
                 end
             end
             target = pointCloud(ipr.ic3d, 'thresh', ipr.thresh); 
-            if this.plotdebug
-                figure
-                pcshow(target)
-                title(sprintf('target %s, thresh %g', upper(ipr.laterality), ipr.thresh))
-            end
             centerlineOri = copy(ipr.centerline);
             
             idx = strcmpi(ipr.laterality, 'R') + 1; % idx == 1 <-> left            
@@ -664,13 +790,21 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             this.registration.centerlineOnTarget{idx} = copy(centerlineOnTarget);
             this.registration.tform{idx} = tform;
             this.registration.rmse{idx} = rmse;
-       
-            if this.ploton
-                this.plotRegistered(target, centerlineOnTarget, centerlineOri, ipr.laterality)
-            end
+            this.plotRegistered(target, centerlineOnTarget, centerlineOri, ipr.laterality)
         end
         function n = tracername(this, str)
             n = this.bids_.tracername(str);
+        end
+        function writetable(this, t, activity, dynfp)
+            len = min(length(t), length(activity));
+            t = ascol(t(1:len));
+            activity = ascol(activity(1:len));
+            tbl = table(t, activity);
+            tbl.Properties.Description = ['Fung2013_' this.subFolder];
+            tbl.Properties.VariableUnits = {'s', 'Bq/mL'};
+
+            fqfn = fullfile(this.destinationPath, sprintf('%s_idif.csv', dynfp));
+            writetable(tbl, fqfn)
         end
     end
     
@@ -681,8 +815,8 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             %%  See also web(fullfile(docroot, 'matlab/ref/matlab.mixin.copyable-class.html'))
             
             that = copyElement@matlab.mixin.Copyable(this);
-            that.hunyadi_ = copy(this.hunyadi_);
             that.bids_ = copy(this.bids_);
+            that.hunyadi_ = copy(this.hunyadi_);
         end
     end
     
@@ -694,11 +828,34 @@ classdef Fung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
     end
     
     methods (Access = private)
-        function ic = maskInBoundingBox(this, ic, laterality)
+        function decay_uncorrected = decay_uncorrected(this, idif)
+            %  @param idif is an mlfourd.ImagingContext2 containing a double row.
+            %  @returns decay_uncorrected, the IDIF as a double row.
+
+            assert(isa(idif, 'mlfourd.ImagingContext2'))
+            decay_corrected = idif.nifti.img;
+            if contains(idif.fileprefix, 'co') || contains(idif.fileprefix, 'oc')
+                tracer = 'CO';
+            end
+            if contains(idif.fileprefix, 'ho')
+                tracer = 'HO';
+            end
+            if contains(idif.fileprefix, 'oo')
+                tracer = 'OO';
+            end
+            if contains(idif.fileprefix, 'fdg')
+                tracer = 'FDG';
+            end
+            taus_ = this.taus(tracer);
+            N = min(length(decay_corrected), length(taus_));
+            radio = mlpet.Radionuclides(tracer);
+            decay_uncorrected = decay_corrected(1:N) ./ radio.decayCorrectionFactors('taus', taus_(1:N));
+        end
+        function ic = maskInBoundingBox2(this, ic, laterality)
             ifc = ic.nifti;
             img = zeros(size(ifc));
-            bb = this.coords_bb;
-            img(bb{1},bb{2},bb{3}) = ifc.img(bb{1},bb{2},bb{3});
+            bb2 = this.coords_bb2;
+            img(bb2{1},bb2{2},bb2{3}) = ifc.img(bb2{1},bb2{2},bb2{3});
             if ~isempty(laterality)
                 if strcmpi(laterality, 'L') % L has indices < Nx/2
                     img(ceil(this.Nx/2)+1:end,:,:) = zeros(ceil(this.Nx/2),this.Ny,this.Nz);

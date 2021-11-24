@@ -75,11 +75,84 @@ classdef Test_Fung2013 < matlab.unittest.TestCase
             end
         end
         function test_call(this)
-            [~,ics] = this.testObj.call();
-            disp(ics)
-%             for i = 1:length(ics)
-%                 ics{i}.fsleyes(this.t1w.fqfilename, ics{i}.fqfilename)
-%             end
+            tbl = this.testObj.call();
+            disp(tbl)
+        end
+        function test_call_on_project(this)
+            setenv('DEBUG', '')
+            mlraichle.Fung2013.call_on_project(1:2, ...
+                'corners', this.project_corners_, ...
+                'BBBuf', this.project_BBBuf_, ...
+                'iterations', this.project_iterations_, ...
+                'contractBias', this.project_contract_bias_, ...
+                'segmentationThresh', this.project_seg_thresh_, ...
+                'segmentationOnly', false, 'plotclose', true, 'alg', 'fung'); 
+        end
+        function test_call_on_project2(this)
+            setenv('DEBUG', '')
+            mlraichle.Fung2013.call_on_project(3:4, ...
+                'corners', this.project_corners_, ...
+                'BBBuf', this.project_BBBuf_, ...
+                'iterations', this.project_iterations_, ...
+                'contractBias', this.project_contract_bias_, ...
+                'segmentationThresh', this.project_seg_thresh_, ...
+                'segmentationOnly', false, 'plotclose', true, 'alg', 'fung'); 
+        end
+        function test_call_on_project3(this)
+            setenv('DEBUG', '')
+            mlraichle.Fung2013.call_on_project(5:6, ...
+                'corners', this.project_corners_, ...
+                'BBBuf', this.project_BBBuf_, ...
+                'iterations', this.project_iterations_, ...
+                'contractBias', this.project_contract_bias_, ...
+                'segmentationThresh', this.project_seg_thresh_, ...
+                'segmentationOnly', false, 'plotclose', true, 'alg', 'fung'); 
+        end
+        function test_call_on_project4(this)
+            setenv('DEBUG', '')
+            mlraichle.Fung2013.call_on_project(7:8, ...
+                'corners', this.project_corners_, ...
+                'BBBuf', this.project_BBBuf_, ...
+                'iterations', this.project_iterations_, ...
+                'contractBias', this.project_contract_bias_, ...
+                'segmentationThresh', this.project_seg_thresh_, ...
+                'segmentationOnly', false, 'plotclose', true, 'alg', 'fung'); 
+        end
+        function test_call_on_project5(this)
+            setenv('DEBUG', '')
+            mlraichle.Fung2013.call_on_project(9:10, ...
+                'corners', this.project_corners_, ...
+                'BBBuf', this.project_BBBuf_, ...
+                'iterations', this.project_iterations_, ...
+                'contractBias', this.project_contract_bias_, ...
+                'segmentationThresh', this.project_seg_thresh_, ...
+                'segmentationOnly', false, 'plotclose', true, 'alg', 'fung'); 
+        end
+        function test_call_on_project6(this)
+            setenv('DEBUG', '')
+            mlraichle.Fung2013.call_on_project(11:13, ...
+                'corners', this.project_corners_, ...
+                'BBBuf', this.project_BBBuf_, ...
+                'iterations', this.project_iterations_, ...
+                'contractBias', this.project_contract_bias_, ...
+                'segmentationThresh', this.project_seg_thresh_, ...
+                'segmentationOnly', false, 'plotclose', true, 'alg', 'fung'); 
+        end
+        function test_call_on_subject(~)
+            setenv('DEBUG', '1')
+            cd(fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/derivatives/sub-S58163/pet'))
+            tbls_idif = mlraichle.Fung2013.call_on_subject( ...
+                'corners', [159 120 81; 99 122 81; 156 116 31; 102 113 31], ...
+                'BBBuf', [3 3 0], ...
+                'iterations', 65, ...
+                'contractBias', 0, ...
+                'segmentationThresh', 210, ...
+                'segmentationOnly', true, ...
+                'alg', 'cpd', ...
+                'ploton', true, 'plotqc', true, 'plotdebug', true, 'plotclose', false);
+            for i = 1:size(tbls_idif, 1)
+                disp(tbls_idif(i,:))
+            end
         end
 	end
 
@@ -99,8 +172,8 @@ classdef Test_Fung2013 < matlab.unittest.TestCase
             %this.corners = [140 144 109; 60 144 105; 136 149 58; 62 148 59] + 1; % short vglab
             %this.corners = [121 102 25; 62 104 28; 117 98 1; 69 99 1]; % PPG T1001_111; [ x y z; ... ]; [ [RS]; [LS]; [RI]; [LI] ].
             this.corners = [159 120 81; 99 122 81; 156 116 31; 102 113 31]; % PPG T1001; [ x y z; ... ]; [ [RS]; [LS]; [RI]; [LI] ].
- 			this.testObj_ = Fung2013('coords', this.corners, 'iterations', 80, 'BBBuf', [10 10 1], ...
-                'subFolder', 'sub-S58163', 'plotdebug', false, 'alg', 'cpd');
+ 			%this.testObj_ = Fung2013('corners', this.corners, 'iterations', 80, 'BBBuf', [10 10 1], ...
+            %    'subFolder', 'sub-S58163', 'plotdebug', false, 'alg', 'cpd');
             %this.t1w = mlfourd.ImagingContext2(fullfile(this.sourceAnatPath, 'sub-108293_20210218081030_T1w.nii.gz'));
             this.t1w = mlfourd.ImagingContext2(fullfile(this.sourceAnatPath, 'T1001.4dfp.hdr'));
             %this.ho = mlfourd.ImagingContext2(fullfile(this.petPath, 'sub-108293_20210421134537_Water_Dynamic_13_on_T1w.nii.gz'));
@@ -108,12 +181,86 @@ classdef Test_Fung2013 < matlab.unittest.TestCase
             %this.ho_sumt = mlfourd.ImagingContext2(fullfile(this.petPath, 'sub-108293_20210421134537_Water_Static_12_on_T1w.nii.gz'));
             this.ho_sumt = mlfourd.ImagingContext2(fullfile(this.petPath, 'hodt20190523120249_on_T1001_avgt.4dfp.hdr'));
             %this.cacheMat = fullfile(getenv('HOME'), 'MATLAB-Drive', 'mlvg', 'test', '+mlvg_unittest', 'Test_Fung2013_Vision_20211109.mat');
-            this.cacheMat = fullfile(getenv('HOME'), 'MATLAB-Drive', 'mlraichle', 'test', '+mlraichle_unittest', 'Test_Fung2013_PPG_20211109.mat');
+            %this.cacheMat = fullfile(getenv('HOME'), 'MATLAB-Drive', 'mlraichle', 'test', '+mlraichle_unittest', 'Test_Fung2013_PPG_20211109.mat');
+
+            this.project_corners_ = containers.Map;
+            this.project_corners_('sub-S33789') = [165 124 103; 100 123 103; 160 123 32; 97 120 32];
+            this.project_corners_('sub-S38938') = [160 122 98; 99 120 98; 159 109 32; 101 108 32];
+            this.project_corners_('sub-S41723') = [162 120 82; 97 116 82; 156 115 31; 99 109 31];
+            this.project_corners_('sub-S42130') = [156 127 104; 95 124 104; 153 127 51; 95 126 51];
+            this.project_corners_('sub-S42756') = [155 120 104; 97 118 104; 152 119 41; 98 123 41];
+            this.project_corners_('sub-S47634') = [156 121 91; 100 128 91; 161 112 33; 94 117 33];
+            this.project_corners_('sub-S48783') = [153 136 80; 96 131 80; 155 135 42; 99 127 42];
+            this.project_corners_('sub-S49157') = [161 128 90; 94 130 90; 151 130 47; 98 130 47];
+            this.project_corners_('sub-S52590') = [157 131 115; 97 130 115; 152 126 45; 95 125 45];
+            this.project_corners_('sub-S57920') = [158 123 99; 94 121 99; 149 119 57; 98 120 57];
+            this.project_corners_('sub-S58163') = [159 120 81; 99 122 81; 156 116 31; 102 113 31];
+            this.project_corners_('sub-S58258') = [150 133 97; 101 131 97; 145 118 42; 92 125 42];
+            this.project_corners_('sub-S63372') = [159 118 88; 96 120 88; 158 118 22; 96 118 22];
+            this.project_BBBuf_ = containers.Map;
+            this.project_BBBuf_('sub-S33789') = [5 10 0];
+            this.project_BBBuf_('sub-S38938') = [3 3 0];
+            this.project_BBBuf_('sub-S41723') = [2 5 0];
+            this.project_BBBuf_('sub-S42130') = [3 6 0];
+            this.project_BBBuf_('sub-S42756') = [6 12 0];
+            this.project_BBBuf_('sub-S47634') = [3 10 0];
+            this.project_BBBuf_('sub-S48783') = [3 2 0];
+            this.project_BBBuf_('sub-S49157') = [3 4 0];
+            this.project_BBBuf_('sub-S52590') = [3 3 0];
+            this.project_BBBuf_('sub-S57920') = [3 3 0];
+            this.project_BBBuf_('sub-S58163') = [3 3 0];
+            this.project_BBBuf_('sub-S58258') = [1 1 0];
+            this.project_BBBuf_('sub-S63372') = [3 3 0];
+            this.project_iterations_ = containers.Map;
+            this.project_iterations_('sub-S33789') = 140;
+            this.project_iterations_('sub-S38938') = 120;
+            this.project_iterations_('sub-S41723') = 146;
+            this.project_iterations_('sub-S42130') = 90;
+            this.project_iterations_('sub-S42756') = 270;
+            this.project_iterations_('sub-S47634') = 60;
+            this.project_iterations_('sub-S48783') = 50;
+            this.project_iterations_('sub-S49157') = 60;
+            this.project_iterations_('sub-S52590') = 69;
+            this.project_iterations_('sub-S57920') = 65;
+            this.project_iterations_('sub-S58163') = 65;
+            this.project_iterations_('sub-S58258') = 70;
+            this.project_iterations_('sub-S63372') = 75;
+            this.project_seg_thresh_ = containers.Map;
+            this.project_seg_thresh_('sub-S33789') = 190;
+            this.project_seg_thresh_('sub-S38938') = 190;
+            this.project_seg_thresh_('sub-S41723') = 190;
+            this.project_seg_thresh_('sub-S42130') = 190;
+            this.project_seg_thresh_('sub-S42756') = 180;
+            this.project_seg_thresh_('sub-S47634') = 150;
+            this.project_seg_thresh_('sub-S48783') = 190;
+            this.project_seg_thresh_('sub-S49157') = 190;
+            this.project_seg_thresh_('sub-S52590') = 190;
+            this.project_seg_thresh_('sub-S57920') = 190;
+            this.project_seg_thresh_('sub-S58163') = 190;
+            this.project_seg_thresh_('sub-S58258') = 209;
+            this.project_seg_thresh_('sub-S63372') = 190;
+            this.project_contract_bias_ = containers.Map;
+            this.project_contract_bias_('sub-S33789') = 0.25;
+            this.project_contract_bias_('sub-S38938') = 0.12;
+            this.project_contract_bias_('sub-S41723') = 0.2;
+            this.project_contract_bias_('sub-S42130') = 0.05;
+            this.project_contract_bias_('sub-S42756') = 0.23;
+            this.project_contract_bias_('sub-S47634') = 0.03;
+            this.project_contract_bias_('sub-S48783') = 0.02;
+            this.project_contract_bias_('sub-S49157') = 0.05;
+            this.project_contract_bias_('sub-S52590') = 0.02;
+            this.project_contract_bias_('sub-S57920') = 0.02;
+            this.project_contract_bias_('sub-S58163') = 0.02;
+            this.project_contract_bias_('sub-S58258') = 0.02;
+            this.project_contract_bias_('sub-S63372') = 0.02;
  		end
 	end
 
  	methods (TestMethodSetup)
 		function setupFung2013Test(this)
+            if isempty(this.testObj_)
+                return
+            end
  			this.addTeardown(@this.cleanTestMethod);
             if isempty(this.cacheMat)
                 this.testObj = copy(this.testObj_);
@@ -136,6 +283,11 @@ classdef Test_Fung2013 < matlab.unittest.TestCase
 	end
 
 	properties (Access = private)
+        project_corners_
+        project_BBBuf_
+        project_iterations_
+        project_seg_thresh_
+        project_contract_bias_
  		testObj_
  	end
 
