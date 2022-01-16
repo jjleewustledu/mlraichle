@@ -75,8 +75,12 @@ classdef Test_Fung2013 < matlab.unittest.TestCase
             end
         end
         function test_call(this)
-            tbl = this.testObj.call();
+            setenv('DEBUG', '')
+            obj = mlraichle.Fung2013('corners', this.corners, 'iterations', 65, 'bbBuffer', [3 3 0], ...
+                'subFolder', 'sub-S58163', 'plotdebug', false, 'plotclose', false, 'alg', 'fung');
+            tbl = obj.call();
             disp(tbl)
+            setenv('DEBUG', '')
         end
         function test_call_on_project(this)
             setenv('DEBUG', '')
@@ -203,8 +207,8 @@ classdef Test_Fung2013 < matlab.unittest.TestCase
             %this.corners = [140 144 109; 60 144 105; 136 149 58; 62 148 59] + 1; % short vglab
             %this.corners = [121 102 25; 62 104 28; 117 98 1; 69 99 1]; % PPG T1001_111; [ x y z; ... ]; [ [RS]; [LS]; [RI]; [LI] ].
             this.corners = [159 120 81; 99 122 81; 156 116 31; 102 113 31]; % PPG T1001; [ x y z; ... ]; [ [RS]; [LS]; [RI]; [LI] ].
- 			%this.testObj_ = Fung2013('corners', this.corners, 'iterations', 80, 'bbBuffer', [10 10 1], ...
-            %    'subFolder', 'sub-S58163', 'plotdebug', false, 'alg', 'cpd');
+ 			this.testObj_ = Fung2013('corners', this.corners, 'iterations', 80, 'bbBuffer', [10 10 1], ...
+                'subFolder', 'sub-S58163', 'plotdebug', false, 'alg', 'cpd');
             %this.t1w = mlfourd.ImagingContext2(fullfile(this.sourceAnatPath, 'sub-108293_20210218081030_T1w.nii.gz'));
             this.t1w = mlfourd.ImagingContext2(fullfile(this.sourceAnatPath, 'T1001.4dfp.hdr'));
             %this.ho = mlfourd.ImagingContext2(fullfile(this.petPath, 'sub-108293_20210421134537_Water_Dynamic_13_on_T1w.nii.gz'));

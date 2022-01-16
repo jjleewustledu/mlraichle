@@ -10,25 +10,6 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.9.0.1592791 (R2020b) Update 5 for MACI64.  Copyright 2021 John Joowon Lee.
     
-    properties
-        alg % prefer 'fung'; try 'cpd'
-        it10
-        it25
-        it50
-        it75
-        registration % struct
-            % tform
-            % centerlineOnTarget
-            % rmse 
-            % target_ics are averages of frames containing 10-25 pcnt, 10-50 pcnt, 10-75 pcnt of max emissions
-        taus % containers.Map
-        times % containers.Map
-        timesMid % containers.Map        
-    end
-    
-    properties (Dependent)
-        bbBufferMax % max voxels padded to coords to create convex bounding box for registration target by PET
-    end
 
     methods (Static)
         function createPetOnT1001()
@@ -64,8 +45,7 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
             for s = range
                 try
                     pwd0 = pushd(fullfile(deriv, subfolders{s}, 'pet', ''));
-                    this = mlraichle.Fung2013(varargin{:}); %#ok<PFBNS> 
-                    call(this)
+                    mlraichle.Fung2013.call_on_subject(varargin{:}); 
                     popd(pwd0)
                 catch ME
                     handwarning(ME)
@@ -80,23 +60,82 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
             this = mlraichle.Fung2013(varargin{:});
             tbls_idif = call(this);
         end
+        function niis1 = petSorted(niis)
+            tracer = cell(size(niis));
+            tracerNum = nan(size(niis));
+            dts = NaT(size(niis));
+            for i = 1:length(niis)
+                [~,fp] = myfileparts(niis{i});
+                re = regexp(fp, ...
+                    "(?<tracer>\w+)dt(?<yyyy>\d{4})(?<mm>\d{2})(?<dd>\d{2})(?<HH>\d{2})(?<MM>\d{2})(?<SS>\d{2})_\w+", "names");
+                tracer{i} = re.tracer;
+                tracerNum(i) = mlraichle.Fung2013.tracerCode(fp);
+                fields_ = asrow(fields(re));
+                for ff = fields_(2:end)
+                    re.(ff{1}) = str2double(re.(ff{1}));
+                end
+                dts(i) = datetime(re.yyyy, re.mm, re.dd, 0, 0, 0);
+            end
+            tbl = table(dts, tracer, tracerNum, niis, 'VariableNames', {'dts', 'tracer', 'tracerNum', 'filename'});
+            tbl = sortrows(tbl, [1 3]);
+            niis1 = tbl.filename;
+        end
+        function [c,tr] = tracerCode(filename)
+            %  Returns:
+            %      c: numeric 1 for ho, 2 for oc, 3 for fdg, 4 for oo, in order of suitability for IDIF
+            %      tr: strings ho, oc, fdg, and oo.
+
+            [~,fp] = myfileparts(filename);
+            tr = lower(strtok(fp, 'd'));
+            switch lower(tr)
+                case 'oc'
+                    c = 2;
+                case 'ho'
+                    c = 1;
+                case 'f'
+                    c = 3;
+                case 'oo'
+                    c = 4;
+            end
+        end
+    end
+
+    properties
+        alg % prefer 'fung'; try 'cpd'
+        it10
+        it25
+        it50
+        it75
+        registration % struct
+            % tform
+            % centerlineOnTarget
+            % rmse 
+            % target_ics are averages of frames containing 10-25 pcnt, 10-50 pcnt, 10-75 pcnt of max emissions
+    end
+
+    properties (Dependent)
+        bbBufferMax
+        NCenterlineSamples
     end
 
     methods
-        
+
         %% GET
-        
+
         function g = get.bbBufferMax(this)
-            g = round([this.Nx/16 this.Ny/16 3]);
+            g = round([16/this.dx 16/this.dy 3/this.dz]);
         end
-        
+        function g = get.NCenterlineSamples(this)
+            g = ceil(max(this.bbRange{3}) - min(this.bbRange{3}));
+        end
+
         %%
-        
+
         function this = Fung2013(varargin)
             %% FUNG2013
             %  @param destinationPath is the path for writing outputs.  Default is MMRBids.destinationPath.  
             %         Must specify project ID & subject ID.
-            %  @param corners from fsleyes [ x y z; ... ], [ [RS]; [LS]; [RI]; [LI] ].
+            %  @param corners from fsleyes NIfTI [ x y z; ... ], [ [RS]; [LS]; [RI]; [LI] ].
             %  @param bbBuffer is the bounding box buffer ~ [x y z].
             %  @param iterations ~ 80:130.
             %  @param smoothFactor ~ 0.
@@ -118,56 +157,105 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
             parse(ip, varargin{:})
             ipr = ip.Results;
             this.alg = lower(ipr.alg);
-            
-            % gather requirements
-            this.buildCorners(this.coords);
-            this.buildTimings();
         end
-        function this = buildTimings(this)
-            %% builds taus, times, timesMid.
-
-            this.taus = containers.Map;
-            this.taus('CO') = [3,3,3,3,3,3,3,3,5,5,5,5,6,6,6,6,6,7,7,7,7,8,8,8,9,9,10,10,11,11,12,13,14,15,16,18,19,22,24,28,33,39,49,64,49];
-            this.taus('OO') = [2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,6,6,6,6,6,7,7,7,7,8,8,8,9,9,10,10,15];
-            this.taus('HO') = [3,4,4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,6,6,6,6,6,6,7,7,7,7,8,8,8,9,9,10,10,11,11,12,13,14,15,16,18,20,22,25,29,34,41,51,52];
-            this.taus('FDG') = [10,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50,52,53,56,57,59,60,62,63,65,66,68,69,71,72,74,76,78,79,81,82,84,85,87,88,91,92,94,95,97,98,100,101,104,105,108];
-
-            this.times = containers.Map;
-            for key = this.taus.keys
-                 this.times(key{1}) = [0 cumsum(this.taus(key{1}))];
-            end
-
-            this.timesMid = containers.Map;
-            for key = this.taus.keys
-                taus_ = this.taus(key{1});
-                times_ = this.times(key{1});
-                this.timesMid(key{1}) = times_(1:length(taus_)) + taus_/2;
-            end
-        end
+        
         function this = buildAnatomy(this)
             this.anatomy_ = this.bids_.T1w_ic;
+            this.anatomy_.selectNiftiTool;
             this.anatomy_mask_ = this.bids_.wmparc_ic;
+            this.anatomy_mask_.selectNiftiTool;
         end
-        function this = buildPet(this)
-            fnStatic = fullfile(this.petPath, [this.petBasename '_avgt_on_T1001.4dfp.hdr']);
-            assert(isfile(fnStatic))
-            this.petStatic_ = mlfourd.ImagingContext2(fnStatic);
-            this.petStatic_.selectNifti();
+        function this = buildCenterlines(this)
+            %% builds left and right centerlines, calling this.buildCenterline() for each.
+            %  Requires this.petStatic to contain time-averaged PET which delimits spatial extent of centerlines.
+            %  @return this.centerlines_pcs are the pointCloud representation of the centerlines.
+            %  @return this.Cs are {L,R} points of the B-spline curve.
+            %  @return this.Ps are {L,R} matrices of B-spline control points.
 
-            fnDynamic = fullfile(this.petPath, [this.petBasename '_on_T1001.4dfp.hdr']);
-            assert(isfile(fnDynamic))
-            this.petDynamic_ = mlfourd.ImagingContext2(fnDynamic);
-            this.petDynamic_.selectNifti();
+            tic
+
+            img = logical(this.segmentation_ic) .* logical(this.petStatic.thresh(0.125*dipmax(this.petStatic)));
+            img = imfill(img, 26, 'holes');
+            coox = this.coords(:,1);
+            midx = ceil(min(coox(1), coox(2)) + abs(coox(1) - coox(2))/2);
+            imgL = img(1:midx,:,:);
+            imgR = zeros(size(img));
+            imgR(midx+1:end,:,:) = img(midx+1:end,:,:);
+            [pcL,CL,PL] = this.buildCenterline(imgL, 'L');
+            [pcR,CR,PR] = this.buildCenterline(imgR, 'R');
+            this.centerlines_pcs = {pcL pcR};
+            this.Cs = {CL CR};
+            this.Ps = {PL PR};
+
+            fprintf("Fun2013.buildCenterlines: ")
+            toc
         end
         function this = buildCORegistrationTargets(this, dyn_ic)
             %% builds CO registration targets comprising time-averaged emissions.
             %  Registration targets are R^3 images.
             
             timeAveraged = dyn_ic.timeAveraged();
-            timeAveraged_b25 = timeAveraged.blurred(2.5); % 2.5 mm blurring specified by Fung & Carson
+            timeAveraged = timeAveraged.blurred(2.5); % 2.5 mm blurring specified by Fung & Carson
             for i = 1:3
-                this.registration.target_ics{i} = timeAveraged_b25; 
+                this.registration.target_ics{i} = timeAveraged; % handles
             end
+            this.registration.target_ics{1}.save();
+        end
+        function this = buildCorners(this, varargin)
+            %% BUILDCORNERS builds representations of the bounding box as images and coord ranges.
+            %  As needed, it launches fsleyes for manual selection of bounding box corners.
+            %  @param coords is [x y z; x2 y2 z2; x3 y3 z3; x4 y4 z4] | empty.
+            %         coords is [ [RS]; [LS]; [RI]; [LI] ] for end points of arterial segmentation.
+            %  @return this.corners*_ic, which represent corners of the bounding box with unit voxels in arrays of zeros.
+            %  @return this.bbRange, which are row arrays for bases [x y z] that describe the range of bounding box voxels.
+            %
+            %  e.g.:
+            %  f = mlraichle.Fung2013
+            %  f.buildCorners([158 122 85; 96 126 88; 156 116 27; 101 113 28])
+            %  158, 122, 85
+            %  96, 126, 88
+            %  156, 116, 27
+            %  101, 113, 28
+
+            ip = inputParser;
+            addOptional(ip, 'coords', this.coords, @isnumeric)
+            addOptional(ip, 'bbBuffer', this.bbBuffer, @isnumeric)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            this.coords = ipr.coords;
+            this.bbBuffer = ipr.bbBuffer;
+            
+            if isempty(this.coords) % pick corners
+                disp('No coords for carotids are available.  Please find coords in the T1w and provide to the constructor.')
+                assert(~isempty(this.anatomy), 'Oops:  No anatomy is available.  Please provide information for anatomy to the constructor.')
+                this.anatomy.fsleyes
+                error('mlraichle:AbstractFung2013', ...
+                    'No coords for carotids were available.  Please provide carotid coords to the constructor.')
+            else                
+                assert(all(size(this.coords) == [4 3]))
+            end
+            
+            % build ImagingContexts with enlarged corners
+            cc = num2cell(this.coords);
+            coords_ic = this.anatomy.zeros;
+            coords_ic.fileprefix = 'corners_on_T1w';            
+            nii = coords_ic.nifti;
+                nii.img(cc{1,:}) = 1;
+                nii.img(cc{2,:}) = 1;
+                nii.img(cc{3,:}) = 1;
+                nii.img(cc{4,:}) = 1;
+            coords_ic = mlfourd.ImagingContext2(nii);
+            assert(4 == dipsum(coords_ic))            
+            this.coords_b1_ic = coords_ic.blurred(1);
+            this.coords_b1_ic = this.coords_b1_ic.numgt(0.001);
+            this.coords_b1_ic.fileprefix = 'corners_on_T1w_spheres';
+            this.coords_b1_ic.save();
+
+            % build bbRange
+            for m = 1:3
+                this.bbRange{m} = (min(this.coords(:,m)) - this.bbBuffer(m)):(max(this.coords(:,m)) + this.bbBuffer(m) + 1);
+            end
+            this.bbRange = this.ensureBoxInFieldOfView(this.bbRange);
         end
         function this = buildRegistrationTargets(this, dyn_ic_)
             %% Builds registration targets comprising time-averaged emissions for times
@@ -191,7 +279,53 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
             this.registration.target_ics{3} = dyn_ic_.timeAveraged(this.it10:this.it75);
             for i = 1:3
                 this.registration.target_ics{i} = this.registration.target_ics{i}.blurred(2.5); % 2.5 mm blurring specified by Fung & Carson
+                this.registration.target_ics{i}.save();
             end
+        end
+        function this = buildSegmentation(this, varargin)
+            %% segments the arterial path using activecontour() with the 'Chan-Vese' method.
+            %  @param optional iterations ~ 100.
+            %  @param smoothFactor ~ 0.
+            %  @return this.segmentation_ic.
+            
+            ip = inputParser;
+            addOptional(ip, 'iterations', this.iterations, @isscalar)
+            addParameter(ip, 'contractBias', this.contractBias, @isscalar)
+            addParameter(ip, 'smoothFactor', this.smoothFactor, @isscalar)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+
+            if ~isempty(this.segmentation_ic)
+                return
+            end
+                        
+            blurred = this.anatomy.blurred(this.segmentation_blur);
+            anatomyb_img = blurred.nifti.img(this.bbRange{:});
+            threshed_ic = this.anatomy.thresh(this.segmentationThresh);
+            %imfilled_ic = threshed_ic.imfill(26, 'holes'); % 6, 18, 26
+            if this.plotdebug
+                %figure
+                %pcshow(imfilled_ic.pointCloud('useMmppix', true))
+                figure
+                pcshow(threshed_ic.pointCloud('useMmppix', true))
+                %threshed_ic.fsleyes
+            end
+            %imfilled_img = logical(imfilled_ic.nifti.img(this.bbRange{:}));
+            coords_bb_img = logical(this.coords_b1_ic.nifti.img(this.bbRange{:}));
+            
+            % call snakes, viz., iterate
+            ac = activecontour(anatomyb_img, coords_bb_img, ipr.iterations, 'Chan-Vese', ...
+                'ContractionBias', ipr.contractBias, 'SmoothFactor', ipr.smoothFactor);
+            this.plotSegmentation(ac, ipr.iterations, ipr.smoothFactor);
+
+            % fit back into anatomy
+            ic = this.anatomy.zeros;
+            ic.filepath = this.destinationPath;
+            ic.fileprefix = [ic.fileprefix '_Fung2013_segmentation'];
+            nii = ic.nifti;
+            nii.img(this.bbRange{:}) = ac;
+            nii.save()
+            this.segmentation_ic = mlfourd.ImagingContext2(nii);
         end
         function tbl_idif = call(this, varargin)
             %% CALL
@@ -215,21 +349,23 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
 
             % build intermediate objects
             niis = this.petGlobbed('isdynamic', false);
-            if ~isempty(getenv('DEBUG'))
-                niis = niis(8:9);
-            end
+            niis = this.petSorted(niis);
             niifqfn = cell(1, length(niis));
             tracer = cell(1, length(niis));
             IDIF = cell(1, length(niis));
 
-            for inii = 1:length(niis)
+            for ni = 1:length(niis)
 
                 % sample input function from dynamic PET
-                this.petStatic = mlfourd.ImagingContext2(niis{inii});
-                this.petDynamic = mlfourd.ImagingContext2(strrep(niis{inii}, '_avgt', ''));
+                this.petStatic = mlfourd.ImagingContext2(niis{ni});
+                this.petDynamic = mlfourd.ImagingContext2(strrep(niis{ni}, '_avgt', ''));
                 this.buildCenterlines()
                 this.buildRegistrationTargets(this.petDynamic)
-                this.registerCenterlines('alg', this.alg)
+                
+                if this.tracerCode(niis{ni}) < 4
+                    % register co, ho only
+                    this.registerCenterlines('alg', this.alg)
+                end
                 this.idifmask_ic = this.pointCloudsToIC(); % single ImagingContext
                 this.idifmask_ic.filepath = this.petDynamic.filepath;
                 this.idifmask_ic.fileprefix = [this.petDynamic.fileprefix '_idifmask'];
@@ -237,11 +373,11 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
                 idif = this.petDynamic.volumeAveraged(this.idifmask_ic);
 
                 % construct table variables
-                niifqfn{inii} = this.idifmask_ic.fqfilename;
+                niifqfn{ni} = this.idifmask_ic.fqfilename;
                 tracer_ = this.tracername();
-                tracer{inii} = tracer_;
+                tracer{ni} = tracer_;
                 IDIF_ = asrow(this.decay_uncorrected(idif));
-                IDIF{inii} = IDIF_;
+                IDIF{ni} = IDIF_;
                 this.writetable(this.timesMid(tracer_), IDIF_, this.petDynamic.fileprefix)
             end
 
@@ -303,7 +439,17 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
                     close(h1)
                 end
             end
-        end      
+        end
+        function ic = pointCloudsToIC(this, varargin)
+            %% converts point clouds for both hemispheres into ImagingContext objects.
+        
+            icL = this.pointCloudToIC(this.registration.centerlineOnTarget{1}, varargin{:});
+            icL = icL.imdilate(strel('sphere', this.dilationRadius));
+            icR = this.pointCloudToIC(this.registration.centerlineOnTarget{2}, varargin{:});
+            icR = icR.imdilate(strel('sphere', this.dilationRadius));
+            ic = icL + icR;
+            ic = ic.binarized();
+        end
         function this = registerCenterlines(this, varargin)
             %  @param thresh applies to ic3d.  Default is 25000.
             %  @param alg is from {'ndt', 'icp', 'cpd'}.
@@ -339,13 +485,7 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
             if isempty(ipr.thresh)
                 img = ipr.ic3d.nifti.img;
                 img = img(img > 0);
-                m_ = dipmedian(img);
-                s_ = dipstd(img);
-                if m_ - s_ > 0
-                    ipr.thresh = m_ - s_;
-                else
-                    ipr.thresh = m_;
-                end
+                ipr.thresh = dipmedian(img);
             end
             target = pointCloud(ipr.ic3d, 'thresh', ipr.thresh); 
             centerlineOri = copy(ipr.centerline);
@@ -353,25 +493,33 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
             idx = strcmpi(ipr.laterality, 'R') + 1; % idx == 1 <-> left            
             switch ipr.alg
                 case 'ndt'
-                    [tform,centerlineOnTarget,rmse] = pcregisterndt(centerlineOri, target, ipr.gridStep, ...
-                        'Tolerance', [0.01 0.05]);
+                    cmatrix = uint8(centerlineOri.Intensity*255/max(centerlineOri.Intensity)); 
+                    centerlineOri_ = centerlineOri;
+                    centerlineOri_.Color = cmatrix;
+                    target_ = target;
+                    target_.Color = cmatrix;
+                    [tform,centerlineOnTarget,rmse] = pcregisterndt(centerlineOri_, target_, 6, ...
+                        'Tolerance', [0.01 0.5], 'Verbose', true);
                 case 'icp'
                     if ipr.gridStep ~= 1
                         centerlineOri = pcdownsample(centerlineOri, 'gridAverage', ipr.gridStep);
                     end
-                    [tform,centerlineOnTarget,rmse] = pcregistericp(centerlineOri, target, ...
-                        'Extrapolate', true, 'Tolerance', [0.01 0.01]);
+                    [tform,centerlineOnTarget,rmse] = pcregistericp(centerlineOri, target);
                 case 'cpd'
                     if ipr.gridStep ~= 1
                         centerlineOri = pcdownsample(centerlineOri, 'gridAverage', ipr.gridStep);
                     end
                     [tform,centerlineOnTarget,rmse] = pcregistercpd(centerlineOri, target, ...
                         'Transform', 'Rigid', 'MaxIterations', 100, 'Tolerance', 1e-7); % 'InteractionSigma', 2
-                case 'fung'
-                    this.registration.tform{idx} = rigid3d(eye(4));
+                case 'fung'                    
+                    try
+                        tform = this.registration.tform{idx};
+                    catch ME
+                        handwarning(ME)                        
+                        tform = rigid3d(eye(4));
+                    end
                     rr = mlvg.Reregistration(this.anatomy);
-                    [tform,centerlineOnTarget,rmse] = rr.pcregistermax( ...
-                        this.registration.tform{idx}, centerlineOri, target);
+                    [tform,centerlineOnTarget,rmse] = rr.pcregistermax(tform, centerlineOri, target);
                 otherwise
                     error('mlraichle:ValueError', ...
                         'Fung2013.registerCenterlines.ipr.alg == %s', ipr.alg)
@@ -386,29 +534,6 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
     %% PRIVATE
     
     methods (Access = private)
-        function decay_uncorrected = decay_uncorrected(this, idif)
-            %  @param idif is an mlfourd.ImagingContext2 containing a double row.
-            %  @returns decay_uncorrected, the IDIF as a double row.
-
-            assert(isa(idif, 'mlfourd.ImagingContext2'))
-            decay_corrected = idif.nifti.img;
-            if contains(idif.fileprefix, 'co') || contains(idif.fileprefix, 'oc')
-                tracer = 'CO';
-            end
-            if contains(idif.fileprefix, 'ho')
-                tracer = 'HO';
-            end
-            if contains(idif.fileprefix, 'oo')
-                tracer = 'OO';
-            end
-            if contains(idif.fileprefix, 'fdg')
-                tracer = 'FDG';
-            end
-            taus_ = this.taus(tracer);
-            N = min(length(decay_corrected), length(taus_));
-            radio = mlpet.Radionuclides(tracer);
-            decay_uncorrected = decay_corrected(1:N) ./ radio.decayCorrectionFactors('taus', taus_(1:N));
-        end
         function ic = maskInBoundingBox2(this, ic, laterality)
             ifc = ic.nifti;
             bb2 = cell(1,3);

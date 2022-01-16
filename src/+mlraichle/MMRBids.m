@@ -71,19 +71,28 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
                 g = copy(this.tof_ic_);
                 return
             end
-            fn = fullfile(this.sourceAnatPath, 'tof.4dfp.hdr');
-            if ~isfile(fn)
-                fn_sourcedata = glob(fullfile(this.sourcedataPath, this.subFolder, 'scans', '*TOF*', '*TOF*.4dfp.hdr'));
-                if iscell(fn_sourcedata)
-                    fn_sourcedata = fn_sourcedata{end};
-                end
-                v = mlfourdfp.FourdfpVisitor();
-                v.lns_4dfp(fn_sourcedata, fn);
-            end
-            assert(isfile(fn))
+            g = globT(fullfile(this.anatPath, '*TOF*.nii.gz'));
+            assert(~isempty(g))
+            fn = g{end};
+
             this.tof_ic_ = mlfourd.ImagingContext2(fn);
-            this.tof_ic_.filepath = this.anatPath;
+            this.tof_ic_.selectNiftiTool();
+            this.tof_ic_.fileprefix = 'tof';
             g = copy(this.tof_ic_);
+
+%             fn = fullfile(this.sourceAnatPath, 'tof.4dfp.hdr');
+%             if ~isfile(fn)
+%                 fn_sourcedata = glob(fullfile(this.sourcedataPath, this.subFolder, 'scans', '*TOF*', '*TOF*.4dfp.hdr'));
+%                 if iscell(fn_sourcedata)
+%                     fn_sourcedata = fn_sourcedata{end};
+%                 end
+%                 v = mlfourdfp.FourdfpVisitor();
+%                 v.lns_4dfp(fn_sourcedata, fn);
+%             end
+%             assert(isfile(fn))
+%             this.tof_ic_ = mlfourd.ImagingContext2(fn);
+%             this.tof_ic_.filepath = this.anatPath;
+%             g = copy(this.tof_ic_);
         end
         function g = get.tof_mask_ic(this)
             if ~isempty(this.tof_mask_ic_)
@@ -101,7 +110,7 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
                 g = copy(this.T1w_ic_);
                 return
             end
-            fn = fullfile(this.anatPath, 'T1001.4dfp.hdr');
+            fn = fullfile(this.anatPath, 'T1001.nii.gz');
             assert(isfile(fn))
             this.T1w_ic_ = mlfourd.ImagingContext2(fn);
             g = copy(this.T1w_ic_);
@@ -111,7 +120,7 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
                 g = copy(this.wmparc_ic_);
                 return
             end
-            fn = fullfile(this.anatPath, 'wmparc.4dfp.hdr');
+            fn = fullfile(this.anatPath, 'wmparc.nii.gz');
             assert(isfile(fn))
             this.wmparc_ic_ = mlfourd.ImagingContext2(fn);
             g = copy(this.wmparc_ic_);
@@ -151,6 +160,12 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
         end
         function s = pet_toglob(~, varargin)
             s = fullfile(this.petPath, '*dt*_on_T1001.4dfp.hdr');
+        end
+        function selectNiftiTool(this)
+            this.tof_ic_.selectNiftiTool();
+            this.tof_mask_ic_.selectNiftiTool();
+            this.T1w_ic_.selectNiftiTool();
+            this.wmparc_ic_.selectNiftiTool();
         end
         function n = tracername(~, str)
             if contains(str, 'co', 'IgnoreCase', true) || contains(str, 'oc', 'IgnoreCase', true)
