@@ -45,9 +45,15 @@ classdef Test_TofInputFunction < matlab.unittest.TestCase
             save(fullfile(getenv('SINGULARITY_HOME'), 'CCIR_00559_00754', 'timesMid.mat'), 'timesMid')
         end
         function test_call(this)
-            setenv('DEBUG', '')
+            setenv('DEBUG', '1')
             this.testObj_.segmentation_only = false;
             tbl = this.testObj_.call();
+            disp(tbl)
+            setenv('DEBUG', '')
+        end
+        function test_call_douterr(this)
+            setenv('DEBUG', '')
+            tbl = this.testObj_.call_douterr('tracerPatt', '*dt*');
             disp(tbl)
             setenv('DEBUG', '')
         end
@@ -172,7 +178,8 @@ classdef Test_TofInputFunction < matlab.unittest.TestCase
 
  			this.testObj_ = TofInputFunction('corners', this.corners, 'iterations', 50, 'bbBuffer', this.bbBuffer, ...
                 'contractBias', 0.2, 'smoothFactor', 0, 'segmentationThresh', 190, 'segmentationOnly', false, ...
-                'subFolder', 'sub-S58163', 'plotdebug', true, 'plotclose', false);
+                'innerRadius', 0, 'outerRadius', 2, 'subFolder', 'sub-S58163', 'plotdebug', true, 'plotclose', true, ...
+                'destinationPath', this.petPath);
  		end
 	end
 

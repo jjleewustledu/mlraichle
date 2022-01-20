@@ -31,11 +31,19 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
         end
         function tbls_idif = call_on_subject(varargin)
             %% CALL_ON_SUBJECT performs essential computations needed to create tables of IDIFs.
-            %  @param for ctor.
+            %  @param corners.
+            %  @param subFolder.
+            %  @param destinationPath.
             %  @return tables for idif.
 
-            this = mlraichle.TofInputFunction(varargin{:});
-            tbls_idif = call(this);
+            this = mlraichle.TofInputFunction( ...
+                'bbBuffer', [0 0 0], ...
+                'contractBias', 0.2, ...
+                'iterations', 50, ...   
+                'segmentationThresh', 190, ...
+                'smoothFactor', 0, ...
+                varargin{:});
+            tbls_idif = this.call_douter('tracerPatt', '*dt*');
         end
     end
 
@@ -59,14 +67,18 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
     end
 
 	properties (Dependent)
-        NCenterlineSamples
+        centerlines_cache_file % unique for each subject
+        N_centerline_samples
     end
 
 	methods 
 
         %% GET
 
-        function g = get.NCenterlineSamples(this)
+        function g = get.centerlines_cache_file(this)
+            g = fullfile(this.petPath, 'TofInputFunction_centerlines_cache.mat');
+        end
+        function g = get.N_centerline_samples(this)
             g = [max(this.bbRange{1}) - min(this.bbRange{1})/2 ...
                  max(this.bbRange{2}) - min(this.bbRange{2})...
                  max(this.bbRange{3}) - min(this.bbRange{3})];
@@ -107,15 +119,9 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
 
             % adjustments to superclass
 
-            this.segmentation_blur = 1;
+            this.segmentation_blur = 0;
             this.k = 5;
             this.threshqc = 0.5;
-
-            % gather requirements
-            this.buildMasks();
-            this.flirtT1wOnTof(); % also builds wmparc_on_tof
-            this.Wmparc = mlsurfer.Wmparc( ...
-                fullfile(this.bids_.anatPath, strcat(this.bids_.wmparc_ic.fileprefix, '_on_tof.nii.gz')));
         end
 
         function this = buildAnatomy(this)
@@ -131,8 +137,15 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
             %  @return this.Cs are {L,R} points of the B-spline curve.
             %  @return this.Ps are {L,R} matrices of B-spline control points.
 
-            tic
+            if isfile(this.centerlines_cache_file)
+                loaded = load(this.centerlines_cache_file);
+                this.centerlines_pcs = loaded.this.centerlines_pcs;
+                this.Cs = loaded.this.Cs;
+                this.Ps = loaded.this.Ps;
+                return
+            end
 
+            tic
             img = logical(this.segmentation_ic);% .* logical(this.petStatic.thresh(dipmax(this.petStatic)/8));
             img = imfill(img, 26, 'holes');
             coox = this.coords(:,1);
@@ -145,7 +158,7 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
             this.centerlines_pcs = {pcL pcR};
             this.Cs = {CL CR};
             this.Ps = {PL PR};
-
+            save(this.centerlines_cache_file, 'this')
             fprintf("TofInputFunction.buildCenterlines: ")
             toc
         end
@@ -240,8 +253,15 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
         end
         function petic = buildPetOnTof(this, petfile)
             %% builds T1w and pet_avgt and pet on TOF.
-            %  @param petfile is text for dynamic on T1w, 4dfp.
-            %  @param petic for dynamic on tof, nifti.
+            %  @param petfile is text for dynamic on T1w, 4dfp; or cell array of text.
+
+            if iscell(petfile)
+                petic = {};
+                for i = 1:length(petfile)
+                    petic{i} = this.buildPetOnTof(petfile{i}); %#ok<AGROW> 
+                end
+                return
+            end
 
             bids = this.bids_;
             pwd0 = pushd(bids.petPath);
@@ -257,7 +277,7 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
             popd(pwd0)
         end
         function this = buildSegmentation(this, varargin)
-            %% segments the arterial path using activecontour() with the 'Chan-Vese' method.            
+            %% segments the arterial path using activecontour() with the 'Chan-Vese' method.
             %  @param optional iterations ~ 100.
             %  @param smoothFactor ~ 0.
             %  @return this.segmentation_ic.
@@ -322,17 +342,28 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
             parse(ip, varargin{:})
             ipr = ip.Results;
 
-            % build segmentation
+            % gather requirements (lazy)
+            this.buildMasks();
+            this.flirtT1wOnTof(); % also builds wmparc_on_tof
+            this.Wmparc = mlsurfer.Wmparc( ...
+                fullfile(this.bids_.anatPath, strcat(this.bids_.wmparc_ic.fileprefix, '_on_tof.nii.gz')));
+
+            % build segmentation (lazy)
             this.buildSegmentation(ipr.iterations, 'smoothFactor', ipr.smoothFactor);
             if this.segmentation_only
                 this.segmentation_ic.view(this.anatomy)
                 tbl_idif = [];
                 return
             end
+
+            % build/retrieve centerlines (caches)
             this.buildCenterlines()
 
+            % build idif mask
+            this.idifmask_ic = this.pointCloudsToIC(); % single ImagingContext2
+
             % build intermediate objects
-            niis = this.petGlobbed('isdynamic', false);
+            niis = this.petGlobbed('isdynamic', true);
             if ~isempty(getenv('DEBUG'))
                 niis = niis(contains(niis, 'hodt20190523120249'));
             end
@@ -343,19 +374,12 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
             for ni = 1:length(niis)
 
                 % sample input function from dynamic PET
-                this.buildPetOnTof(niis{ni});
-                niis{ni} = this.petOnTofFilename(niis{ni});
-                this.petStatic = mlfourd.ImagingContext2(niis{ni});
-                this.petDynamic = mlfourd.ImagingContext2(strrep(niis{ni}, '_avgt', ''));
-                this.idifmask_ic = this.pointCloudsToIC(); % single ImagingContext
-                this.idifmask_ic.filepath = this.petDynamic.filepath;
-                this.idifmask_ic.fileprefix = [this.petDynamic.fileprefix '_idifmask'];
-                this.idifmask_ic.save()
+                this.petDynamic = mlfourd.ImagingContext2(niis{ni});
                 idif = this.petDynamic.volumeAveraged(this.idifmask_ic);
 
                 % construct table variables
                 niifqfn{ni} = this.idifmask_ic.fqfilename;
-                tracer_ = this.tracername();
+                tracer_ = this.tracername(this.petDynamic.fileprefix);
                 tracer{ni} = tracer_;
                 IDIF_ = asrow(this.decay_uncorrected(idif));
                 IDIF{ni} = IDIF_;
@@ -364,26 +388,210 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
 
             % construct table and write
             tbl_idif = table(niifqfn', tracer', IDIF', 'VariableNames', {'niifqfn', 'tracer', 'IDIF'});
-            tbl_idif.Properties.Description = fullfile(this.destinationPath, sprintf('TofInputFunction_tbl_idif_%s.mat', this.subFolder));
+            tbl_idif.Properties.Description = ...
+                fullfile(this.destinationPath, ...
+                         sprintf('%s_tbl%s%s.mat', this.petDynamic.fileprefix, this.tag_idif, this.tag_tracers));
             tbl_idif.Properties.VariableUnits = {'', '', 'Bq/mL'};
             save(tbl_idif.Properties.Description, 'tbl_idif')
 
             % plot and save
             this.plotIdif(tbl_idif);
         end
-        function fn = petOnTofFilename(this, fn)
-            fn = strrep(fn, 'T1001', this.anatomy.fileprefix);
-            fn = strrep(fn, '.4dfp.hdr', '.nii.gz');
+        function tbl_idif = call_douterr(this, varargin)
+            %% CALL_DOUTERR
+            %  Params:
+            %      contractBias (scalar): for buildSegmentation(), Chan-Vese snakes.
+            %      innerRadii (numeric): idif radii in voxels, e.g., [2 4 8 12 16 20 24 28 32]
+            %      iterations (scalar): for buildSegmentation(), Chan-Vese snakes.
+            %      smoothFactor (scalar): for buildSegmentation(), Chan-Vese snakes.
+            %      tracerPatt (text): e.g., '*dt*', 'hodt20190523120249', 'hodt20190523', 
+            %                               'hodt20190523123456', 'oodt20190523123738', 'ocdt20190523122016',
+            %                               'fdgdt20190523132832'
+            %      outerRadii (numeric): idif radii in voxels, e.g., [2 4 8 12 16 20 24 28 32]
+            %  Returns:
+            %      tbl_idif: idif embedded in table; table is also written to mat file.
+
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'contractBias', this.contractBias, @isscalar)
+            addParameter(ip, 'innerRadii', 0, @isnumeric)
+            addParameter(ip, 'iterations', this.iterations, @isscalar)
+            addParameter(ip, 'outerRadii', [1 2 4 8 12 16 20 24 28 32], @isnumeric) % [1 2 4 8 12 16 20 24 28 32]
+            addParameter(ip, 'smoothFactor', this.smoothFactor, @isscalar)
+            addParameter(ip, 'tracerPatt', 'hodt20190523120249', @istext) % hodt20190523120249 oodt20190523123738 ocdt20190523122016 fdgdt20190523132832
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            if 0 == ipr.innerRadii
+                ipr.innerRadii = zeros(size(ipr.outerRadii));
+            end
+            assert(length(ipr.innerRadii) == length(ipr.outRadii))
+
+            % gather requirements (lazy)
+            this.buildMasks();
+            this.flirtT1wOnTof(); % also builds wmparc_on_tof
+            this.Wmparc = mlsurfer.Wmparc( ...
+                fullfile(this.bids_.anatPath, strcat(this.bids_.wmparc_ic.fileprefix, '_on_tof.nii.gz')));
+
+            % build segmentation (lazy)
+            this.buildSegmentation(ipr.iterations, 'contractBias', ipr.contractBias, 'smoothFactor', ipr.smoothFactor);
+            if this.segmentation_only
+                this.segmentation_ic.view(this.anatomy)
+                tbl_idif = [];
+                return
+            end
+            
+            % build/retrieve centerlines (caches)
+            this.buildCenterlines()
+
+            % build intermediate objects
+            niis = this.petGlobbed('isdynamic', true, 'tracerPatt', ipr.tracerPatt);
+            len_niis = length(niis);
+            len_outerr = length(ipr.outerRadii);
+
+            for ni = 1:len_niis
+
+            	this.update_selected_tracers(niis{ni});
+                this.petDynamic = mlfourd.ImagingContext2(niis{ni});    
+                niifqfn = cell(1, len_outerr);
+                tracer = cell(1, len_outerr);
+                innerr = zeros(1, len_outerr);
+                outerr = zeros(1, len_outerr);
+                IDIF = cell(1, len_outerr);
+
+                for ri = 1:len_outerr
+
+                    % build idif mask
+                    this.innerRadius = ipr.innerRadii(ri);
+                    this.outerRadius = ipr.outerRadii(ri);
+                    this.idifmask_ic = this.pointCloudsToIC(); % singleton ImagingContext2
+    
+                    % sample input function from dynamic PET
+                    idif = this.petDynamic.volumeAveraged(this.idifmask_ic);
+					idif.filepath = this.destinationPath;
+					idif.fileprefix = strcat(this.petDynamic.fileprefix, this.tag_idif);
+					idif.save();                    
+    
+                    % construct table variables
+                    niifqfn{ri} = idif.fqfilename;
+                    tracer{ri} = this.tracername(this.petDynamic.fileprefix);
+                    outerr(ri) = this.outerRadius;
+                    IDIF{ri} = this.decay_uncorrected(idif);
+                end
+
+                % construct table and write
+                tbl_idif = table(niifqfn', tracer', innerr', outerr', IDIF', ...
+                    'VariableNames', {'niifqfn', 'tracer', 'innerr', 'outerr', 'IDIF'});
+                tbl_idif.Properties.Description = ...
+                    fullfile(this.destinationPath, ...
+                             sprintf('%s_tbl%s.mat', this.petDynamic.fileprefix, this.tag_idif));
+                tbl_idif.Properties.VariableUnits = {'', '', 'voxels', 'voxels', 'Bq/mL'};
+                save(tbl_idif.Properties.Description, 'tbl_idif')
+    
+                % plot and save
+                this.plotIdif_dradii(tbl_idif);
+            end
+        end
+        function g = petGlobbed(this, varargin)
+            ip = inputParser;
+            addOptional(ip, 'isdynamic', true, @islogical)
+            addParameter(ip, 'tracerPatt', '*dt*')
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+
+            T1w = this.bids_.T1w_ic.fileprefix;
+            tof = this.bids_.tof_ic.fileprefix;
+
+            g = glob(fullfile(this.petPath, sprintf('%s_on_%s.nii.gz', ipr.tracerPatt, tof)));
+            if isempty(g)
+                g = glob(fullfile(this.petPath, sprintf('%s_on_%s.4dfp.hdr', ipr.tracerPatt, T1w)));
+                this.buildPetOnTof(g);
+                g = glob(fullfile(this.petPath, sprintf('%s_on_%s.nii.gz', ipr.tracerPatt, tof)));
+            end
+
+            if ipr.isdynamic
+                g = g(~contains(g, '_avgt'));
+            else
+                g = g(contains(g, '_avgt'));
+            end
+        end
+        function h = plotIdif_dradii(this, tbl_idif)
+            %% As requested by ploton, plots then saves all IDIFs in the subject collection.  Clobbers previously saved.
+            %  As requested by plotclose, closes figures.
+
+            if this.ploton
+                h = figure;
+                hold on
+                tracer_ = tbl_idif.tracer;
+                for irow = 1:size(tbl_idif,1)
+                    timesMid_ = this.timesMid(tracer_{irow});
+                    IDIF_ = tbl_idif.IDIF{irow};
+                    N = min(length(timesMid_), length(IDIF_));
+                    switch tracer_{irow}
+                        case {'OC' 'CO'}
+                            linestyle = '-.';
+                            xlim([0 120])
+                        case 'OO'
+                            linestyle = '-';
+                            xlim([0 120])
+                        case 'HO'
+                            linestyle = '--';
+                            xlim([0 120])
+                        case 'FDG'
+                            linestyle = ':';
+                            xlim([0 3600])
+                        otherwise
+                            linestyle = ':';
+                    end
+                    plot(timesMid_(1:N), IDIF_(1:N), linestyle)
+                end
+                xlabel('time (s)')
+                ylabel('activity density (Bq/mL)')
+                title('Image-derived Input Functions (no decay corrections)')
+                mmppix = min(this.anatomy.imagingFormat.mmppix);
+                for l = 1:length(tracer_)
+                    legend_{l} = sprintf('%s radius %0.2g->%0.2g mm', ... 
+                        tracer_{l}, tbl_idif.innerr(l)*mmppix, tbl_idif.outerr(l)*mmppix); %#ok<AGROW> 
+                end
+                legend(asrow(legend_))
+                hold off
+                [pth,fp] = fileparts(tbl_idif.Properties.Description);
+                fqfp = fullfile(pth, fp);
+                saveas(h, strcat(fqfp, '.fig'))
+                saveas(h, strcat(fqfp, '.png'))
+                if this.plotclose
+                    close(h)
+                end
+            end
         end
         function ic = pointCloudsToIC(this, varargin)
             %% converts point clouds for both hemispheres into ImagingContext objects.
-        
+
+            tic
+
             icL = this.pointCloudToIC(this.centerlines_pcs{1}, varargin{:});
-            icL = icL.imdilate(strel('sphere', this.dilationRadius));
+            icL = icL .* this.segmentation_ic;
             icR = this.pointCloudToIC(this.centerlines_pcs{2}, varargin{:});
-            icR = icR.imdilate(strel('sphere', this.dilationRadius));
-            ic = icL + icR;
+            icR = icR .* this.segmentation_ic;
+            
+            icLo = icL.imdilate_bin(strel('sphere', this.outerRadius));
+            icRo = icR.imdilate_bin(strel('sphere', this.outerRadius));
+            ic = icLo + icRo;
             ic = ic.binarized();
+            if this.innerRadius > 0
+                icLi = icL.imdilate_bin(strel('sphere', this.innerRadius));
+                icRi = icR.imdilate_bin(strel('sphere', this.innerRadius));
+                ic = ic - icLi - icRi;
+                ic = ic.numgt(0);
+            end
+            ic = ic & this.bids_.tof_mask_ic;
+            ic.ensureSingle();
+
+            ic.filepath = this.destinationPath;
+            ic.fileprefix = sprintf('TofInputFunction%s_mask', this.tag_idif);
+            ic.save()
+
+            fprintf('TofInputFunction.pointCloudsToIC:')
+            toc
         end
 
         %% FSL UTILITIES
