@@ -37,14 +37,14 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             parse(ip, varargin{:});
             ipr = TracerDirector2.adjustIprConstructResolvedStudy(ip.Results);
 
-            registry = StudyRegistry.instance();
+            registry = mlraichle.StudyRegistry.instance();
             for p = globT(fullfile(registry.projectsDir, ipr.projectsExpr))
                 for s = globT(fullfile(p{1}, ipr.sessionsExpr))
                     pwd0 = pushd(s{1});
                     for t = globT(ipr.tracersExpr)
                         try
                             folders = fullfile(basename(p{1}), basename(s{1}), t{1});
-                            sessd = SessionData.create(folders, ...
+                            sessd = mlraichle.SessionData.create(folders, ...
                                 'ignoreFinishMark', true, ...
                                 'reconstructionMethod', 'NiftyPET');
 
@@ -98,7 +98,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             parse(ip, varargin{:});
             ipr = TracerDirector2.adjustIprConstructResolvedStudy(ip.Results);
 
-            registry = StudyRegistry.instance();
+            registry = mlraichle.StudyRegistry.instance();
             for p = globT(fullfile(registry.projectsDir, ipr.projectsExpr))
                 for s = globT(fullfile(p{1}, ipr.sessionsExpr))
                     pwd0 = pushd(s{1});
@@ -106,7 +106,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                     for t = globT(ipr.tracersExpr)
                         try
                             folders = fullfile(basename(p{1}), basename(s{1}), t{1});
-                            sessd = SessionData.create(folders, ...
+                            sessd = mlraichle.SessionData.create(folders, ...
                                 'ignoreFinishMark', ipr.ignoreFinishMark, ...
                                 'reconstructionMethod', ipr.reconstructionMethod);                    
                             if ~isfile(fullfile(sessd.umapSynthOpT1001('typ','fqfn')))
@@ -358,7 +358,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             
             % adjust quantification:  blur, use expected phantom mu
             umap = mlfourd.ImagingContext2('umapSynth.nii.gz');
-            umap = umap.blurred(mlnipet.ResourcesRegistry.instance().petPointSpread);
+            umap = umap.blurred(mlnipet.NipetRegistry.instance().petPointSpread);
             umap = umap .* (0.09675 / 1e3);
             umap = umap.nifti;
             umap.img(umap.img < 0) = 0;
@@ -473,7 +473,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             pwd0 = pushd(this.sessionData.sessionPath);
             umap = this.builder.buildUmap;
             umap = ImagingContext2([umap '.4dfp.hdr']);
-            umap = umap.blurred(mlnipet.ResourcesRegistry.instance().petPointSpread);
+            umap = umap.blurred(mlnipet.NipetRegistry.instance().petPointSpread);
             umap.save;
             this.builder_ = this.builder.packageProduct(umap);
             this.builder.teardownBuildUmaps;

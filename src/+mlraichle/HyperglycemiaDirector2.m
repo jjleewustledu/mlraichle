@@ -62,12 +62,12 @@ classdef HyperglycemiaDirector2
 
             pwd0 = pwd;
             import mlraichle.*;
-            sessp = fullfile(StudyRegistry.instance.subjectsDir, sessionFolder, '');
+            sessp = fullfile(mlraichle.StudyRegistry.instance.subjectsDir, sessionFolder, '');
             if (~isdir(sessp))
                 mlfourdfp.FourdfpVisitor.mkdir(sessp);
             end
             this  = HyperglycemiaDirector2('sessionData', ...
-                SessionData('studyData', StudyData, 'sessionPath', sessp, 'vnumber', v));
+                mlraichle.SessionData('studyData', mlraichle.StudyData, 'sessionPath', sessp, 'vnumber', v));
             switch (lower(ip.Results.kind))
                 case 'ct'
                     this  = this.instanceSortDownloadCT(downloadPath);

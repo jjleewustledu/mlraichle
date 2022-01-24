@@ -289,7 +289,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                 'sessionData', sessd, ...
                 'theImages', {fdgBrain mybasename(bmNii)}, ...
                 'resolveTag', 'op_fdg');            
-            mni = fullfile(mlraichle.StudyRegistry.instance.YeoDir, 'FSL_MNI152_FreeSurferConformed_1mm.nii.gz');
+            mni = fullfile(getenv('YEODIR'), 'FSL_MNI152_FreeSurferConformed_1mm.nii.gz');
             mniResolved = 'MNI152_op_fdg.nii.gz';
             bmr2Nii = [bm 'r2_op_fdg.nii.gz'];
             mat = [mybasename(mniResolved) '.mat'];
@@ -308,7 +308,7 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             sessd.nifti_4dfp_4(mybasename(mniResolved));           
         end
         function y = resolveYeo7(~, mat, ~, bmr2Nii)
-            ymni = fullfile(mlraichle.StudyRegistry.instance.YeoDir,'Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz');
+            ymni = fullfile(getenv('YEODIR'),'Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz');
             yNii = 'Yeo7_op_fdg.nii.gz';            
             if (~lexist('Yeo7_op_fdg.4dfp.hdr', 'file'))
                 mlbash(sprintf('flirt -in %s -ref %s -applyxfm -init %s -out %s -interp nearestneighbour', ymni, bmr2Nii, mat, yNii));

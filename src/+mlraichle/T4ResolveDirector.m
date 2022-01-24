@@ -110,7 +110,7 @@ classdef T4ResolveDirector
         end
         function parBuildUmaps
             import mlsystem.*;
-            cd(mlraichle.RaichleRegistry.instance.subjectsDir);
+            cd(mlraichle.StudyRegistry.instance.subjectsDir);
             dt = DirTool('*');
             dtFqdns = dt.fqdns;
             parfor idt = 1:length(dtFqdns)

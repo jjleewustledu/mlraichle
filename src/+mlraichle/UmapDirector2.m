@@ -22,7 +22,7 @@ classdef UmapDirector2 < mlpipeline.AbstractDirector
             ctm  = this.builder.rescaleCT(ctm);
             umap = this.builder.assembleCarneyUmap(ctm);
             umap = ImagingContext2([umap '.4dfp.hdr']);
-            umap = umap.blurred(mlnipet.ResourcesRegistry.instance().petPointSpread);
+            umap = umap.blurred(mlnipet.NipetRegistry.instance().petPointSpread);
             umap.save;
             this.builder_ = this.builder.packageProduct(umap);
             this.builder.teardownBuildUmaps;

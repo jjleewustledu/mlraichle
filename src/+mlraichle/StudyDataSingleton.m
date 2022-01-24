@@ -12,7 +12,6 @@ classdef StudyDataSingleton < handle & mlpipeline.StudyDataSingleton
         rawdataDir
         projectsDir
         subjectsDir
-        YeoDir
     end
 
     methods (Static)
@@ -40,9 +39,6 @@ classdef StudyDataSingleton < handle & mlpipeline.StudyDataSingleton
         end
         function g = get.subjectsDir(~)
             g = mlraichle.StudyRegistry.instance.subjectsDir;
-        end
-        function g = get.YeoDir(~)
-            g = mlraichle.StudyRegistry.instance.YeoDir;
         end
         
         %%

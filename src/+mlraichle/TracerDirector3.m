@@ -28,7 +28,7 @@ classdef TracerDirector3 < mlraichle.TracerDirector2
             ensuredir(dest);
             logs = fullfile(dest, 'Log', '');
             ensuredir(logs);
-            res = mlnipet.Resources.instance;
+            res = mlpipeline.ResourcesRegistry.instance;
             res.keepForensics = false;
             fv = mlfourdfp.FourdfpVisitor;
             

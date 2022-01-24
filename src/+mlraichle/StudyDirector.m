@@ -40,21 +40,21 @@ classdef StudyDirector
             ip.KeepUnmatched = true;
             addRequired( ip, 'factoryMethod', @ischar);
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'scanList', StudyDirector.SCANS);
-            addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
-            addParameter(ip, 'ac', StudyDirector.AC);
+            addParameter(ip, 'scanList', mlraichle.StudyDirector.SCANS);
+            addParameter(ip, 'tracer', mlraichle.StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
+            addParameter(ip, 'ac', mlraichle.StudyDirector.AC);
             addParameter(ip, 'frameAlignMethod', '', @ischar); % align_10243
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
             addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
-            ipr = StudyDirector.adjustParameters(ip.Results);
+            ipr = mlraichle.StudyDirector.adjustParameters(ip.Results);
             sessExpr = ipr.sessionsExpr;
             tracers = ensureCell(ipr.tracer);
             factoryMethod = ipr.factoryMethod;
             
-            dtsess = DirTools(fullfile(StudyRegistry.instance.subjectsDir, sessExpr));
+            dtsess = DirTools(fullfile(mlraichle.StudyRegistry.instance.subjectsDir, sessExpr));
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwdsess = pushd(sessp);
@@ -65,7 +65,7 @@ classdef StudyDirector
                             continue
                         end
                         try
-                            sessd = StudyDirector.constructSessionData( ...
+                            sessd = mlraichle.StudyDirector.constructSessionData( ...
                                 ipr, sessp, iscan, tracers{itrac});
                             evalee = sprintf('%s(''sessionData'', sessd, varargin{2:end})', factoryMethod);
                             fprintf('mlraichle.StudyDirector.constructCellArrayOfObjects:\n');
@@ -100,23 +100,23 @@ classdef StudyDirector
             ip.KeepUnmatched = true;
             addRequired( ip, 'factoryMethod', @(x) isa(x, 'function_handle'));
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'scanList', StudyDirector.SCANS);
-            addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
-            addParameter(ip, 'ac', StudyDirector.AC);
+            addParameter(ip, 'scanList', mlraichle.StudyDirector.SCANS);
+            addParameter(ip, 'tracer', mlraichle.StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
+            addParameter(ip, 'ac', mlraichle.StudyDirector.AC);
             addParameter(ip, 'frameAlignMethod', '', @ischar); % align_10243
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
             addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
-            ipr = StudyDirector.adjustParameters(ip.Results);
+            ipr = mlraichle.StudyDirector.adjustParameters(ip.Results);
             sessExpr = ipr.sessionsExpr;
             tracers = ensureCell(ipr.tracer);
             factoryMethod = ipr.factoryMethod;
             varargin2 = varargin(2:end);
             
             those = {};
-            dtsess = DirTools(fullfile(StudyRegistry.instance.subjectsDir, sessExpr));
+            dtsess = DirTools(fullfile(mlraichle.StudyRegistry.instance.subjectsDir, sessExpr));
             parfor idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess}; %#ok<PFBNS>
                 pwdsess = pushd(sessp);
@@ -127,7 +127,7 @@ classdef StudyDirector
                             continue
                         end
                         try
-                            sessd = StudyDirector.constructSessionData( ...
+                            sessd = mlraichle.StudyDirector.constructSessionData( ...
                                 ipr, sessp, iscan, tracers{itrac});
                             fprintf('mlraichle.StudyDirector.constructCellArrayOfObjectsParSess:\n');
                             fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
@@ -158,23 +158,23 @@ classdef StudyDirector
             ip.KeepUnmatched = true;
             addRequired( ip, 'factoryMethod', @(x) isa(x, 'function_handle'));
             addParameter(ip, 'sessionsExpr', 'HYGLY*');
-            addParameter(ip, 'scanList', StudyDirector.SCANS);
-            addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
-            addParameter(ip, 'ac', StudyDirector.AC);
+            addParameter(ip, 'scanList', mlraichle.StudyDirector.SCANS);
+            addParameter(ip, 'tracer', mlraichle.StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
+            addParameter(ip, 'ac', mlraichle.StudyDirector.AC);
             addParameter(ip, 'frameAlignMethod', '', @ischar); % align_10243
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
             addParameter(ip, 'fractionalImageFrameThresh', [], @isnumeric);
             addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
-            ipr = StudyDirector.adjustParameters(ip.Results);
+            ipr = mlraichle.StudyDirector.adjustParameters(ip.Results);
             sessExpr = ipr.sessionsExpr;
             tracers = ensureCell(ipr.tracer);
             factoryMethod = ipr.factoryMethod;
             varargin2 = varargin(2:end);
             
             those = {};
-            dtsess = DirTools(fullfile(StudyRegistry.instance.subjectsDir, sessExpr));
+            dtsess = DirTools(fullfile(mlraichle.StudyRegistry.instance.subjectsDir, sessExpr));
             for idtsess = 1:length(dtsess.fqdns)
                 sessp = dtsess.fqdns{idtsess};
                 pwdsess = pushd(sessp);
@@ -185,7 +185,7 @@ classdef StudyDirector
                             continue
                         end
                         try
-                            sessd = StudyDirector.constructSessionData( ...
+                            sessd = mlraichle.StudyDirector.constructSessionData( ...
                                 ipr, sessp, iscan, tracers{itrac}); 
                             fprintf('mlraichle.StudyDirector.constructCellArrayOfObjectsParTrac:\n');
                             fprintf(['\tsessd.TracerLocation->' sessd.tracerLocation '\n']);
@@ -221,9 +221,9 @@ classdef StudyDirector
             addParameter(ip, 'factoryArgs', {}, @iscell);
             addParameter(ip, 'sessionsExpr',  'HYGLY*');
             addParameter(ip, 'sesssionsExpr', '');
-            addParameter(ip, 'scanList', StudyDirector.SCANS);
-            addParameter(ip, 'tracer', StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
-            addParameter(ip, 'ac', StudyDirector.AC);
+            addParameter(ip, 'scanList', mlraichle.StudyDirector.SCANS);
+            addParameter(ip, 'tracer', mlraichle.StudyDirector.TRACERS, @(x) ischar(x) || iscell(x));
+            addParameter(ip, 'ac', mlraichle.StudyDirector.AC);
             addParameter(ip, 'frameAlignMethod', '', @ischar); % align_10243
             addParameter(ip, 'compAlignMethod', '', @ischar); % align_multiSpectral
             addParameter(ip, 'tauIndices', [], @isnumeric);
@@ -235,7 +235,7 @@ classdef StudyDirector
             addParameter(ip, 'pushData', false, @islogical);
             addParameter(ip, 'visitsExpr', ''); % legacy
             parse(ip, varargin{:});
-            ipr = StudyDirector.adjustParameters(ip.Results);
+            ipr = mlraichle.StudyDirector.adjustParameters(ip.Results);
             sessExpr = ipr.sessionsExpr;
             if (~isempty(ipr.sesssionsExpr))
                 sessExpr = ipr.sesssionsExpr;
@@ -258,9 +258,9 @@ classdef StudyDirector
                             continue
                         end
                         try
-                            sessd = StudyDirector.constructSessionData( ...
+                            sessd = mlraichle.StudyDirector.constructSessionData( ...
                                 ipr, sessp, iscan, tracers{itrac});  
-                            if (StudyDirector.isTracerDir(sessd))
+                            if (mlraichle.StudyDirector.isTracerDir(sessd))
                                 % there exist spurious tracerLocations; select those with corresponding raw data
 
                                 csessd = sessd;
