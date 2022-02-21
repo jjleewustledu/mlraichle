@@ -115,7 +115,7 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
 
     properties (Dependent)
         bbBufferMax
-        NCenterlineSamples
+        N_centerline_samples
     end
 
     methods
@@ -125,7 +125,7 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
         function g = get.bbBufferMax(this)
             g = round([16/this.dx 16/this.dy 3/this.dz]);
         end
-        function g = get.NCenterlineSamples(this)
+        function g = get.N_centerline_samples(this)
             g = ceil(max(this.bbRange{3}) - min(this.bbRange{3}));
         end
 
@@ -383,12 +383,25 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
 
             % construct table and write
             tbl_idif = table(niifqfn', tracer', IDIF', 'VariableNames', {'niifqfn', 'tracer', 'IDIF'});
-            tbl_idif.Properties.Description = fullfile(this.destinationPath, sprintf('Fung2013_tbl_idif_%s.mat', this.subFolder));
+            tbl_idif.Properties.Description = fullfile(this.destinationPath, sprintf('Fung2013_tbl_idif_%s.mat', this.subjectFolder));
             tbl_idif.Properties.VariableUnits = {'', '', 'Bq/mL'};
             save(tbl_idif.Properties.Description, 'tbl_idif')
 
             % plot and save
             this.plotIdif(tbl_idif);
+        end
+        function g = petGlobbed(this, varargin)
+            ip = inputParser;
+            addOptional(ip, 'isdynamic', true, @islogical)
+            parse(ip, varargin{:})
+
+            anat = 'T1001';
+            g = glob(fullfile(this.petPath, sprintf('*dt*_on_%s.4dfp.hdr', anat)));
+            if ip.Results.isdynamic
+                g = g(~contains(g, '_avgt'));
+            else
+                g = g(contains(g, '_avgt'));
+            end
         end
         function [h,h1] = plotRegistered(this, varargin)
             %% As requested by plotqc and plotdebug, plots then saves centerline registered to bounding-blox PET in green, 
@@ -444,11 +457,18 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
             %% converts point clouds for both hemispheres into ImagingContext objects.
         
             icL = this.pointCloudToIC(this.registration.centerlineOnTarget{1}, varargin{:});
-            icL = icL.imdilate(strel('sphere', this.dilationRadius));
             icR = this.pointCloudToIC(this.registration.centerlineOnTarget{2}, varargin{:});
-            icR = icR.imdilate(strel('sphere', this.dilationRadius));
-            ic = icL + icR;
+            
+            icLo = icL.imdilate(strel('sphere', this.outerRadius));
+            icRo = icR.imdilate(strel('sphere', this.outerRadius));
+            ic = icLo + icRo;
             ic = ic.binarized();
+            if this.innerRadius > 0
+                icLi = icL.imdilate(strel('sphere', this.innerRadius));
+                icRi = icR.imdilate(strel('sphere', this.innerRadius));
+                ic = ic - icLi - icRi;
+                ic = ic.numgt(0);
+            end
         end
         function this = registerCenterlines(this, varargin)
             %  @param thresh applies to ic3d.  Default is 25000.

@@ -10,7 +10,7 @@ classdef AbstractFung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.C
  	%% It was developed on Matlab 9.11.0.1809720 (R2021b) Update 1 for MACI64.  Copyright 2021 John Joowon Lee.
 
 	properties (Abstract)
-        NCenterlineSamples % 1 voxel/mm for coarse representation of b-splines
+        N_centerline_samples % 1 voxel/mm for coarse representation of b-splines
     end
 
     methods (Abstract)
@@ -19,6 +19,7 @@ classdef AbstractFung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.C
         buildCorners(this)
         buildSegmentation(this)
         call(this)
+        petGlobbed(this)
         pointCloudsToIC(this)
     end
 
@@ -30,9 +31,10 @@ classdef AbstractFung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.C
         contractBias % used by activecontour
         coords % 4 coord points along carotid centerlines at corners
         coords_b1_ic % coord points, blurred by 1 voxel fwhm, as ImagingContext2
-        dilationRadius = 2 % Fung reported best results with radius ~ 2.5, but integers may be faster
-        idifmask_ic % contains centerline expanded by dilationRadius as ImagingContext
+        idifmask_ic % contains centerline modulated by innerRadius & outerRadius, as ImagingContext
+        innerRadius % voxels; for sampling annulus
         iterations
+        outerRadius % voxels; Fung reported best results with radius ~ 2.5, but implementation with strel requires integer num. of voxels.
         plotclose % close plots after saving
         plotdebug % show debugging plots
         ploton % show final results
@@ -50,7 +52,7 @@ classdef AbstractFung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.C
         %% for B-splines in mlvg.Hunyadi2021
 
         k = 4
-        t = [0 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1];
+        t = [0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1];
         U % # samples for bspline_deboor()
         Cs % curves in cell, 3 x this.U
         Ps % control points in cell, 3 x M
@@ -64,20 +66,22 @@ classdef AbstractFung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.C
         destinationPath
         dx
         dy
-        dz
+        dz        
+        mriPath
         Nx
         Ny
         Nz
-        mriPath
         petPath
         petBasename
         petDynamic % contains PET dynamic as ImagingContext2 (LARGE)
         petStatic % contains PET static as ImagingContext2
-        projPath
+        projectPath
         sourcedataPath
         sourceAnatPath
         sourcePetPath
-        subFolder
+        subjectFolder
+        tag_idif
+        tag_tracers
     end
 
 	methods 
@@ -130,14 +134,18 @@ classdef AbstractFung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.C
             end
             if ~isempty(this.petStatic)
                 str = this.petStatic.fileprefix;
-            elseif ~isempty(this.petDynamic)
-                str = this.petDynamic.fileprefix;
-            else
-                g = '';
+                re = regexp(str, '(?<basename>[a-z]+dt\d{14})', 'names');
+                g = re.basename;
                 return
             end
-            re = regexp(str, '(?<basename>[a-z]+dt\d{14})', 'names');
-            g = re.basename;
+            if ~isempty(this.petDynamic)
+                str = this.petDynamic.fileprefix;
+                re = regexp(str, '(?<basename>[a-z]+dt\d{14})', 'names');
+                g = re.basename;
+                return
+            end
+            g = '';
+            return
         end
         function     set.petBasename(this, s)
             assert(ischar(s))
@@ -165,8 +173,8 @@ classdef AbstractFung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.C
             assert(isa(s, 'mlfourd.ImagingContext2'))
             this.petStatic_ = s;
         end
-        function g = get.projPath(this)
-            g = this.bids_.projPath;
+        function g = get.projectPath(this)
+            g = this.bids_.projectPath;
         end
         function g = get.sourcedataPath(this)
             g = this.bids_.sourcedataPath;
@@ -177,8 +185,24 @@ classdef AbstractFung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.C
         function g = get.sourcePetPath(this)
             g = this.bids_.sourcePetPath;
         end
-        function g = get.subFolder(this)
-            g = this.bids_.subFolder;
+        function g = get.subjectFolder(this)
+            g = this.bids_.subjectFolder;
+        end
+        function g = get.tag_idif(this)
+            if 0 == this.innerRadius
+                g = sprintf('_idif_to%i', this.outerRadius);
+                return
+            end
+            g = sprintf('_idif_%ito%i', this.innerRadius, this.outerRadius);
+        end
+        function g = get.tag_tracers(this)
+            if iscell(this.selected_tracers_)
+                g = cell2str(this.selected_tracers_);
+                g = strrep(g, ' ', ',');
+            else
+                g = this.selected_tracers_;
+            end
+            g = strcat('_', g);
         end
 
         %%
@@ -214,31 +238,34 @@ classdef AbstractFung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.C
             addParameter(ip, 'segmentationOnly', false, @islogical)
             addParameter(ip, 'segmentationBlur', 0, @(x) isscalar(x) || isa(x, 'containers.Map'))
             addParameter(ip, 'segmentationThresh', 190, @(x) isscalar(x) || isa(x, 'containers.Map')) % tuned for PPG T1001
+            addParameter(ip, 'selected_tracers', {''}, @(x) ischar(x) || iscell(x))
             addParameter(ip, 'ploton', true, @islogical)
             addParameter(ip, 'plotqc', true, @islogical)
             addParameter(ip, 'plotdebug', false, @islogical)
             addParameter(ip, 'plotclose', true, @islogical)
             addParameter(ip, 'threshqc', 0.75, @isnumeric)
+            addParameter(ip, 'outerRadius', 2, @isnumeric)
+            addParameter(ip, 'innerRadius', 0, @isnumeric)
             parse(ip, varargin{:})
             ipr = ip.Results;
             this.bids_.parseDestinationPath(ipr.destinationPath)
             if isa(ipr.corners, 'containers.Map')
-                ipr.corners = ipr.corners(this.subFolder);
+                ipr.corners = ipr.corners(this.subjectFolder);
             end
             if isa(ipr.bbBuffer, 'containers.Map')
-                ipr.bbBuffer = ipr.bbBuffer(this.subFolder);
+                ipr.bbBuffer = ipr.bbBuffer(this.subjectFolder);
             end  
             if isa(ipr.iterations, 'containers.Map')
-                ipr.iterations = ipr.iterations(this.subFolder);
+                ipr.iterations = ipr.iterations(this.subjectFolder);
             end  
             if isa(ipr.contractBias, 'containers.Map')
-                ipr.contractBias = ipr.contractBias(this.subFolder);
+                ipr.contractBias = ipr.contractBias(this.subjectFolder);
             end  
             if isa(ipr.segmentationBlur, 'containers.Map')
-                ipr.segmentationBlur = ipr.segmentationBlur(this.subFolder);
+                ipr.segmentationBlur = ipr.segmentationBlur(this.subjectFolder);
             end  
             if isa(ipr.segmentationThresh, 'containers.Map')
-                ipr.segmentationThresh = ipr.segmentationThresh(this.subFolder);
+                ipr.segmentationThresh = ipr.segmentationThresh(this.subjectFolder);
             end  
             this.coords = ipr.corners;
             this.bbBuffer = ipr.bbBuffer;
@@ -248,11 +275,13 @@ classdef AbstractFung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.C
             this.segmentation_only = ipr.segmentationOnly;
             this.segmentation_blur = ipr.segmentationBlur;
             this.segmentationThresh = ipr.segmentationThresh;
+            this.selected_tracers_ = ipr.selected_tracers;
             this.ploton = ipr.ploton;
             this.plotqc = ipr.plotqc;
             this.plotdebug = ipr.plotdebug;
             this.plotclose = ipr.plotclose;
             this.threshqc = ipr.threshqc;
+            this.outerRadius = ipr.outerRadius;
 
             % gather requirements
             this.hunyadi_ = mlvg.Hunyadi2021();
@@ -299,12 +328,14 @@ classdef AbstractFung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.C
             M(1,:) = X'; % M are ints cast as double
             M(2,:) = Y';
             M(3,:) = Z';
-            this.U = this.NCenterlineSamples;             
+            this.U = this.N_centerline_samples;             
             P = bspline_estimate(this.k, this.t, M); % double
             C = bspline_deboor(this.k, this.t, P, this.U); % double, ~2x oversampling for Z
             pc = pointCloud(C');
             
-            fp = fullfile(this.destinationPath, sprintf('%s_centerline_in_%s', tag, this.anatomy.fileprefix));
+            class_str = strrep(class(this), 'mlraichle.', '');
+            fp = fullfile(this.destinationPath, ...
+                sprintf('%s_%s_centerline_in_%s', class_str, tag, this.anatomy.fileprefix));
             if this.plotqc
                 h = figure;
                 pcshow(pointCloud(this.anatomy, 'thresh', this.threshqc*dipmax(this.anatomy)))
@@ -317,7 +348,8 @@ classdef AbstractFung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.C
                     close(h)
                 end
             end
-            fp1 = fullfile(this.destinationPath, sprintf('%s_centerline_in_segmentation', tag));
+            fp1 = fullfile(this.destinationPath, ...
+                sprintf('%s_%s_centerline_in_segmentation', class_str, tag));
             if this.plotdebug
                 h1 = figure;
                 hold all;
@@ -363,19 +395,6 @@ classdef AbstractFung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.C
             X = X(~toss_);
             Y = Y(~toss_);
             Z = Z(~toss_);
-        end
-        function g = petGlobbed(this, varargin)
-            ip = inputParser;
-            addOptional(ip, 'isdynamic', true, @islogical)
-            parse(ip, varargin{:})
-
-            anat = 'T1001';
-            g = glob(fullfile(this.petPath, sprintf('*dt*_on_%s.4dfp.hdr', anat)));
-            if ip.Results.isdynamic
-                g = g(~contains(g, '_avgt'));
-            else
-                g = g(contains(g, '_avgt'));
-            end
         end
         function h = plotIdif(this, tbl_idif)
             %% As requested by ploton, plots then saves all IDIFs in the subject collection.  Clobbers previously saved.
@@ -472,15 +491,20 @@ classdef AbstractFung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.C
             ifc.img = img;
             ic = mlfourd.ImagingContext2(ifc);
         end
-        function n = tracername(this)
-            n = this.bids_.tracername(this.petBasename);
+        function n = tracername(this, varargin)
+            ip = inputParser;
+            addOptional(ip, 'str', this.petBasename, @istext)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+
+            n = this.bids_.tracername(ipr.str);
         end
         function writetable(this, t, activity, dynfp)
             len = min(length(t), length(activity));
             t = ascol(t(1:len));
             activity = ascol(activity(1:len));
             tbl = table(t, activity);
-            tbl.Properties.Description = [class(this) '_' this.subFolder];
+            tbl.Properties.Description = [class(this) '_' this.subjectFolder];
             tbl.Properties.VariableUnits = {'s', 'Bq/mL'};
 
             fqfn = fullfile(this.destinationPath, sprintf('%s_idif.csv', dynfp));
@@ -498,6 +522,7 @@ classdef AbstractFung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.C
         petDynamic_
         hunyadi_
         petStatic_
+        selected_tracers_ % char or cell-array of char
     end
 
     methods (Access = protected)
@@ -530,7 +555,14 @@ classdef AbstractFung2013 < handle & matlab.mixin.Heterogeneous & matlab.mixin.C
             N = min(length(decay_corrected), length(taus_));
             radio = mlpet.Radionuclides(tracer);
             decay_uncorrected = decay_corrected(1:N) ./ radio.decayCorrectionFactors('taus', taus_(1:N));
-        end        
+            decay_uncorrected = asrow(decay_uncorrected);
+        end
+        function update_selected_tracers(this, patt)
+            tracer = lower(this.bids_.tracername(patt));
+            if ~contains(this.selected_tracers_, tracer)
+               this.selected_tracers_ = [this.selected_tracers_ {tracer}];
+            end
+        end
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
