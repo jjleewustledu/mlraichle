@@ -1,5 +1,5 @@
 classdef TracerDirector2 < mlnipet.CommonTracerDirector
-	%% TRACERDIRECTOR2  
+	%% TRACERDIRECTOR2 forms a builder pattern with builders configured by mlraichle.StudyRegistry.
 
 	%  $Revision$
  	%  was created 17-Nov-2018 10:26:34 by jjlee,
@@ -225,8 +225,8 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             end
             ss = strsplit(ipr.foldersExpr, '/');
             
-            subPath = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '');            
-            pwd0 = pushd(subPath);
+            subjectPath = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '');            
+            pwd0 = pushd(subjectPath);
             subd = SubjectData('subjectFolder', ss{2});
             sesf = subd.subFolder2sesFolder(ss{2});
             sessd = SessionData( ...
@@ -291,8 +291,8 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             ipr = ip.Results;
             ss = strsplit(ipr.foldersExpr, '/');
             
-            subPath = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '');            
-            pwd0 = pushd(subPath);
+            subjectPath = fullfile(getenv('PROJECTS_DIR'), ss{1}, ss{2}, '');            
+            pwd0 = pushd(subjectPath);
             subd = SubjectData('subjectFolder', ss{2});
             sesf = subd.subFolder2sesFolder(ss{2});
             sessd = SessionData( ...
@@ -447,14 +447,18 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             this.fastFilesystemTeardown;
             this.fastFilesystemTeardownProject;
         end
-        function this = constructUmaps(varargin)
+        function umap = constructUmaps(varargin)
+            %  Args:  see mlfourdfp.{CarneyUmapBuilder, UTEUmapBuilder, MRACHiresUmapBuilder, PseudoCTBuilder}
+
             import mlraichle.TracerDirector2;
-            import mlfourd.ImagingContext2;           
+            import mlfourd.ImagingContext2;
+
             switch mlraichle.StudyRegistry.instance().umapType
                 case 'ct'                    
                     this = TracerDirector2(mlfourdfp.CarneyUmapBuilder2(varargin{:}));
                     this.builder_ = this.builder.prepareMprToAtlasT4;
                     if this.builder.isfinished
+                        umap = this.builder.product;
                         return
                     end 
                 case 'ute'
@@ -472,7 +476,7 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
             
             pwd0 = pushd(this.sessionData.sessionPath);
             umap = this.builder.buildUmap;
-            umap = ImagingContext2([umap '.4dfp.hdr']);
+            umap = ImagingContext2(umap);
             umap = umap.blurred(mlnipet.NipetRegistry.instance().petPointSpread);
             umap.save;
             this.builder_ = this.builder.packageProduct(umap);

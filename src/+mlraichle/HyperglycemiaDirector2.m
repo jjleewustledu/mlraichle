@@ -42,8 +42,8 @@ classdef HyperglycemiaDirector2
         function those = constructResolvedNAC(varargin)
             those = mlraichle.HyperglycemiaDirector2.constructResolved(varargin{:}, 'ac', false);
         end
-        function those = constructUmaps(varargin)
-            those = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
+        function umap = constructUmaps(varargin)
+            umap = mlraichle.StudyDirector.constructCellArrayOfObjects( ...
                 'mlraichle.UmapDirector2.constructUmaps', 'ac', false, varargin{:});
         end         
         function those = migrateResolvedToVall(varargin)

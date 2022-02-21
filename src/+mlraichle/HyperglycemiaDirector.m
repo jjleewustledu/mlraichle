@@ -795,10 +795,10 @@ classdef HyperglycemiaDirector < mlraichle.StudyDirector
             those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.HyperglycemiaDirector.prepareFreesurferData', varargin{:});
         end    
-        function those = constructUmaps(varargin)
+        function umap = constructUmaps(varargin)
             %  See also:   mlraichle.StudyDirector.constructCellArrayObjects            
             
-            those = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
+            umap = mlraichle.HyperglycemiaDirector.constructCellArrayOfObjects( ...
                 'mlraichle.UmapDirector.constructUmaps', 'ac', false, varargin{:});
         end        
         function those = constructUmapsRemotely(varargin)

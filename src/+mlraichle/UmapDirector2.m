@@ -7,11 +7,12 @@ classdef UmapDirector2 < mlpipeline.AbstractDirector
  	%% It was developed on Matlab 9.4.0.813654 (R2018a) for MACI64.  Copyright 2018 John Joowon Lee.
     
     methods (Static)
-        function this = constructUmaps(varargin)
+        function umap = constructUmaps(varargin)
             import mlraichle.UmapDirector2;
             UmapDirector2.prepareFreesurferData(varargin{:});      
             this = UmapDirector2(mlfourdfp.CarneyUmapBuilder2(varargin{:}));
             if (this.builder.isfinished)
+                umap = this.builder.product;
                 return
             end 
             
@@ -21,7 +22,7 @@ classdef UmapDirector2 < mlpipeline.AbstractDirector
             ctm  = this.builder.buildCTMasked2;
             ctm  = this.builder.rescaleCT(ctm);
             umap = this.builder.assembleCarneyUmap(ctm);
-            umap = ImagingContext2([umap '.4dfp.hdr']);
+            umap = ImagingContext2(umap);
             umap = umap.blurred(mlnipet.NipetRegistry.instance().petPointSpread);
             umap.save;
             this.builder_ = this.builder.packageProduct(umap);

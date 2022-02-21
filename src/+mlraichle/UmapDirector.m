@@ -13,7 +13,7 @@ classdef UmapDirector < mlpipeline.AbstractDirector
     end
     
     methods (Static)
-        function this = constructUmaps(varargin)
+        function umap = constructUmaps(varargin)
             import mlraichle.UmapDirector;
             UmapDirector.prepareFreesurferData(varargin{:});            
             this = UmapDirector( ...
@@ -21,7 +21,7 @@ classdef UmapDirector < mlpipeline.AbstractDirector
             pwd0 = pushd(this.sessionData.sessionPath);
             this.builder_ = this.builder_.prepareMprToAtlasT4;
             this.sessionData.attenuationCorrected = false;
-            this.builder_ = this.builder_.buildUmap;
+            umap = this.builder_.buildUmap;
             popd(pwd0);
         end
         function this = constructPhantomCalibration(varargin)
