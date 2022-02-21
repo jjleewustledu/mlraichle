@@ -15,6 +15,7 @@ classdef SessionData < mlnipet.MetabolicSessionData
     properties
         registry
         tracers = {'fdg' 'ho' 'oo' 'oc'}
+        defects = {'20180511133140' '20180511120621' '20190110105722' '20190110122045'}
     end
     
     methods (Static)
@@ -135,7 +136,7 @@ classdef SessionData < mlnipet.MetabolicSessionData
             
             %% taus
             
-            if (~isempty(this.scanFolder_) && isfile(this.jsonFilename, 'file'))
+            if (~isempty(this.scanFolder_) && isfile(this.jsonFilename))
                 j = jsondecode(fileread(this.jsonFilename));
                 this.taus_ = j.taus';
             end
