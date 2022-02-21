@@ -7,15 +7,16 @@ classdef FieldAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysisKit
  	%% It was developed on Matlab 9.10.0.1710957 (R2021a) Update 4 for MACI64.  Copyright 2021 John Joowon Lee.
  	
     properties 
-        dataFolder
         model
         sessionData
     end
     
     properties (Dependent)
         blurTag
+        dataFolder
         dataPath
         regionTag
+        subjectFolder
         subjectPath
     end
     
@@ -131,11 +132,17 @@ classdef FieldAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysisKit
             g = mlraichle.StudyRegistry.instance.blurTag;
             %g = this.sessionData.petPointSpreadTag;
         end
+        function g = get.dataFolder(this)
+            g = this.sessionData.dataFolder;
+        end  
         function g = get.dataPath(this)
             g = fullfile(this.sessionData.subjectPath, this.dataFolder, '');
         end  
         function g = get.regionTag(this)
             g = this.sessionData.regionTag;
+        end
+        function g = get.subjectFolder(this)
+            g = this.sessionData.subjectFolder;
         end
         function g = get.subjectPath(this)
             g = this.sessionData.subjectPath;

@@ -6,29 +6,7 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
- 	%% It was developed on Matlab 8.5.0.197613 (R2015a) for MACI64.
- 	
-    properties
-        blurTag = ''
-        Ddatetime0 % seconds
-        dicomExtension = '.dcm'
-        ignoredExperiments = {'52823' '53317' '53343' '178378' '186470'}
-        normalizationFactor = 1
-        referenceTracer = 'FDG'
-        scatterFraction = 0
-        T = 10 % sec at the start of artery_interpolated used for model but not described by scanner frames
-        tracerList = {'oc' 'oo' 'ho' 'fdg'}
-        umapType = 'ct'
-        stableToInterpolation = true
-    end
-    
-    properties (Dependent)
-        projectsDir
-        rawdataDir
-        subjectsDir
-        subjectsJson
-        tBuffer
-    end
+ 	%% It was developed on Matlab 8.5.0.197613 (R2015a) for MACI64. 	
     
     methods (Static)
         function this = instance(varargin)
@@ -50,7 +28,29 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
                 this = uniqueInstance;
             end
         end
-    end  
+    end 
+
+    properties
+        blurTag = ''
+        Ddatetime0 % seconds
+        dicomExtension = '.dcm'
+        ignoredExperiments = {'52823' '53317' '53343' '178378' '186470'}
+        normalizationFactor = 1
+        referenceTracer = 'FDG'
+        scatterFraction = 0
+        T = 10 % sec at the start of artery_interpolated used for model but not described by scanner frames
+        tracerList = {'oc' 'oo' 'ho' 'fdg'}
+        umapType = 'ct'
+        stableToInterpolation = true
+    end
+    
+    properties (Dependent)
+        projectsDir
+        rawdataDir
+        subjectsDir
+        subjectsJson
+        tBuffer
+    end 
     
     methods
         
