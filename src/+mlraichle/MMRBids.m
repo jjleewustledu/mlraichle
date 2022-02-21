@@ -1,4 +1,4 @@
-classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable  
+classdef MMRBids < handle & mlpipeline.Bids
 	%% MMRBIDS  
 
 	%  $Revision$
@@ -6,17 +6,11 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.11.0.1769968 (R2021b) for MACI64.  Copyright 2021 John Joowon Lee.
  	
+    properties (Constant)
+        projectFolder = 'CCIR_00559_00754'
+    end
+
 	properties (Dependent)
-        anatPath
-        projPath
-        derivativesPath
-        destinationPath 		
-        mriPath
-        petPath
-        sourcedataPath
-        sourceAnatPath
-        sourcePetPath
-        subFolder
         tof_ic
         tof_mask_ic
         T1w_ic
@@ -27,45 +21,6 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
 
         %% GET
 
-        function g = get.anatPath(this)
-            g = fullfile(this.derivativesPath, this.subFolder, 'anat');
-            assert(isfolder(g))
-        end
-        function g = get.projPath(this)
-            g = this.projPath_;
-            assert(isfolder(g))
-        end
-        function g = get.derivativesPath(this)
-            g = fullfile(this.projPath, 'derivatives', '');
-            assert(isfolder(g))
-        end
-        function g = get.destinationPath(this)
-            g = this.destPath_;
-            assert(isfolder(g))
-        end
-        function g = get.mriPath(this)
-            g = fullfile(this.derivativesPath, this.subFolder, 'mri', '');
-            assert(isfolder(g))
-        end
-        function g = get.petPath(this)
-            g = fullfile(this.derivativesPath, this.subFolder, 'pet', '');
-            assert(isfolder(g))
-        end
-        function g = get.sourcedataPath(this)
-            g = fullfile(this.projPath, 'sourcedata', '');
-            assert(isfolder(g))
-        end
-        function g = get.sourceAnatPath(this)
-            g = fullfile(this.sourcedataPath, this.subFolder, 'anat', '');
-            assert(isfolder(g))
-        end
-        function g = get.sourcePetPath(this)
-            g = fullfile(this.sourcedataPath, this.subFolder, 'pet', '');
-            assert(isfolder(g))
-        end
-        function g = get.subFolder(this)
-            g = this.subFolder_;
-        end
         function g = get.tof_ic(this)
             if ~isempty(this.tof_ic_)
                 g = copy(this.tof_ic_);
@@ -82,7 +37,7 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
 
 %             fn = fullfile(this.sourceAnatPath, 'tof.4dfp.hdr');
 %             if ~isfile(fn)
-%                 fn_sourcedata = glob(fullfile(this.sourcedataPath, this.subFolder, 'scans', '*TOF*', '*TOF*.4dfp.hdr'));
+%                 fn_sourcedata = glob(fullfile(this.sourcedataPath, this.subjectFolder, 'scans', '*TOF*', '*TOF*.4dfp.hdr'));
 %                 if iscell(fn_sourcedata)
 %                     fn_sourcedata = fn_sourcedata{end};
 %                 end
@@ -130,33 +85,20 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
 
  		function this = MMRBids(varargin)
             %  @param destPath will receive outputs.
-            %  @projPath belongs to a CCIR project.
-            %  @subFolder is the BIDS-adherent string for subject identity.
+            %  @projectPath belongs to a CCIR project.
+            %  @subjectFolder is the BIDS-adherent string for subject identity.
 
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'destPath', pwd, @isfolder)
-            addParameter(ip, 'projPath', fullfile(getenv('SINGULARITY_HOME'), 'CCIR_00559_00754', ''), @isfolder)
-            addParameter(ip, 'subFolder', '', @ischar)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            this.destPath_ = ipr.destPath;
-            this.projPath_ = ipr.projPath;
-            this.subFolder_ = ipr.subFolder;
-            if isempty(this.subFolder_)
+            this = this@mlpipeline.Bids(varargin{:});
+            if isempty(this.subjectFolder_)
                 this.parseDestinationPath(this.destPath_)
             end
         end
         
         function parseDestinationPath(this, dpath)
-            assert(contains(dpath, 'CCIR_00559_00754'), 'mlraichle.MMRBids: destination path must include a project identifier')
-            assert(contains(dpath, 'sub-'), 'mlraichle.MMRBids: destination path must include a subject identifier')
-
-            this.destPath_ = dpath;
-            ss = strsplit(dpath, filesep);
-            [~,idxProjFold] = max(contains(ss, 'CCIR_'));
-            this.projPath_ = [filesep fullfile(ss{1:idxProjFold})];
-            this.subFolder_ = ss{contains(ss, 'sub-')}; % picks first occurance
+            if contains(dpath, 'sub-')
+                ss = strsplit(dpath, filesep);
+                this.subjectFolder_ = ss{contains(ss, 'sub-')}; % picks first occurance
+            end
         end
         function s = pet_toglob(~, varargin)
             s = fullfile(this.petPath, '*dt*_on_T1001.4dfp.hdr');
@@ -167,33 +109,11 @@ classdef MMRBids < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
             this.T1w_ic_.selectNiftiTool();
             this.wmparc_ic_.selectNiftiTool();
         end
-        function n = tracername(~, str)
-            if contains(str, 'co', 'IgnoreCase', true) || contains(str, 'oc', 'IgnoreCase', true)
-                n = 'CO';
-                return
-            end
-            if contains(str, 'oo', 'IgnoreCase', true)
-                n = 'OO';
-                return
-            end
-            if contains(str, 'ho', 'IgnoreCase', true)
-                n = 'HO';
-                return
-            end
-            if contains(str, 'fdg', 'IgnoreCase', true)
-                n = 'FDG';
-                return
-            end
-            error('mlraichle:ValeError', 'MMRBids.tracername() did not recognize %s', str)
-        end
  	end 
     
-    %% PRIVATE
+    %% PROTECTED
     
-    properties (Access = private)
-        destPath_
-        projPath_
-        subFolder_
+    properties (Access = protected)
         tof_ic_
         tof_mask_ic_
         T1w_ic_
