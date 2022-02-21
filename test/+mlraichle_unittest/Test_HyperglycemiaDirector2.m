@@ -31,10 +31,10 @@ classdef Test_HyperglycemiaDirector2 < matlab.unittest.TestCase
             disp(tobj.product)
         end
         function test_constructUmaps(this)
-            those = this.testObj.constructUmaps( ...
+            umap = this.testObj.constructUmaps( ...
                 'sessionsExpr', this.sessExpr, ...
                 'tracer', 'FDG', 'ac', false);
-            those{1}.builder.product.view;
+            umap.view();
         end
         function test_prepareFreesurferData(this)
             this.pwd0 = pushd(this.sessd.tracerLocation);
