@@ -7,8 +7,8 @@ classdef StudyCurator
  	%% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
  	
 	properties
- 		subPath % source
-        subPath1 % curated        
+ 		subjectPath % source
+        subjectPath1 % curated        
 
         MAKE_MNI_IMG = true
         fdg_to_T1001_t4 = 'fdg_avgr1_to_T1001r1_t4'
@@ -189,22 +189,22 @@ classdef StudyCurator
             import mlraichle.StudyCurator.*
             import mlfourd.ImagingContext2
 
-            pwd0 = pushd(this.subPath);
+            pwd0 = pushd(this.subjectPath);
             t1 = ImagingContext2('T1001r1_op_fdg_avgr1.4dfp.hdr');
-            t1.saveas(fullfile(this.subPath1,  'T1001_on_op_fdg.nii.gz'));
+            t1.saveas(fullfile(this.subjectPath1,  'T1001_on_op_fdg.nii.gz'));
             t1 = ImagingContext2('T1001.4dfp.hdr');
-            t1.saveas(fullfile(this.subPath1,  'T1001.nii.gz'));
+            t1.saveas(fullfile(this.subjectPath1,  'T1001.nii.gz'));
             this.stageTracers;
             popd(pwd0)            
         end
         function curate0(this)
-            pwd0 = pushd(this.subPath);
+            pwd0 = pushd(this.subjectPath);
             this.stageTracersOnMNI152
             this.stageFreeSurferObjects   
             popd(pwd0)  
         end
         function curate(this)
-            pwd0 = pushd(this.subPath);
+            pwd0 = pushd(this.subjectPath);
             this.stageTracers
             this.stageT4s
             this.stageFreeSurferObjects   
@@ -214,7 +214,7 @@ classdef StudyCurator
             pth = fullfile(this.firstPopulatedSingularitySesPath, 'mri', '');
         end
         function pth = firstPopulatedSesPath(this)
-            dt = mlsystem.DirTool(fullfile(this.subPath, 'ses-E*'));
+            dt = mlsystem.DirTool(fullfile(this.subjectPath, 'ses-E*'));
             for d = dt.fqdns
                 if isfile(fullfile(d{1}, 'T1001.nii'))
                     pth = d{1};
@@ -228,7 +228,7 @@ classdef StudyCurator
             pth = fullfile(getenv('SINGULARITY_HOME'), this.sesFolder2project(sesFold), sesFold, '');            
         end
         function stageFreeSurferObjects(this) 
-            pwd1 = pushd(this.subPath1);
+            pwd1 = pushd(this.subjectPath1);
             copyfile(fullfile(this.firstPopulatedSingularitySesPath, 'T1001.nii'))
             gzip('T1001.nii')
             deleteExisting('T1001.nii')
@@ -240,11 +240,11 @@ classdef StudyCurator
             popd(pwd1) 
         end
         function stageTracers(this)
-            %  @return this.subPath1/hodt20140514113341.nii.gz % on fdg
-            %  @return this.subPath1/hodt20140514113341_avgt.nii.gz % on fdg
-            %  @return this.subPath1/hodt20140514113341.json
+            %  @return this.subjectPath1/hodt20140514113341.nii.gz % on fdg
+            %  @return this.subjectPath1/hodt20140514113341_avgt.nii.gz % on fdg
+            %  @return this.subjectPath1/hodt20140514113341.json
             
-            pwd0 = pushd(this.subPath);
+            pwd0 = pushd(this.subjectPath);
             globbedHdr = glob('*_on_op_fdg*.4dfp.hdr');
             for g = asrow(globbedHdr)
                 prefix = strsplit(g{1}, '_');
@@ -252,11 +252,11 @@ classdef StudyCurator
                 niigz = [prefix '.nii.gz'];
                 trac = mlfourd.ImagingContext2(g{1});
                 trac.addLog('mlraichle.StudyCurator.stageTracers.g{1} -> %s', g{1})
-                trac = trac.saveas(fullfile(this.subPath1, niigz));
+                trac = trac.saveas(fullfile(this.subjectPath1, niigz));
                 trac = trac.timeAveraged;
                 trac.save;
 
-                mlbash(sprintf('rsync -raL %s %s', this.filenameJson(prefix), fullfile(this.subPath1, [prefix '.json'])))
+                mlbash(sprintf('rsync -raL %s %s', this.filenameJson(prefix), fullfile(this.subjectPath1, [prefix '.json'])))
             end    
             popd(pwd0)
         end
@@ -270,19 +270,19 @@ classdef StudyCurator
             %  t4img_4dfp fdg_avgr1_to_MNI152lin_T1_t4  hodt20140514113341_op_hodt20140514113341r1_on_op_fdg_avgr1  hodt20140514113341_on_MNI152_2mm -O$RELEASE/MNI152_T1_2mm
             %  nifti_4dfp -n hodt20140514113341_on_MNI152_2mm.4dfp.hdr hodt20140514113341_on_MNI152_2mm.nii
             %
-            %  @return this.subPath1/fdg_avg_to_T1001_t4
-            %  @return this.subPath1/T1001_to_MNI152lin_T1_t4
-            %  @return this.subPath1/fdg_avg_to_MNI152lin_T1_t4
+            %  @return this.subjectPath1/fdg_avg_to_T1001_t4
+            %  @return this.subjectPath1/T1001_to_MNI152lin_T1_t4
+            %  @return this.subjectPath1/fdg_avg_to_MNI152lin_T1_t4
 
-            pwd0 = pushd(this.subPath);
+            pwd0 = pushd(this.subjectPath);
             
             mlbash(sprintf('t4_mul %s %s %s', this.fdg_to_T1001_t4, this.T1001_to_seven11_t4, this.fdg_to_seven11_t4))
             mlbash(sprintf('t4_mul %s %s %s', this.fdg_to_seven11_t4, this.seven11_to_MNI_t4, this.fdg_to_MNI_t4))  
             mlbash(sprintf('t4_mul %s %s %s', this.T1001_to_seven11_t4, this.seven11_to_MNI_t4, this.T1001_to_MNI_t4))
             
-            %copyfile(this.fdg_to_T1001_t4, fullfile(this.subPath1, 'fdg_avg_to_T1001_t4'))
-            copyfile(this.T1001_to_MNI_t4, fullfile(this.subPath1, 'T1001_to_MNI152lin_T1_t4'))
-            %copyfile(this.fdg_to_MNI_t4,   fullfile(this.subPath1, 'fdg_avg_to_MNI152lin_T1_t4'))
+            %copyfile(this.fdg_to_T1001_t4, fullfile(this.subjectPath1, 'fdg_avg_to_T1001_t4'))
+            copyfile(this.T1001_to_MNI_t4, fullfile(this.subjectPath1, 'T1001_to_MNI152lin_T1_t4'))
+            %copyfile(this.fdg_to_MNI_t4,   fullfile(this.subjectPath1, 'fdg_avg_to_MNI152lin_T1_t4'))
             
             tracers = glob('*_on_op_fdg*.4dfp.hdr');
             for t = asrow(tracers)
@@ -290,45 +290,45 @@ classdef StudyCurator
                 re = regexp(mybasename(t{1}), '(?<tracer>[a-z]+dt\d+)_\w+_on_op_fdg\w+', 'names');
                 simplePrefix = [re.tracer];
                 tracer_on_MNI = sprintf('%s_on_MNI152_2mm', simplePrefix);
-                mlbash(sprintf('t4img_4dfp %s %s %s -O%s', this.fdg_to_MNI_t4, mybasename(t{1}), fullfile(this.subPath1, tracer_on_MNI), this.bigO_MNI))
-                mlbash(sprintf('nifti_4dfp -n %s.4dfp.hdr %s.nii', fullfile(this.subPath1, tracer_on_MNI), fullfile(this.subPath1, tracer_on_MNI)))
-                ic2 = mlfourd.ImagingContext2(fullfile(this.subPath1, [tracer_on_MNI '.nii']));
+                mlbash(sprintf('t4img_4dfp %s %s %s -O%s', this.fdg_to_MNI_t4, mybasename(t{1}), fullfile(this.subjectPath1, tracer_on_MNI), this.bigO_MNI))
+                mlbash(sprintf('nifti_4dfp -n %s.4dfp.hdr %s.nii', fullfile(this.subjectPath1, tracer_on_MNI), fullfile(this.subjectPath1, tracer_on_MNI)))
+                ic2 = mlfourd.ImagingContext2(fullfile(this.subjectPath1, [tracer_on_MNI '.nii']));
                 ic2 = ic2.timeAveraged;
                 ic2.filesuffix = '.nii.gz';
                 ic2.save
-                gzip(fullfile(this.subPath1, [tracer_on_MNI '.nii']))
-                deleteExisting(fullfile(this.subPath1, [tracer_on_MNI '.4dfp.*']))
+                gzip(fullfile(this.subjectPath1, [tracer_on_MNI '.nii']))
+                deleteExisting(fullfile(this.subjectPath1, [tracer_on_MNI '.4dfp.*']))
             end
             
             popd(pwd0)
         end
         function stageT4s(this)
-            pwd0 = pushd(this.subPath);
+            pwd0 = pushd(this.subjectPath);
             globbedHdr = glob('*_on_op_fdg*.4dfp.hdr');
             for g = asrow(globbedHdr)
                 prefix = strsplit(g{1}, '_');
                 prefix = prefix{1};            
-                mlbash(sprintf('rsync -raL %s %s', 'fdg_avgr1_to_T1001r1_t4', fullfile(this.subPath1, [prefix '_to_T1001_t4'])))
+                mlbash(sprintf('rsync -raL %s %s', 'fdg_avgr1_to_T1001r1_t4', fullfile(this.subjectPath1, [prefix '_to_T1001_t4'])))
             end            
             popd(pwd0)
         end
 		  
  		function this = StudyCurator(varargin)
  			%% STUDYCURATOR
- 			%  @param required subFolder is char.
+ 			%  @param required subjectFolder is char.
             %  @param sourceFolder is folder.
             %  @param curatedFolder is folder.
 
             ip = inputParser;
-            addRequired(ip, 'subFolder', @ischar)
+            addRequired(ip, 'subjectFolder', @ischar)
             addParameter(ip, 'sourceFolder', '/scratch/jjlee/Singularity/subjects', @isfolder)
             addParameter(ip, 'curatedFolder', '/data/nil-bluearc/raichle/PPGdata/jjlee/subjects2', @isfolder)
             parse(ip, varargin{:})
             ipr = ip.Results;
-            this.subPath = fullfile(ipr.sourceFolder, ipr.subFolder);
-            this.subPath1 = fullfile(ipr.curatedFolder, ipr.subFolder);
-            assert(isfolder(this.subPath))
-            ensuredir(this.subPath1)
+            this.subjectPath = fullfile(ipr.sourceFolder, ipr.subjectFolder);
+            this.subjectPath1 = fullfile(ipr.curatedFolder, ipr.subjectFolder);
+            assert(isfolder(this.subjectPath))
+            ensuredir(this.subjectPath1)
             
             this.subjectsJson_ = jsondecode( ...
                 fileread(fullfile(getenv('SUBJECTS_DIR'), 'constructed_20190725.json')));

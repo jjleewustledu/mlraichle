@@ -20,6 +20,7 @@ classdef Test_AerobicGlycolysisKit < matlab.unittest.TestCase
         datetime0_oc  = datetime(2019,5,23,12,22,53, 'TimeZone', mlpipeline.ResourcesRegistry.instance().preferredTimeZone); 
         datetimeF_oc  = datetime(2019,5,23,12,27,53, 'TimeZone', mlpipeline.ResourcesRegistry.instance().preferredTimeZone); 
         home
+        intermediary = 'subjects'
         obj_fdg
         obj_oc
  		registry
@@ -30,7 +31,8 @@ classdef Test_AerobicGlycolysisKit < matlab.unittest.TestCase
         sesf_ho  = 'CCIR_00559/ses-E03056/HO_DT20190523125900.000000-Converted-AC'
         sesf_oo  = 'CCIR_00559/ses-E03056/OO_DT20190523123738.000000-Converted-AC'
         sesf_oc  = 'CCIR_00559/ses-E03056/OC_DT20190523122016.000000-Converted-AC'
-        subFolder = 'sub-S58163'
+        subjectFolder = 'sub-S58163'
+        subjectPath
  	end
 
 	methods (Test)
@@ -155,17 +157,17 @@ classdef Test_AerobicGlycolysisKit < matlab.unittest.TestCase
             %DispersedAerobicGlycolysisKit_construct('cmro2', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
             %DispersedAerobicGlycolysisKit_construct('cmrglc', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
             
-            QuadraticAerobicGlycolysisKit.construct('cbv', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
-            QuadraticAerobicGlycolysisKit.construct('cbf', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
-            QuadraticAerobicGlycolysisKit.construct('cmro2', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
+            %QuadraticAerobicGlycolysisKit.construct('cbv', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
+            QuadraticAerobicGlycolysisKit.construct('cbf', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
+            QuadraticAerobicGlycolysisKit.construct('cmro2', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
         end
         function test_constructQC(this)
             import mlraichle.*
             cd(fullfile(this.home, 'subjects'))
-            QuadraticAerobicGlycolysisKit.constructQC('cbv', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
-            QuadraticAerobicGlycolysisKit.constructQC('cbf', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
-            QuadraticAerobicGlycolysisKit.constructQC('oef', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
-            QuadraticAerobicGlycolysisKit.constructQC('cmro2', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
+            QuadraticAerobicGlycolysisKit.constructQC('cbv', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
+            QuadraticAerobicGlycolysisKit.constructQC('cbf', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
+            QuadraticAerobicGlycolysisKit.constructQC('oef', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
+            QuadraticAerobicGlycolysisKit.constructQC('cmro2', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
         end
         function test_subS33789(this)
             %% Diagnose creation of SessionData objects for sub-S33789, which is not getting 
@@ -185,8 +187,9 @@ classdef Test_AerobicGlycolysisKit < matlab.unittest.TestCase
  			import mlraichle.*;
             %this.sesd_fdg = SessionData.create(this.sesf_fdg);
             this.home = fullfile(getenv('SINGULARITY_HOME'));
+            this.subjectPath = fullfile(this.home, this.intermediary, this.subjectFolder);
             this.resampling_restricted = ...
-                fullfile(this.home, 'subjects', this.subFolder, 'resampling_restricted', '');
+                fullfile(this.subjectPath, 'resampling_restricted', '');
  		end
 	end
 
