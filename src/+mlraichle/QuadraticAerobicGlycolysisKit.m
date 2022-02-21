@@ -1,30 +1,16 @@
 classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysisKit
-	%% QUADRATICAEROBICGLYCOLYSISKIT implements quadratic parameterization of kinetic rates using
-    %  emissions.  See also papers by Videen, Herscovitch.
+	%% QUADRATICAEROBICGLYCOLYSISKIT is a factory implementing quadratic parameterization of kinetic rates using
+    %  emissions.  See also papers by Videen, Herscovitch.  This implementation supports CCIR_00559 & CCIR_00754.
 
 	%  $Revision$
  	%  was created 12-Jun-2021 17:50:49 by jjlee,
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.10.0.1669831 (R2021a) Update 2 for MACI64.  Copyright 2021 John Joowon Lee.
  	
-    properties 
-        dataFolder
-        indexCliff
-        model
-        sessionData
-    end
-    
-    properties (Dependent)
-        blurTag
-        dataPath
-        regionTag
-        subjectPath
-    end
-    
-	methods (Static)  
+	methods (Static)
         function construct(varargin)
             %% CONSTRUCT
-            %  e.g.:  construct('cbv', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 1, 'region', 'wholebrain')
+            %  e.g.:  construct('cbv', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 1, 'region', 'wholebrain', 'aifMethods', 'idif')
             %  e.g.:  construct('cbv', 'debug', true)
             %  @param required physiolog is char, e.g., cbv, cbf, cmro2, cmrglc.
             %  @param subjectsExpr is char, e.g., 'sub-S58163*'.
@@ -45,6 +31,7 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             warning('off', 'MATLAB:table:UnrecognizedVarNameCase')
             
             ip = inputParser;
+            ip.KeepUnmatched = true;
             addRequired( ip, 'physiology', @ischar)
             addParameter(ip, 'subjectsExpr', 'sub-S58163', @ischar)
             addParameter(ip, 'region', 'voxels', @ischar)
@@ -80,7 +67,7 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             
             % construct            
             pwd1 = pushd(subjectsDir);
-            QuadraticAerobicGlycolysisKit.initialize()
+            mlraichle.StudyRegistry.instance('initialize')
             theSessionData = QuadraticAerobicGlycolysisKit.constructSessionData( ...
                 metric, ...
                 'subjectsExpr', ipr.subjectsExpr, ...
@@ -152,10 +139,12 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             this = mlraichle.QuadraticAerobicGlycolysisKit(varargin{:});            
             this.constructPhysiologyDateOnly('cbf', ...
                 'subjectFolder', this.sessionData.subjectFolder, ...
-                'region', this.sessionData.region)
+                'region', this.sessionData.region, ...
+                'sessionData', this.sessionData)
             this.constructPhysiologyDateOnly('cbv', ...
                 'subjectFolder', this.sessionData.subjectFolder, ...
-                'region', this.sessionData.region)
+                'region', this.sessionData.region, ...
+                'sessionData', this.sessionData)
             Region = [upper(this.sessionData.region(1)) this.sessionData.region(2:end)];
             pwd0 = pushd(this.sessionData.subjectPath);            
              
@@ -307,7 +296,23 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
         end
     end
 
-	methods 
+    properties 
+        aifMethods
+        indexCliff
+        model
+        sessionData
+    end
+    
+    properties (Dependent)
+        blurTag
+        dataFolder % e.g., resampling_restricted
+        dataPath
+        regionTag
+        subjectFolder % e.g., sub-S58163
+        subjectPath
+    end    
+
+	methods
         
         %% GET
         
@@ -315,11 +320,17 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             g = mlraichle.StudyRegistry.instance.blurTag;
             %g = this.sessionData.petPointSpreadTag;
         end
+        function g = get.dataFolder(this)
+            g = this.sessionData.dataFolder;
+        end  
         function g = get.dataPath(this)
-            g = fullfile(this.sessionData.subjectPath, this.dataFolder, '');
+            g = this.sessionData.dataPath;
         end  
         function g = get.regionTag(this)
             g = this.sessionData.regionTag;
+        end
+        function g = get.subjectFolder(this)
+            g = this.sessionData.subjectFolder;
         end
         function g = get.subjectPath(this)
             g = this.sessionData.subjectPath;
@@ -340,12 +351,8 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             brain = this.sessionData.brainOnAtlas('typ', 'mlfourd.ImagingContext2'); 
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData);             
             scanner = devkit.buildScannerDevice();
-            scannerBrain = scanner.volumeAveraged(brain.binarized());           
-            arterial = devkit.buildArterialSamplingDevice(scannerBrain, ...
-                                                          'sameWorldline', false, ...
-                                                          'indexCliff', this.indexCliff);
-            h = plot(arterial.radialArteryKit);
-            this.savefig(h, 0, 'tags', 'HO radial artery')
+            scannerBrain = scanner.volumeAveraged(brain.binarized());
+            arterial = this.buildAif(devkit, scanner, scannerBrain);
             
             fs_ = copy(brain.fourdfp);
             fs_.filepath = this.dataPath;
@@ -380,12 +387,8 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             brain = this.sessionData.brainOnAtlas('typ', 'mlfourd.ImagingContext2'); 
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData);            
             scanner = devkit.buildScannerDevice(); 
-            scannerBrain = scanner.volumeAveraged(brain.binarized());         
-            arterial = devkit.buildArterialSamplingDevice(scannerBrain, ...
-                                                          'sameWorldline', false, ...
-                                                          'indexCliff', this.indexCliff);
-            h = plot(arterial.radialArteryKit);
-            this.savefig(h, 0, 'tags', 'OO radial artery')
+            scannerBrain = scanner.volumeAveraged(brain.binarized()); 
+            arterial = this.buildAif(devkit, scanner, scannerBrain);
             
             os_ = copy(brain.fourdfp);
             os_.filepath = this.dataPath;
@@ -421,11 +424,8 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             brain = this.sessionData.brainOnAtlas('typ', 'mlfourd.ImagingContext2');
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData);             
             scanner = devkit.buildScannerDevice();
-            scannerBrain = scanner.volumeAveraged(brain.binarized());            
-            arterial = devkit.buildArterialSamplingDevice(scannerBrain, ...
-                                                          'sameWorldline', false); 
-            h = plot(arterial.radialArteryKit);
-            this.savefig(h, 0, 'tags', 'CO radial artery') 
+            scannerBrain = scanner.volumeAveraged(brain.binarized());
+            arterial = this.buildAif(devkit, scanner, scannerBrain);
             
             vs_ = copy(brain.fourdfp);
             vs_.filepath = this.dataPath;
@@ -447,7 +447,7 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
 
             vs_ = mlfourd.ImagingContext2(vs_);
             popd(pwd0);
-        end 	
+        end
         function obj = metricOnAtlas(this, metric, varargin)
             %% METRICONATLAS appends fileprefixes with information from this.dataAugmentation
             %  @param required metric is char.
@@ -487,19 +487,30 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
         end	  
     end
     
+    %% PROTECTED
+
     methods (Access = protected)
  		function this = QuadraticAerobicGlycolysisKit(varargin)
  			this = this@mlpet.AbstractAerobicGlycolysisKit(varargin{:});
             
+            am = containers.Map;
+            am('CO') = 'twilite';
+            am('OC') = 'twilite';
+            am('OO') = 'twilite';
+            am('HO') = 'twilite';
+            am('FDG') = 'caprac';
+
             ip = inputParser;
             ip.KeepUnmatched = true;
             ip.PartialMatching = false;
             addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             addParameter(ip, 'indexCliff', [], @isnumeric)
+            addParameter(ip, 'aifMethods', am, @(x) isa(x, 'containers.Map'))
             parse(ip, varargin{:})
             ipr = ip.Results;
             this.sessionData = ipr.sessionData;
             this.indexCliff = ipr.indexCliff;
+            this.aifMethods = ipr.aifMethods;
             
             this.dataFolder = 'resampling_restricted';
             this.resetModelSampler()

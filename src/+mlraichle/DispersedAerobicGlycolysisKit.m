@@ -6,7 +6,8 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlraihcle/src/+mlraihcle.
  	%% It was developed on Matlab 9.7.0.1434023 (R2019b) Update 6 for MACI64.  Copyright 2020 John Joowon Lee.
  	  
-    properties 
+    properties
+        aifMethods
         dataFolder
         indexCliff
         model
@@ -23,7 +24,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
 	methods (Static)  
         function construct(varargin)
             %% CONSTRUCT
-            %  e.g.:  construct('cbv', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 1, 'region', 'wholebrain')
+            %  e.g.:  construct('cbv', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 1, 'region', 'wholebrain', 'aifMethods', 'idif')
             %  e.g.:  construct('cbv', 'debug', true)
             %  @param required physiolog is char, e.g., cbv, cbf, cmro2, cmrglc.
             %  @param subjectsExpr is char, e.g., 'sub-S58163*'.
@@ -44,6 +45,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             warning('off', 'MATLAB:table:UnrecognizedVarNameCase')
             
             ip = inputParser;
+            ip.KeepUnmatched = true;
             addRequired( ip, 'physiology', @ischar)
             addParameter(ip, 'subjectsExpr', 'sub-S58163', @ischar)
             addParameter(ip, 'region', 'wmparc1', @ischar)
@@ -270,7 +272,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 'tracer', tracer); % length(theSessionData) ~ 60
             
             % 1st session
-            pwd1 = pushd(fullfile(theSessionData(1).subjectPath, 'resampling_restricted'));
+            pwd1 = pushd(theSessionData(1).dataPath);
             cohortMetric = reshapeOnWmparc1( ...
                 theSessionData(1).wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2'), ...
                 theSessionData(1).(metricOnAtlas)('typ', 'mlfourd.ImagingContext2', 'tags', '_b43_wmparc1'), ...
@@ -286,7 +288,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 img_ = cohortMetric.img;
                 parfor (p = 1:length(theSessionData)-1, ipr.Nthreads)
                     try
-                        pwd2 = pushd(fullfile(theSessionData(p+1).subjectPath, 'resampling_restricted'));
+                        pwd2 = pushd(theSessionData(p+1).dataPath);
                         metric_ = reshapeOnWmparc1( ...
                             theSessionData(p+1).wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2'), ...
                             theSessionData(p+1).(metricOnAtlas)('typ', 'mlfourd.ImagingContext2', 'tags', '_b43_wmparc1'), ...
@@ -301,7 +303,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             else
                 for p = 1:length(theSessionData)-1
                     try
-                        pwd2 = pushd(fullfile(theSessionData(p+1).subjectPath, 'resampling_restricted'));
+                        pwd2 = pushd(theSessionData(p+1).dataPath);
                         metric_ = reshapeOnWmparc1( ...
                             theSessionData(p+1).wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2'), ...
                             theSessionData(p+1).(metricOnAtlas)('typ', 'mlfourd.ImagingContext2', 'tags', '_b43_wmparc1'), ...
@@ -357,12 +359,8 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData);             
             scanner = devkit.buildScannerDevice();
             %scanner = scanner.blurred(this.sessionData.petPointSpread);
-            scannerWmparc1 = scanner.volumeAveraged(wmparc1.binarized());           
-            arterial = devkit.buildArterialSamplingDevice(scannerWmparc1, ...
-                                                          'sameWorldline', false, ...
-                                                          'indexCliff', this.indexCliff);
-            h = plot(arterial.radialArteryKit);
-            this.savefig(h, 0, 'tags', 'HO radial artery')
+            scannerWmparc1 = scanner.volumeAveraged(wmparc1.binarized());
+            arterial = this.buildAif(devkit, scanner, scannerWmparc1);
             
             cbv_ = this.sessionData.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', ...
                 'dateonly', true, 'tags', [this.blurTag this.sessionData.regionTag]);
@@ -499,12 +497,8 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData);            
             scanner = devkit.buildScannerDevice();
             %scanner = scanner.blurred(this.sessionData.petPointSpread);  
-            scannerWmparc1 = scanner.volumeAveraged(wmparc1.binarized());         
-            arterial = devkit.buildArterialSamplingDevice(scannerWmparc1, ...
-                                                          'sameWorldline', false, ...
-                                                          'indexCliff', this.indexCliff);
-            h = plot(arterial.radialArteryKit);
-            this.savefig(h, 0, 'tags', 'OO radial artery')
+            scannerWmparc1 = scanner.volumeAveraged(wmparc1.binarized());
+            arterial = this.buildAif(devkit, scanner, scannerWmparc1);
             
             os_ = copy(wmparc1.fourdfp);
             os_.filepath = this.dataPath;
@@ -567,12 +561,8 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData);             
             scanner = devkit.buildScannerDevice();
             %scanner = scanner.blurred(this.sessionData.petPointSpread);
-            scannerWmparc1 = scanner.volumeAveraged(wmparc1.binarized());            
-            arterial = devkit.buildArterialSamplingDevice(scannerWmparc1, 'sameWorldline', false); 
-            h = plot(arterial.radialArteryKit);
-            this.savefig(h, 0, 'tags', 'CO radial artery')
-            % empirical normalization
-            %this.setNormalizationFactor(scanner)   
+            scannerWmparc1 = scanner.volumeAveraged(wmparc1.binarized());  
+            arterial = this.buildAif(devkit, scanner, scannerWmparc1); 
             
             vs_ = copy(wmparc1.fourdfp);
             vs_.filepath = this.dataPath;
@@ -676,15 +666,24 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
  		function this = DispersedAerobicGlycolysisKit(varargin)
  			this = this@mlpet.AbstractAerobicGlycolysisKit(varargin{:});
             
+            am = containers.Map;
+            am('CO') = 'twilite';
+            am('OC') = 'twilite';
+            am('OO') = 'twilite';
+            am('HO') = 'twilite';
+            am('FDG') = 'caprac';
+
             ip = inputParser;
             ip.KeepUnmatched = true;
             ip.PartialMatching = false;
             addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
             addParameter(ip, 'indexCliff', [], @isnumeric)
+            addParameter(ip, 'aifMethods', am, @(x) isa(x, 'containers.Map'))
             parse(ip, varargin{:})
             ipr = ip.Results;
             this.sessionData = ipr.sessionData;
             this.indexCliff = ipr.indexCliff;
+            this.aifMethods = ipr.aifMethods;
             
             this.dataFolder = 'resampling_restricted';
             this.resetModelSampler()
