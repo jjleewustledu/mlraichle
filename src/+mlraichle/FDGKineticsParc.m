@@ -236,10 +236,10 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
         
         function aa = aparcAseg(sessd, ct4rb, parc)
             if (~lexist('aparcAseg_op_fdg.4dfp.hdr', 'file'))
-                aa = sessd.aparcAseg('typ', 'mgz');
-                aa = sessd.mri_convert(aa, 'aparcAseg.nii.gz');
-                aa = mybasename(aa);
-                sessd.nifti_4dfp_4(aa);
+                ic = mlfourd.ImagingContext2(sessd.aparcAseg('typ', 'mgz'));
+                ic.selectFourdfpTool();
+                ic.save();
+                aa = ic.fqfileprefix;
                 t4 = sprintf('%s_to_%s_t4', sessd.brainmask('typ','fp'), ct4rb.resolveTag);
                 aa = ct4rb.t4img_4dfp(t4, aa, 'options', '-n');
                 aa = mlfourd.ImagingContext([aa '.4dfp.hdr']);
@@ -278,11 +278,10 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
             bm    = fv.ensureSafeFileprefix('brainmaskr2_op_fdg');
             bmNii = [bm '.nii.gz'];
             if (~lexist(bmNii, 'file'))
-                sessd.nifti_4dfp_n(bm);
+                ic = mlfourd.ImagingContext2(my4dfpname(bm));
+                ic.selectNiftiTool();
+                ic.save();
             end
-            %if (~lexist_4dfp(bm))
-            %    sessd.nifti_4dfp_4(bm);
-            %end
                      
             fdgBrain = fv.ensureSafeFileprefix([sessd.tracerResolvedSumt1('typ','fp') '_brain']); % created by FDGKineticsWholebrain.godoMasks?
             ct4rb = mlfourdfp.CompositeT4ResolveBuilder( ...
@@ -299,13 +298,19 @@ classdef FDGKineticsParc < mlraichle.F18DeoxyGlucoseKinetics
                 return
             end
             
-            ct4rb.resolve;     
-            
-            sessd.nifti_4dfp_n(mybasename(bmr2Nii));
+            ct4rb.resolve;
+
+            bmr = mlfourd.ImagingContext2(my4dfpname(bmr2Nii));
+            bmr.selectNiftiTool();
+            bmr.save();
             mlbash(sprintf('flirt -in %s -ref %s -out %s -omat %s -cost normmi -dof 12', ...
-                mni, bmr2Nii, mniResolved, mat)); 
-            sessd.nifti_4dfp_4(mybasename(bmr2Nii));
-            sessd.nifti_4dfp_4(mybasename(mniResolved));           
+                mni, bmr2Nii, mniResolved, mat));
+            bmr = mlfourd.ImagingContext2(myniftiname(bmr2Nii));
+            bmr.selectFourdfpTool();
+            bmr.save();
+            mni = mlfourd.ImagingContext2(myniftiname(mniResolved));
+            mni.selectFourdfpTool();
+            mni.save();         
         end
         function y = resolveYeo7(~, mat, ~, bmr2Nii)
             ymni = fullfile(getenv('YEODIR'),'Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz');
