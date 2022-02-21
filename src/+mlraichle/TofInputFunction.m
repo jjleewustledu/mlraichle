@@ -32,7 +32,7 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
         function tbls_idif = call_on_subject(varargin)
             %% CALL_ON_SUBJECT performs essential computations needed to create tables of IDIFs.
             %  @param corners.
-            %  @param subFolder.
+            %  @param subjectFolder.
             %  @param destinationPath.
             %  @return tables for idif.
 
@@ -331,74 +331,6 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
         end
         function tbl_idif = call(this, varargin)
             %% CALL
-            %  @param iterations for Chan-Vese snakes.
-            %  @param smoothFactor for Chan-Vese snakes.
-            %  @return table of IDIFs; write table to text file.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'iterations', this.iterations, @isscalar)
-            addParameter(ip, 'smoothFactor', this.smoothFactor, @isscalar)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-
-            % gather requirements (lazy)
-            this.buildMasks();
-            this.flirtT1wOnTof(); % also builds wmparc_on_tof
-            this.Wmparc = mlsurfer.Wmparc( ...
-                fullfile(this.bids_.anatPath, strcat(this.bids_.wmparc_ic.fileprefix, '_on_tof.nii.gz')));
-
-            % build segmentation (lazy)
-            this.buildSegmentation(ipr.iterations, 'smoothFactor', ipr.smoothFactor);
-            if this.segmentation_only
-                this.segmentation_ic.view(this.anatomy)
-                tbl_idif = [];
-                return
-            end
-
-            % build/retrieve centerlines (caches)
-            this.buildCenterlines()
-
-            % build idif mask
-            this.idifmask_ic = this.pointCloudsToIC(); % single ImagingContext2
-
-            % build intermediate objects
-            niis = this.petGlobbed('isdynamic', true);
-            if ~isempty(getenv('DEBUG'))
-                niis = niis(contains(niis, 'hodt20190523120249'));
-            end
-            niifqfn = cell(1, length(niis));
-            tracer = cell(1, length(niis));
-            IDIF = cell(1, length(niis));
-
-            for ni = 1:length(niis)
-
-                % sample input function from dynamic PET
-                this.petDynamic = mlfourd.ImagingContext2(niis{ni});
-                idif = this.petDynamic.volumeAveraged(this.idifmask_ic);
-
-                % construct table variables
-                niifqfn{ni} = this.idifmask_ic.fqfilename;
-                tracer_ = this.tracername(this.petDynamic.fileprefix);
-                tracer{ni} = tracer_;
-                IDIF_ = asrow(this.decay_uncorrected(idif));
-                IDIF{ni} = IDIF_;
-                this.writetable(this.timesMid(tracer_), IDIF_, this.petDynamic.fileprefix)
-            end
-
-            % construct table and write
-            tbl_idif = table(niifqfn', tracer', IDIF', 'VariableNames', {'niifqfn', 'tracer', 'IDIF'});
-            tbl_idif.Properties.Description = ...
-                fullfile(this.destinationPath, ...
-                         sprintf('%s_tbl%s%s.mat', this.petDynamic.fileprefix, this.tag_idif, this.tag_tracers));
-            tbl_idif.Properties.VariableUnits = {'', '', 'Bq/mL'};
-            save(tbl_idif.Properties.Description, 'tbl_idif')
-
-            % plot and save
-            this.plotIdif(tbl_idif);
-        end
-        function tbl_idif = call_douterr(this, varargin)
-            %% CALL_DOUTERR
             %  Params:
             %      contractBias (scalar): for buildSegmentation(), Chan-Vese snakes.
             %      innerRadii (numeric): idif radii in voxels, e.g., [2 4 8 12 16 20 24 28 32]
@@ -424,7 +356,7 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
             if 0 == ipr.innerRadii
                 ipr.innerRadii = zeros(size(ipr.outerRadii));
             end
-            assert(length(ipr.innerRadii) == length(ipr.outRadii))
+            assert(length(ipr.innerRadii) == length(ipr.outerRadii))
 
             % gather requirements (lazy)
             this.buildMasks();
@@ -439,7 +371,7 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
                 tbl_idif = [];
                 return
             end
-            
+
             % build/retrieve centerlines (caches)
             this.buildCenterlines()
 
