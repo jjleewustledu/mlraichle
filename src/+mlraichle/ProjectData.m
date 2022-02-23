@@ -1,4 +1,4 @@
-classdef ProjectData < mlnipet.ProjectData
+classdef ProjectData < mlpipeline.ProjectData
 	%% PROJECTDATA  
 
 	%  $Revision$
@@ -39,7 +39,7 @@ classdef ProjectData < mlnipet.ProjectData
  			%  @param sessionStr is char.
             %  See also mlraichle.ProjectData.session2project.
 
- 			this = this@mlnipet.ProjectData(varargin{:});
+ 			this = this@mlpipeline.ProjectData(varargin{:});
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionStr', '', @ischar)
