@@ -7,11 +7,6 @@ classdef Json
     %  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlraichle/src/+mlraichle.
     %% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
     
-    properties (Constant)
-        filenameConstructed = 'constructed_20190725.json'      
-        datapath = fullfile(getenv('SINGULARITY_HOME'), 'subjects', '')
-    end
-    
     methods (Static)
         
         function S = loadConstructed()
@@ -190,6 +185,12 @@ classdef Json
         end        
     end
     
+    properties (Constant)
+        filenameConstructed = 'constructed_20190725.json'      
+        datapath = fullfile(getenv('SINGULARITY_HOME'), 'subjects', '')
+    end
+    
+    
     methods
         function prjf = tradt_to_projectFolder(this, tradt)
             re = regexp(tradt, '^[a-z]+dt(?<datetime>\d+)\S*', 'names');
@@ -219,6 +220,14 @@ classdef Json
     end
     
     %% PROTECTED
+    
+    properties (Access = protected)
+        S_
+        S559_
+        S754_    
+        date2experimentMap_
+        experiment2projectMap_
+    end
     
     methods (Access = protected)
         function this = buildExperiment2projectMap(this)
@@ -262,14 +271,6 @@ classdef Json
             % base case
             tf = strcmp(ct_exp, exp1);
         end
-    end
-    
-    properties (Access = protected)
-        S_
-        S559_
-        S754_    
-        date2experimentMap_
-        experiment2projectMap_
     end
     
     %  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

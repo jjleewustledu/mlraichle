@@ -34,8 +34,9 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
         blurTag = ''
         Ddatetime0 % seconds
         dicomExtension = '.dcm'
-        ignoredExperiments = {'52823' '53317' '53343' '178378' '186470'}
+        ignoredExperiments = {'52823', '53317', '53343', '178378', '186470'}
         normalizationFactor = 1
+        projectFolders = {'CCIR_00559', 'CCIR_00754'};
         referenceTracer = 'FDG'
         scatterFraction = 0
         T = 10 % sec at the start of artery_interpolated used for model but not described by scanner frames
@@ -59,20 +60,12 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
         function g = get.projectsDir(~)
             g = getenv('PROJECTS_DIR');
         end 
-        function     set.projectsDir(~, s)
-            assert(isfolder(s));
-            setenv('PROJECTS_DIR', s);
-        end  
         function x = get.rawdataDir(~)
             x = fullfile(getenv('PPG'), 'rawdata', '');
         end
         function g = get.subjectsDir(~)
             g = getenv('SUBJECTS_DIR');
-        end        
-        function     set.subjectsDir(~, s)
-            assert(isfolder(s));
-            setenv('SUBJECTS_DIR', s);
-        end
+        end 
         function g = get.subjectsJson(~)
             g = jsondecode( ...
                 fileread(fullfile(getenv('SUBJECTS_DIR'), 'constructed_20190725.json')));
