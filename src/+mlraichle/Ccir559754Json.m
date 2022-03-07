@@ -1,5 +1,5 @@
-classdef Json
-    %% JSON manages *.json and *.mat data repositories for CNDA-related data such as subjects, experiments, aliases,
+classdef Ccir559754Json
+    %% CCIR559754JSON manages *.json and *.mat data repositories for CNDA-related data such as subjects, experiments, aliases,
     %  ct, unique subject-ID...
     
     %  $Revision$
@@ -10,15 +10,15 @@ classdef Json
     methods (Static)
         
         function S = loadConstructed()
-            import mlraichle.Json;
-            S = jsondecode(fileread(fullfile(Json.datapath, mlraichle.Json.filenameConstructed)));
+            import mlraichle.Ccir559754Json;
+            S = jsondecode(fileread(fullfile(Ccir559754Json.datapath, mlraichle.Ccir559754Json.filenameConstructed)));
         end
         
         function saveConstructed(S)
             assert(isstruct(S))
             
             datapath = fullfile(getenv('HOME'), 'MATLAB-Drive', 'mlraichle', 'data', '');
-            fid = fopen(fullfile(datapath, mlraichle.Json.filenameConstructed), 'w');
+            fid = fopen(fullfile(datapath, mlraichle.Ccir559754Json.filenameConstructed), 'w');
             fprintf(fid, jsonencode(S));
             fclose(fid);            
         end
@@ -27,9 +27,9 @@ classdef Json
             %load(fullfile(this.datapath, 'j559.mat'), 'j559')
             %load(fullfile(this.datapath, 'j754.mat'), 'j754')            
             
-            import mlraichle.Json;
-            j559 = jsondecode(fileread(fullfile(Json.datapath, 'CCIR_00559.json')));
-            j754 = jsondecode(fileread(fullfile(Json.datapath, 'CCIR_00754.json')));
+            import mlraichle.Ccir559754Json;
+            j559 = jsondecode(fileread(fullfile(Ccir559754Json.datapath, 'CCIR_00559.json')));
+            j754 = jsondecode(fileread(fullfile(Ccir559754Json.datapath, 'CCIR_00754.json')));
         end
         
         function S = json_for_construct_ct(j754, j559)
@@ -97,7 +97,7 @@ classdef Json
         
         function S = dispExperimentsForAllS()
             
-            S = jsondecode(fileread(mlraichle.Json.filenameConstructed));
+            S = jsondecode(fileread(mlraichle.Ccir559754Json.filenameConstructed));
             fS = sort(fields(S));
             for s = 1:length(fS)
                 if isfield(S.(fS{s}), 'sid')
@@ -206,11 +206,11 @@ classdef Json
             sesf = ['ses-' exp{2}];
         end
         
-        function this = Json(varargin)
+        function this = Ccir559754Json(varargin)
             %% JSON
             %  @param .
             
-            this.S_ = mlraichle.Json.loadConstructed();            
+            this.S_ = mlraichle.Ccir559754Json.loadConstructed();            
             [this.S559_,this.S754_] = this.hand_curated();
             this.experiment2projectMap_ = containers.Map;
             this.date2experimentMap_ = containers.Map;
