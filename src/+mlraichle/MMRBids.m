@@ -6,14 +6,41 @@ classdef MMRBids < handle & mlpipeline.Bids
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.11.0.1769968 (R2021b) for MACI64.  Copyright 2021 John Joowon Lee.
  	
+    methods (Static)
+        function tf = isdynamic(obj)
+            tf = ~mlraichle.MMRBids.isstatic(obj);
+        end
+        function tf = isnac(obj)
+            ic = mlfourd.ImagingContext2(obj);
+            re = regexp(ic.filepath, '\w+(dt|DT)\d{14}(?<tags>\S*)', 'names');
+            tf = contains(re.tags, 'nac', 'IgnoreCase', true);
+        end
+        function tf = isstatic(obj)
+            ic = mlfourd.ImagingContext2(obj);
+            re = regexp(ic.fileprefix, '\w+(dt|DT)\d{14}(?<tags>\S*)', 'names');
+            tf = contains(re.tags, '_avgt') || contains(re.tags, '_sumt');
+        end
+        function tr = obj2tracer(obj)
+            ic = mlfourd.ImagingContext2(obj);
+            try
+                re = regexp(ic.fileprefix, '(?<tr>\w+)(dt|DT)\d{14}\S*', 'names');
+                tr = upper(re.tr);
+            catch
+                re = regexp(ic.fileprefix, '(?<tr>[a-z]+)r\d{1}\S*', 'names');
+                tr = upper(re.tr);
+            end
+        end
+    end
+
     properties (Constant)
-        projectFolder = 'CCIR_00559_00754'
+        PROJECT_FOLDER = 'CCIR_00559_00754'
+        SURFER_VERSION = ''
     end
 
 	properties (Dependent)
         tof_ic
         tof_mask_ic
-        T1w_ic
+        t1w_ic
         wmparc_ic
     end
 
@@ -60,15 +87,15 @@ classdef MMRBids < handle & mlpipeline.Bids
             this.tof_mask_ic_ = tmp_;
             g = copy(this.tof_mask_ic_);
         end
-        function g = get.T1w_ic(this)
-            if ~isempty(this.T1w_ic_)
-                g = copy(this.T1w_ic_);
+        function g = get.t1w_ic(this)
+            if ~isempty(this.t1w_ic_)
+                g = copy(this.t1w_ic_);
                 return
             end
             fn = fullfile(this.anatPath, 'T1001.nii.gz');
             assert(isfile(fn))
-            this.T1w_ic_ = mlfourd.ImagingContext2(fn);
-            g = copy(this.T1w_ic_);
+            this.t1w_ic_ = mlfourd.ImagingContext2(fn);
+            g = copy(this.t1w_ic_);
         end
         function g = get.wmparc_ic(this)
             if ~isempty(this.wmparc_ic_)
@@ -84,13 +111,13 @@ classdef MMRBids < handle & mlpipeline.Bids
         %%
 
  		function this = MMRBids(varargin)
-            %  @param destPath will receive outputs.
+            %  @param destinationPath will receive outputs.
             %  @projectPath belongs to a CCIR project.
             %  @subjectFolder is the BIDS-adherent string for subject identity.
 
             this = this@mlpipeline.Bids(varargin{:});
             if isempty(this.subjectFolder_)
-                this.parseDestinationPath(this.destPath_)
+                this.parseDestinationPath(this.destinationPath_)
             end
         end
         
@@ -106,7 +133,7 @@ classdef MMRBids < handle & mlpipeline.Bids
         function selectNiftiTool(this)
             this.tof_ic_.selectNiftiTool();
             this.tof_mask_ic_.selectNiftiTool();
-            this.T1w_ic_.selectNiftiTool();
+            this.t1w_ic_.selectNiftiTool();
             this.wmparc_ic_.selectNiftiTool();
         end
  	end 
@@ -116,7 +143,7 @@ classdef MMRBids < handle & mlpipeline.Bids
     properties (Access = protected)
         tof_ic_
         tof_mask_ic_
-        T1w_ic_
+        t1w_ic_
         wmparc_ic_
     end
 
