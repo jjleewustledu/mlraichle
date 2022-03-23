@@ -86,8 +86,8 @@ classdef Test_TofInputFunction < matlab.unittest.TestCase
  	methods (TestClassSetup)
 		function setupTofInputFunction(this)
  			import mlraichle.*;
-            this.anatPath = fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/derivatives/sub-S58163/anat');
-            this.petPath = fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/derivatives/sub-S58163/pet');
+            this.anatPath = fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/derivatives/resolve/sub-S58163/anat');
+            this.petPath = fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/derivatives/resolve/sub-S58163/pet');
             this.sourceAnatPath = fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/sourcedata/sub-S58163/anat');
             this.sourcePetPath = fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/sourcedata/sub-S58163/pet');
             this.mmppix = [0.2604 0.2604 0.5];

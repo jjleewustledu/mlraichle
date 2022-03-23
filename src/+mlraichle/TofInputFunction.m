@@ -1,4 +1,4 @@
-classdef TofInputFunction < handle & mlraichle.AbstractFung2013
+classdef TofInputFunction < handle & mlaif.MMRFung2013
 	%% TOFINPUTFUNCTION retains the methodology of mlraichle.Fung2013, but replaces data from the
     %  cervical carotid artery with data from TOF MRA.
 
@@ -13,7 +13,7 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
             %  @param required range is numeric, specifying subjects ordinally, e.g., 1:13.
 
             assert(isnumeric(range))
-            deriv = fullfile(getenv('SINGULARITY_HOME'), 'CCIR_00559_00754', 'derivatives', '');
+            deriv = fullfile(getenv('SINGULARITY_HOME'), 'CCIR_00559_00754', 'derivatives', 'resolve', '');
             cd(deriv)
             subfolders = globFoldersT('sub-S*');
             if isempty(range)
@@ -32,7 +32,6 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
         function tbls_idif = call_on_subject(varargin)
             %% CALL_ON_SUBJECT performs essential computations needed to create tables of IDIFs.
             %  @param corners.
-            %  @param subjectFolder.
             %  @param destinationPath.
             %  @return tables for idif.
 
@@ -48,21 +47,11 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
     end
 
 	properties
-        alg % prefer 'fung'; try 'cpd'
         basilar_blur
         basilar_thresh
         bboxes
-        it10
-        it25
-        it50
-        it75
-        registration % struct
-            % tform
-            % centerlineOnTarget
-            % rmse 
-            % target_ics are averages of frames containing 10-25 pcnt, 10-50 pcnt, 10-75 pcnt of max emissions 
         tof_mask
-        T1w_mask
+        t1w_mask
         Wmparc
     end
 
@@ -76,7 +65,7 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
         %% GET
 
         function g = get.centerlines_cache_file(this)
-            g = fullfile(this.petPath, 'TofInputFunction_centerlines_cache.mat');
+            g = fullfile(this.petPath, 'mlraichle_TofInputFunction_centerlines_cache.mat');
         end
         function g = get.N_centerline_samples(this)
             g = [max(this.bbRange{1}) - min(this.bbRange{1})/2 ...
@@ -88,7 +77,7 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
         %%
 		  
         function this = TofInputFunction(varargin)
-            %  @param destinationPath is the path for writing outputs.  Default is MMRBids.destinationPath.  
+            %  @param destinationPath is the path for writing outputs.  Default is Ccir559754Bids.destinationPath.  
             %         Must specify project ID & subject ID.
             %  @param corners from fsleyes NIfTI [ x y z; ... ], [ [RS]; [LS]; [RI]; [LI] ].
             %  @param bbBuffer is the bounding box buffer ~ [x y z] in voxels.
@@ -98,7 +87,6 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
             %  @param segmentationOnly is logical.
             %  @param segmentationBlur is scalar.
             %  @param segmentationThresh is scalar.
-            %  @param alg is 'cpd' or 'fung', used by registerCenterline(). 
             %  @param ploton is bool for showing IDIFs.
             %  @param plotqc is bool for showing QC.
             %  @param plotdebug is bool for showing information for debugging.
@@ -106,7 +94,7 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
             %  @param basilar_blur determines mask for excluding basilar artery.
             %  @param basilar_thresh determines mask for excluding basilar artery.
 
-            this = this@mlraichle.AbstractFung2013(varargin{:});
+            this = this@mlaif.MMRFung2013(varargin{:});
 
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -118,16 +106,18 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
             this.basilar_thresh = ipr.basilar_thresh;
 
             % adjustments to superclass
-
+            this.buildAnatomy();
+            this.buildCorners(this.coords);
             this.segmentation_blur = 0;
             this.k = 5;
             this.threshqc = 0.5;
         end
 
         function this = buildAnatomy(this)
-            this.anatomy_ = this.bids_.tof_ic;
+            this.buildMasks();
+            this.anatomy_ = this.bids.tof_ic;
             this.anatomy_.selectNiftiTool;
-            this.anatomy_mask_ = this.bids_.tof_mask_ic;
+            this.anatomy_mask_ = this.bids.tof_mask_ic;
             this.anatomy_mask_.selectNiftiTool;
         end
         function this = buildCenterlines(this)
@@ -213,41 +203,41 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
             end
             this.bbRange = this.ensureBoxInFieldOfView(this.bbRange);
         end
-        function [tof_mask_,T1w_mask_] = buildMasks(this)
+        function [tof_mask_,t1w_mask_] = buildMasks(this)
             %% helpful for flirt to TOF.  Ensures creation of {tof,T1001}.nii.gz.
             %  @returns tof_mask as an ImagingContext2 after saving.
-            %  @returns T1w_mask as an ImagingContext2 after saving.
+            %  @returns t1w_mask as an ImagingContext2 after saving.
 
-            bids = this.bids_;
-            pwd0 = pushd(bids.anatPath);
+            b = this.bids;
+            pwd0 = pushd(b.anatPath);
 
-            if ~isfile(bids.tof_ic.nifti.fqfn) % ensure tof.nii.gz
-                bids.tof_ic.nifti.save()
+            if ~isfile(b.tof_ic.nifti.fqfn) % ensure tof.nii.gz
+                b.tof_ic.nifti.save()
             end
-            fn = strcat(bids.tof_ic.fqfp, '_b60_thr30_binarized.nii.gz');
+            fn = strcat(b.tof_ic.fqfp, '_b60_thr30_binarized.nii.gz');
             if isfile(fn)
                 tof_mask_ = mlfourd.ImagingContext2(fn);
             else
-                tof_mask_ = bids.tof_ic.blurred(6);
+                tof_mask_ = b.tof_ic.blurred(6);
                 tof_mask_ = tof_mask_.thresh(30);
                 tof_mask_ = tof_mask_.binarized();
                 tof_mask_.nifti.save()
             end
             this.tof_mask = tof_mask_;
 
-            if ~isfile(bids.T1w_ic.nifti.fqfn) % ensure T1001.nii.gz
-                bids.T1w_ic.nifti.save()
+            if ~isfile(b.t1w_ic.nifti.fqfn) % ensure T1001.nii.gz
+                b.t1w_ic.nifti.save()
             end
-            fn = strcat(bids.T1w_ic.fqfp, '_b60_thr10_binarized.nii.gz');
+            fn = strcat(b.t1w_ic.fqfp, '_b60_thr10_binarized.nii.gz');
             if isfile(fn)
-                T1w_mask_ = mlfourd.ImagingContext2(fn);
+                t1w_mask_ = mlfourd.ImagingContext2(fn);
             else
-                T1w_mask_ = bids.T1w_ic.blurred(6);
-                T1w_mask_ = T1w_mask_.thresh(10);
-                T1w_mask_ = T1w_mask_.binarized();
-                T1w_mask_.nifti.save()
+                t1w_mask_ = b.t1w_ic.blurred(6);
+                t1w_mask_ = t1w_mask_.thresh(10);
+                t1w_mask_ = t1w_mask_.binarized();
+                t1w_mask_.nifti.save()
             end
-            this.T1w_mask = T1w_mask_;
+            this.t1w_mask = t1w_mask_;
 
             popd(pwd0)
         end
@@ -263,8 +253,8 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
                 return
             end
 
-            bids = this.bids_;
-            pwd0 = pushd(bids.petPath);
+            b = this.bids;
+            pwd0 = pushd(b.petPath);
 
             f = this.flirtT1wOnTof();
             petOnTof = strrep(petfile, '.4dfp.hdr', '.nii.gz');
@@ -283,7 +273,7 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
             %  @return this.segmentation_ic.
             
             ip = inputParser;
-            addOptional(ip, 'iterations', this.iterations, @isscalar)
+            addParameter(ip, 'iterations', this.iterations, @isscalar)
             addParameter(ip, 'contractBias', this.contractBias, @isscalar)
             addParameter(ip, 'smoothFactor', this.smoothFactor, @isscalar)
             parse(ip, varargin{:})
@@ -359,13 +349,12 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
             assert(length(ipr.innerRadii) == length(ipr.outerRadii))
 
             % gather requirements (lazy)
-            this.buildMasks();
             this.flirtT1wOnTof(); % also builds wmparc_on_tof
             this.Wmparc = mlsurfer.Wmparc( ...
-                fullfile(this.bids_.anatPath, strcat(this.bids_.wmparc_ic.fileprefix, '_on_tof.nii.gz')));
+                fullfile(this.anatPath, strcat(this.bids.wmparc_ic.fileprefix, '_on_tof.nii.gz')));
 
             % build segmentation (lazy)
-            this.buildSegmentation(ipr.iterations, 'contractBias', ipr.contractBias, 'smoothFactor', ipr.smoothFactor);
+            this.buildSegmentation('iterations', ipr.iterations, 'contractBias', ipr.contractBias, 'smoothFactor', ipr.smoothFactor);
             if this.segmentation_only
                 this.segmentation_ic.view(this.anatomy)
                 tbl_idif = [];
@@ -405,7 +394,7 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
     
                     % construct table variables
                     niifqfn{ri} = idif.fqfilename;
-                    tracer{ri} = this.tracername(this.petDynamic.fileprefix);
+                    tracer{ri} = this.bids.obj2tracer(this.petDynamic);
                     outerr(ri) = this.outerRadius;
                     IDIF{ri} = this.decay_uncorrected(idif);
                 end
@@ -430,8 +419,8 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
             parse(ip, varargin{:})
             ipr = ip.Results;
 
-            T1w = this.bids_.T1w_ic.fileprefix;
-            tof = this.bids_.tof_ic.fileprefix;
+            T1w = this.bids.t1w_ic.fileprefix;
+            tof = this.bids.tof_ic.fileprefix;
 
             g = glob(fullfile(this.petPath, sprintf('%s_on_%s.nii.gz', ipr.tracerPatt, tof)));
             if isempty(g)
@@ -515,7 +504,7 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
                 ic = ic - icLi - icRi;
                 ic = ic.numgt(0);
             end
-            ic = ic & this.bids_.tof_mask_ic;
+            ic = ic & this.bids.tof_mask_ic;
             ic.ensureSingle();
 
             ic.filepath = this.destinationPath;
@@ -546,8 +535,7 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
                     error('mlraichle:TypeError', 'TofInputFunction.applyxfmToPet');
             end
             assert(isa(f, 'mlfsl.Flirt'))
-            bids = this.bids_;
-            pwd0 = pushd(bids.petPath);
+            pwd0 = pushd(this.petPath);
 
             re = regexp(pet_fileprefix, '(?<basename>[a-z]+dt\d{14})', 'names');            
             f1 = copy(f);
@@ -574,35 +562,35 @@ classdef TofInputFunction < handle & mlraichle.AbstractFung2013
         function f = flirtT1wOnTof(this, varargin)
             %% requires T1001 and tof to require < 5 degrees of angular search.
             %  @param option tof_mask is an ImagingContext2.
-            %  @param option T1w_mask is an ImagingContext2.
+            %  @param option t1w_mask is an ImagingContext2.
             %  @retruns f as mlfsl.Flirt; also builds wmparc_on_tof as needed.
 
             ip = inputParser;
             addOptional(ip, 'tof_mask', this.tof_mask, @(x) isa(x, 'mlfourd.ImagingContext2'))
-            addOptional(ip, 'T1w_mask', this.T1w_mask, @(x) isa(x, 'mlfourd.ImagingContext2'))
+            addOptional(ip, 't1w_mask', this.t1w_mask, @(x) isa(x, 'mlfourd.ImagingContext2'))
             parse(ip, varargin{:})
             ipr = ip.Results;
 
-            bids = this.bids_;
-            pwd0 = pushd(bids.anatPath);
+            b = this.bids;
+            pwd0 = pushd(b.anatPath);
 
             f = mlfsl.Flirt( ...
-                'in', bids.T1w_ic, ...
-                'ref', bids.tof_ic, ...
+                'in', b.t1w_ic, ...
+                'ref', b.tof_ic, ...
                 'cost', 'normmi', 'searchrx', 5, 'interp', 'spline', ...
-                'refweight', ipr.tof_mask, 'inweight', ipr.T1w_mask);
+                'refweight', ipr.tof_mask, 'inweight', ipr.t1w_mask);
 
-            tform_mat = fullfile(bids.tof_ic.filepath, [bids.T1w_ic.fileprefix '_on_' bids.tof_ic.fileprefix '.mat']);
+            tform_mat = fullfile(b.tof_ic.filepath, [b.t1w_ic.fileprefix '_on_' b.tof_ic.fileprefix '.mat']);
             if ~isfile(tform_mat)
                 [~,r] = f.flirt();
                 if ~isempty(r); error('mlraichle:RuntimeError', r); end
             end
 
-            % aslo build wmparc_on_tof
-            wmparc_on_tof = fullfile(bids.tof_ic.filepath, [bids.wmparc_ic.fileprefix '_on_' bids.tof_ic.fileprefix '.nii.gz']);
+            % also build wmparc_on_tof
+            wmparc_on_tof = fullfile(b.tof_ic.filepath, [b.wmparc_ic.fileprefix '_on_' b.tof_ic.fileprefix '.nii.gz']);
             if ~isfile(wmparc_on_tof)
                 f_ = copy(f);
-                f_.in = bids.wmparc_ic.fqfn;
+                f_.in = b.wmparc_ic.fqfn;
                 f_.out = wmparc_on_tof;
                 f_.interp = 'nearestneighbour';
                 [~,r] = f_.applyXfm();
