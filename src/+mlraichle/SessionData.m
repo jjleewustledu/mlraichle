@@ -10,51 +10,61 @@ classdef SessionData < mlnipet.MetabolicSessionData
     
     methods (Static)
         function this = create(varargin)
-            % @param folders found in getenv('SINGULARITY_HOME'):
-            %        ~ <project folder>/<session folder>/<scan folder> or
-            %        ~ subjects/<subject folder>/<session folder>/<scan folder>
-            % @param ignoreFinishMark is logical, default := false
+            %  Args:
+            %      folders (text): <proj folder>/<ses folder>/<scan folder>[/file] | 
+            %                      <singularity home>/subjects/<sub folder>/<ses folder>/<scan folder>[/file] 
+            %                      e.g., 'CCIR_00754/ses-E248568/FDG_DT20180511140741.000000-Converted-AC'
+            %                      e.g., '$SINGULARITY_HOME/subjects/sub-S58163/ses-E248568/FDG_DT20180511140741.000000-Converted-AC/fdgr2_op_fdgr1_frame62.4dfp.hdr'
+            %      ignoreFinishMark (logical): default := false
+            %      reconstructionMethod (text): e.g., 'e7', 'NiftyPET'
             
-            import mlraichle.*
-
             ip = inputParser;
-            addRequired(ip, 'folders', @(x) isfolder(fullfile(getenv('SINGULARITY_HOME'), x)));
+            addRequired(ip, 'folders', @istext);
             addParameter(ip, 'ignoreFinishMark', false, @islogical);
             addParameter(ip, 'reconstructionMethod', 'NiftyPET', @ischar);
+            addParameter(ip, 'studyRegistry', mlraichle.StudyRegistry.instance());
             parse(ip, varargin{:});
-            ipr = adjustIpr(ip.Results);
+            [ipr,b,ic] = adjustIpr(ip.Results);
     
             this = mlraichle.SessionData( ...
-                'studyData', mlraichle.StudyRegistry.instance(), ...
+                'studyData', ipr.studyRegistry, ...
                 'projectData', mlraichle.ProjectData('projectFolder', ipr.prjfold), ...
                 'subjectData', mlraichle.SubjectData('subjectFolder', ipr.subfold), ...
                 'sessionFolder', ipr.sesfold, ...
-                'scanFolder', ipr.scnfold);
+                'scanFolder', ipr.scnfold, ...
+                'bids', b, ...
+                'imagingContext', ic);
             this.ignoreFinishMark = ipr.ignoreFinishMark;            
             this.reconstructionMethod = ipr.reconstructionMethod;
             
-            function ipr = adjustIpr(ipr)
-                ss = strsplit(ipr.folders, filesep);
-                if lstrfind(ss{1}, 'subjects')
-                    p = mlraichle.ProjectData();
-                    ipr.subfold = ss{2};
-                    ipr.prjfold = p.session2project(ss{3});
-                    ipr.sesfold = ss{3};
-                    if length(ss) >= 3
-                        ipr.scnfold = ss{4};
-                    else
-                        ipr.scnfold = '';
-                    end
-                    return
+            function [ipr,b,ic] = adjustIpr(ipr)
+                ss = strsplit(ipr.folders, filesep);    
+                ipr.prjfold = '';
+                ipr.subfold = '';
+                ipr.sesfold = '';
+                ipr.scnfold = '';
+                if any(contains(ss, 'CCIR_'))
+                    ipr.prjfold = ss{contains(ss, 'CCIR_')}; % 1st match
                 end
-                
-                ipr.prjfold = ss{1};
-                ipr.subfold = mlraichle.SubjectData().sesFolder2subFolder(ss{2});
-                ipr.sesfold = ss{2};
-                if length(ss) >= 3
-                    ipr.scnfold = ss{3};
-                else
-                    ipr.scnfold = '';
+                if any(contains(ss, 'ses-'))
+                    ipr.sesfold = ss{contains(ss, 'ses-')};
+                    ipr.subfold = mlraichle.SubjectData().sesFolder2subFolder(ipr.sesfold);
+                    ipr.prjfold = mlraichle.ProjectData().session2project(ipr.sesfold);
+                end
+                if any(contains(ss, 'sub-'))
+                    ipr.subfold = ss{contains(ss, 'sub-')};
+                end
+                if any(contains(ss, '-Converted-'))
+                    ipr.scnfold = ss{contains(ss, '-Converted-')};
+                end
+
+                b = []; ic = [];
+                if isfolder(ipr.folders)
+                    b = mlraichle.Ccir559754Bids('destinationPath', ipr.folders);
+                end
+                if isfile(ipr.folders)
+                    b = mlraichle.Ccir559754Bids('destinationPath', myfileparts(ipr.folders));
+                    ic = mlfourd.ImagingContext2(ipr.folders);
                 end
             end
         end
@@ -92,7 +102,6 @@ classdef SessionData < mlnipet.MetabolicSessionData
     
     properties
         defects = {'20180511133140' '20180511120621' '20190110105722' '20190110122045'}
-        registry
         tracers = {'fdg' 'ho' 'oo' 'oc'}
     end
 
@@ -123,6 +132,10 @@ classdef SessionData < mlnipet.MetabolicSessionData
 
         dataPath
         dataFolder
+
+        bids
+        imagingContext
+        registry
     end
 
     methods
@@ -285,6 +298,16 @@ classdef SessionData < mlnipet.MetabolicSessionData
             g = 'resampling_restricted';
         end
 
+        function g    = get.bids(this)
+            g = copy(this.bids_);
+        end
+        function g    = get.imagingContext(this)
+            g = copy(this.imagingContext_);
+        end
+        function g    = get.registry(this)
+            g = this.registry_;
+        end
+
         %% 
         
         function g    = getStudyCensus(this)
@@ -310,17 +333,27 @@ classdef SessionData < mlnipet.MetabolicSessionData
       	function this = SessionData(varargin)
  			this = this@mlnipet.MetabolicSessionData(varargin{:});
 
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'bids', []);
+            addParameter(ip, 'imagingContext', []);
+            addParameter(ip, 'registry', mlvg.Ccir1211Registry.instance());
+            parse(ip, varargin{:});   
+            ipr = ip.Results;
+            this.bids_ = ipr.bids;
+            this.imagingContext_ = ipr.imagingContext;
+            this.registry_ = ipr.registry;
+            if isempty(this.tracer_) && ~isempty(this.bids_) && ~isempty(this.imagingContext_)
+                this.tracer_ = this.bids_.obj2tracer(this.imagingContext_);
+            end
+
+            this.ReferenceTracer = 'FDG';
             if isempty(this.studyData_)
                 this.studyData_ = mlraichle.StudyData();
             end
-            this.ReferenceTracer = 'FDG';
             if isempty(this.projectData_)
                 this.projectData_ = mlraichle.ProjectData('sessionStr', this.sessionFolder);
             end
-            
-            %% registry
-            
-            this.registry = mlraichle.StudyRegistry.instance();
             
             %% taus
             
@@ -329,6 +362,14 @@ classdef SessionData < mlnipet.MetabolicSessionData
                 this.taus_ = j.taus';
             end
         end
+    end
+
+    %% PRIVATE
+
+    properties (Access = private)
+        bids_
+        imagingContext_
+        registry_
     end
     
     %% HIDDEN, DEPRECATED

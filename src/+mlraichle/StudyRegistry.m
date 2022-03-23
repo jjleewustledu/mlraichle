@@ -36,6 +36,7 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
         dicomExtension = '.dcm'
         ignoredExperiments = {'52823', '53317', '53343', '178378', '186470'}
         normalizationFactor = 1
+        projectFolder = 'CCIR_00559_00754'
         projectFolders = {'CCIR_00559', 'CCIR_00754'};
         referenceTracer = 'FDG'
         scatterFraction = 0
@@ -48,6 +49,7 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
     properties (Dependent)
         projectsDir
         rawdataDir
+        sessionsDir
         subjectsDir
         subjectsJson
         tBuffer
@@ -58,24 +60,135 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
         %% GET
         
         function g = get.projectsDir(~)
-            g = getenv('PROJECTS_DIR');
+            g = getenv('SINGULARITY_HOME');
         end 
         function x = get.rawdataDir(~)
             x = fullfile(getenv('PPG'), 'rawdata', '');
         end
-        function g = get.subjectsDir(~)
-            g = getenv('SUBJECTS_DIR');
+        function g = get.sessionsDir(this)
+            g = fullfile(this.projectsDir, this.projectFolder, 'derivatives', 'nipet', '');
+        end
+        function g = get.subjectsDir(this)
+            g = fullfile(this.projectsDir, this.projectFolder, 'derivatives', 'resolve', '');
         end 
-        function g = get.subjectsJson(~)
-            g = jsondecode( ...
-                fileread(fullfile(getenv('SUBJECTS_DIR'), 'constructed_20190725.json')));
+        function g = get.subjectsJson(this)
+            if isempty(this.subjectsJson_)
+                this.subjectsJson_ = jsondecode( ...
+                    fileread(fullfile(this.projectsDir, this.projectFolder, 'constructed_20190725.json')));
+            end
+            g = this.subjectsJson_;
         end
         function g = get.tBuffer(this)
             g = max(0, -this.Ddatetime0) + this.T;
         end
-    end
+
+        %%
+
+        function dt = ses2dt(this, ses)
+            ses = strsplit(ses, '-');
+            ses = ses{2};
+            j = this.subjectsJson;
+            for f = asrow(fields(j))
+                if any(contains(j.(f{1}).experiments, ses))
+                    dfield = fields(j.(f{1}).dates);
+                    dt = j.(f{1}).dates.(dfield{1});
+                    dt = datetime(dt, 'InputFormat', 'yyyyMMdd');
+                    return
+                end
+                if isfield(j.(f{1}), 'aliases')
+                    J = j.(f{1}).aliases;
+                    for F = asrow(fields(J))
+                        if any(contains(J.(F{1}).experiments, ses))
+                            dfield = fields(J.(F{1}).dates);
+                            dt = J.(F{1}).dates.(dfield{1});
+                            dt = datetime(dt, 'InputFormat', 'yyyyMMdd');
+                            return
+                        end
+                    end
+                end
+            end
+        end
+        function ses = dt2ses(this, dt)
+            ds = datestr(dt, 'yyyymmdd');
+            j = this.subjectsJson;
+            for f = asrow(fields(j))
+                dfield = fields(j.(f{1}).dates);
+                if strcmp(ds, j.(f{1}).dates.(dfield{1}))
+                    ses = j.(f{1}).experiments;
+                    ses = strsplit(ses{1}, '_');
+                    ses = strcat('ses-', ses{2});
+                    return
+                end
+                if isfield(j.(f{1}), 'aliases')
+                    J = j.(f{1}).aliases;
+                    for F = asrow(fields(J))
+                        dfield = fields(J.(F{1}).dates);
+                        if strcmp(ds, J.(F{1}).dates.(dfield{1}))
+                            ses = J.(F{1}).experiments;
+                            ses = strsplit(ses{1}, '_');
+                            ses = strcat('ses-', ses{2});
+                            return
+                        end
+                    end
+                end
+            end
+        end
+        function ses = sub2ses(this, sub)
+            ses = {};
+            sub = strsplit(sub, '-');
+            sub = sub{2};
+            j = this.subjectsJson;
+            for f = asrow(fields(j))
+                if contains(j.(f{1}).sid, sub)
+                    for ses_ = asrow(j.(f{1}).experiments)
+                        ses__ = strsplit(ses_{1}, '_');
+                        ses = [ses strcat('ses-', ses__{2})]; %#ok<AGROW>
+                    end
+                end
+                if isfield(j.(f{1}), 'aliases')
+                    J = j.(f{1}).aliases;
+                    for F = asrow(fields(J))
+                        if contains(J.(F{1}).sid, sub)
+                            for ses_ = asrow(J.(F{1}).experiments)
+                                ses__ = strsplit(ses_{1}, '_');
+                                ses = [ses strcat('ses-', ses__{2})]; %#ok<AGROW>
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        function sub = ses2sub(this, ses)
+            ses = strsplit(ses, '-');
+            ses = ses{2};
+            j = this.subjectsJson;
+            for f = asrow(fields(j))
+                if any(contains(j.(f{1}).experiments, ses))
+                    sub = j.(f{1}).sid;
+                    sub = strsplit(sub, '_');
+                    sub = strcat('sub-', sub{2});
+                    return
+                end
+                if isfield(j.(f{1}), 'aliases')
+                    J = j.(f{1}).aliases;
+                    for F = asrow(fields(J))
+                        if any(contains(J.(F{1}).experiments, ses))
+                            sub = J.(F{1}).sid;
+                            sub = strsplit(sub, '_');
+                            sub = strcat('sub-', sub{2});
+                            return
+                        end
+                    end
+                end
+            end
+        end
+    end    
     
     %% PRIVATE
+    
+    properties (Access = private)
+        subjectsJson_
+    end
     
 	methods (Access = private)		  
  		function this = StudyRegistry(varargin)

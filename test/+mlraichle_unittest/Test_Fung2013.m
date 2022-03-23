@@ -32,12 +32,12 @@ classdef Test_Fung2013 < matlab.unittest.TestCase
             disp(this.testObj)
         end
         function test_buildSegmentation(this)
-            this.testObj.buildSegmentation(80, 'smoothFactor', 0);
+            this.testObj.buildSegmentation('iterations', 80, 'smoothFactor', 0);
             disp(this.testObj)
         end
 		function test_buildCenterlines(this)
             f = this.testObj;        
-            f.buildSegmentation(80, 'smoothFactor', 0);
+            f.buildSegmentation('iterations', 80, 'smoothFactor', 0);
             f.buildCenterlines()
         end
         function test_registerCenterline_cpd(this) 
@@ -68,11 +68,6 @@ classdef Test_Fung2013 < matlab.unittest.TestCase
             ho_row = obj.decay_uncorrected(ho_);
             plot(obj.timesMid('HO'), ho_row, obj.timesMid('HO'), ho_.nifti.img)
             legend('decay uncorrected', 'decay corrected')
-        end
-        function test_tracername(this)
-            for g = globT(fullfile(this.petPath, 'sub-*Dynamic*_on_T1w.nii.gz'))
-                fprintf('%s contains %s\n', g{1}, this.testObj.tracername(g{1}))
-            end
         end
         function test_call(this)
             setenv('DEBUG', '')
@@ -144,7 +139,7 @@ classdef Test_Fung2013 < matlab.unittest.TestCase
         end
         function test_call_on_subject(~)
             setenv('DEBUG', '')
-            cd(fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/derivatives/sub-S58163/pet'))
+            cd(fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/derivatives/resolve/sub-S58163/pet'))
             tbls_idif = mlraichle.Fung2013.call_on_subject( ...
                 'corners', [159 120 81; 99 122 81; 156 116 31; 102 113 31], ...
                 'bbBuffer', [3 3 0], ...
@@ -174,16 +169,16 @@ classdef Test_Fung2013 < matlab.unittest.TestCase
             this.assertEqual(dipsum(ifc.img), 0)
         end
         function test_zeros_MMRBids(this)
-            bids = mlraichle.MMRBids();
-            anatomy = bids.T1w_ic;
+            bids = mlraichle.Ccir559754Bids();
+            anatomy = bids.t1w_ic;
             ic = anatomy.zeros();
             ifc = ic.nifti;
             this.assertTrue(contains(ifc.fileprefix, '_zeros'))
             this.assertEqual(dipsum(ifc.img), 0)
         end
         function test_sum(this)
-            bids = mlraichle.MMRBids();
-            anatomy = bids.T1w_ic;
+            bids = mlraichle.Ccir559754Bids();
+            anatomy = bids.t1w_ic;
             ic = sum(anatomy, 3);
             ifc = ic.nifti;
             this.assertTrue(contains(ifc.fileprefix, '_sum_3'))
@@ -198,8 +193,8 @@ classdef Test_Fung2013 < matlab.unittest.TestCase
             %this.petPath = fullfile(getenv('HOME'), 'Singularity/CCIR_01211/derivatives/sub-108293/pet');
             %this.sourceAnatPath = fullfile(getenv('HOME'), 'Singularity/CCIR_01211/sourcedata/sub-108293/anat');
             %this.sourcePetPath = fullfile(getenv('HOME'), 'Singularity/CCIR_01211/sourcedata/sub-108293/pet');
-            this.anatPath = fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/derivatives/sub-S58163/anat');
-            this.petPath = fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/derivatives/sub-S58163/pet');
+            this.anatPath = fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/derivatives/resolve/sub-S58163/anat');
+            this.petPath = fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/derivatives/resolve/sub-S58163/pet');
             this.sourceAnatPath = fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/sourcedata/sub-S58163/anat');
             this.sourcePetPath = fullfile(getenv('HOME'), 'Singularity/CCIR_00559_00754/sourcedata/sub-S58163/pet');
             cd(this.petPath)         

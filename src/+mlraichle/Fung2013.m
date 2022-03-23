@@ -1,4 +1,4 @@
-classdef Fung2013 < handle & mlraichle.AbstractFung2013
+classdef Fung2013 < handle & mlaif.MMRFung2013
     %% FUNG2013 implements
     %  Edward K Fung and Richard E Carson.  Cerebral blood flow with [15O]water PET studies using 
     %  an image-derived input function and MR-defined carotid centerlines.  
@@ -9,7 +9,6 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
  	%  was created 22-Mar-2021 22:11:00 by jjlee,
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.9.0.1592791 (R2020b) Update 5 for MACI64.  Copyright 2021 John Joowon Lee.
-    
 
     methods (Static)
         function createPetOnT1001()
@@ -36,7 +35,7 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
             %  @param required range is numeric, specifying subjects ordinally, e.g., 1:13.
 
             assert(isnumeric(range))
-            deriv = fullfile(getenv('SINGULARITY_HOME'), 'CCIR_00559_00754', 'derivatives', '');
+            deriv = fullfile(getenv('SINGULARITY_HOME'), 'CCIR_00559_00754', 'derivatives', 'resolve', '');
             cd(deriv)
             subfolders = globFoldersT('sub-S*');
             if isempty(range)
@@ -133,7 +132,7 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
 
         function this = Fung2013(varargin)
             %% FUNG2013
-            %  @param destinationPath is the path for writing outputs.  Default is MMRBids.destinationPath.  
+            %  @param destinationPath is the path for writing outputs.  Default is Ccir559754Bids.destinationPath.  
             %         Must specify project ID & subject ID.
             %  @param corners from fsleyes NIfTI [ x y z; ... ], [ [RS]; [LS]; [RI]; [LI] ].
             %  @param bbBuffer is the bounding box buffer ~ [x y z].
@@ -149,20 +148,23 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
             %  @param plotdebug is bool for showing information for debugging.
             %  @param plotclose closes plots after saving them.
 
-            this = this@mlraichle.AbstractFung2013(varargin{:});
+            this = this@mlaif.MMRFung2013(varargin{:});
 
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'alg', 'fung', @(x) strcmpi(x, 'ndt') || strcmpi(x, 'icp') || strcmpi(x, 'cpd') || strcmpi(x, 'fung'))
             parse(ip, varargin{:})
             ipr = ip.Results;
+            
+            this.buildAnatomy();
+            this.buildCorners(this.coords);
             this.alg = lower(ipr.alg);
         end
         
         function this = buildAnatomy(this)
-            this.anatomy_ = this.bids_.T1w_ic;
+            this.anatomy_ = this.bids.t1w_ic;
             this.anatomy_.selectNiftiTool;
-            this.anatomy_mask_ = this.bids_.wmparc_ic;
+            this.anatomy_mask_ = this.bids.wmparc_ic;
             this.anatomy_mask_.selectNiftiTool;
         end
         function this = buildCenterlines(this)
@@ -248,7 +250,7 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
             assert(4 == dipsum(coords_ic))            
             this.coords_b1_ic = coords_ic.blurred(1);
             this.coords_b1_ic = this.coords_b1_ic.numgt(0.001);
-            this.coords_b1_ic.fileprefix = 'corners_on_T1w_spheres';
+            this.coords_b1_ic.fileprefix = 'corners_on_t1w_spheres';
             this.coords_b1_ic.save();
 
             % build bbRange
@@ -289,7 +291,7 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
             %  @return this.segmentation_ic.
             
             ip = inputParser;
-            addOptional(ip, 'iterations', this.iterations, @isscalar)
+            addParameter(ip, 'iterations', this.iterations, @isscalar)
             addParameter(ip, 'contractBias', this.contractBias, @isscalar)
             addParameter(ip, 'smoothFactor', this.smoothFactor, @isscalar)
             parse(ip, varargin{:})
@@ -341,7 +343,7 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
             ipr = ip.Results;
 
             % build segmentation
-            this.buildSegmentation(ipr.iterations, 'smoothFactor', ipr.smoothFactor);
+            this.buildSegmentation('iterations', ipr.iterations, 'smoothFactor', ipr.smoothFactor);
             if this.segmentation_only
                 tbl_idif = [];
                 return
@@ -374,7 +376,7 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
 
                 % construct table variables
                 niifqfn{ni} = this.idifmask_ic.fqfilename;
-                tracer_ = this.tracername();
+                tracer_ = this.bids.obj2tracer(this.petStatic);
                 tracer{ni} = tracer_;
                 IDIF_ = asrow(this.decay_uncorrected(idif));
                 IDIF{ni} = IDIF_;
@@ -579,3 +581,7 @@ classdef Fung2013 < handle & mlraichle.AbstractFung2013
         end
     end
 end
+
+
+
+

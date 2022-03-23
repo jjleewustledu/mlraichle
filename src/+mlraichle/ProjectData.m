@@ -15,8 +15,8 @@ classdef ProjectData < mlpipeline.ProjectData
         
         %% GET
         
-        function g    = get.jsonDir(~)
-            g = mlraichle.StudyRegistry.instance().subjectsDir;
+        function g    = get.jsonDir(this)
+            g = fullfile(this.projectsDir, 'subjects', '');
         end        
         function g    = get.projectsDir(~)
             g = mlraichle.StudyRegistry.instance().projectsDir;
