@@ -37,7 +37,7 @@ classdef StudyCurator
                 error('mlraichle:RuntimeError', 'StudyCurator.t4resolve_to_T1001.folders->%s', folders)
             end
             fv = mlfourdfp.FourdfpVisitor();
-            json = mlraichle.Json();
+            json = mlraichle.Ccir559754Json();
             ss = strsplit(folders, filesep);
             subf = ss{2};
             tradt = ss{3};
