@@ -461,9 +461,6 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
                         umap = this.builder.product;
                         return
                     end 
-                case 'ute'
-                    this = TracerDirector2(mlfourdfp.UTEUmapBuilder(varargin{:}));
-                    this.builder_ = this.builder.prepareMprToAtlasT4;
                 case 'mrac_hires'
                     this = TracerDirector2(mlfourdfp.MRACHiresUmapBuilder(varargin{:}));
                     this.builder_ = this.builder.prepareMprToAtlasT4;

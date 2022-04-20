@@ -1,5 +1,5 @@
 classdef TracerDirector < mlsiemens.CommonTracerDirector
-	%% TRACERDIRECTOR  
+	%% TRACERDIRECTOR is DEPRECATED.
 
 	%  $Revision$
  	%  was created 27-Sep-2017 02:38:01 by jjlee,
