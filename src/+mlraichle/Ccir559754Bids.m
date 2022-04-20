@@ -184,9 +184,10 @@ classdef Ccir559754Bids < handle & mlpipeline.IBids
         sourcePetPath
         subjectFolder
 
+        T1_ic
+        t1w_ic
         tof_ic
         tof_mask_ic
-        t1w_ic
         wmparc_ic
     end
 
@@ -235,6 +236,22 @@ classdef Ccir559754Bids < handle & mlpipeline.IBids
             g = this.subjectFolder_;
         end
 
+        function g = get.T1_ic(this)
+            g = this.t1w_ic;
+        end
+        function g = get.t1w_ic(this)
+            if ~isempty(this.t1w_ic_)
+                g = copy(this.t1w_ic_);
+                return
+            end
+            fn = fullfile(this.anatPath, 'T1001.nii.gz');
+            assert(isfile(fn))
+            this.t1w_ic_ = mlfourd.ImagingContext2(fn);
+            this.t1w_ic_.selectNiftiTool();
+            this.t1w_ic_.filepath = this.anatPath;
+            this.t1w_ic_.save();
+            g = copy(this.t1w_ic_);
+        end
         function g = get.tof_ic(this)
             if ~isempty(this.tof_ic_)
                 g = copy(this.tof_ic_);
@@ -261,19 +278,6 @@ classdef Ccir559754Bids < handle & mlpipeline.IBids
             tmp_ = tmp_.binarized();
             this.tof_mask_ic_ = tmp_;
             g = copy(this.tof_mask_ic_);
-        end
-        function g = get.t1w_ic(this)
-            if ~isempty(this.t1w_ic_)
-                g = copy(this.t1w_ic_);
-                return
-            end
-            fn = fullfile(this.anatPath, 'T1001.nii.gz');
-            assert(isfile(fn))
-            this.t1w_ic_ = mlfourd.ImagingContext2(fn);
-            this.t1w_ic_.selectNiftiTool();
-            this.t1w_ic_.filepath = this.anatPath;
-            this.t1w_ic_.save();
-            g = copy(this.t1w_ic_);
         end
         function g = get.wmparc_ic(this)
             if ~isempty(this.wmparc_ic_)
