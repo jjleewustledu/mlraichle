@@ -626,7 +626,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             %  @param required metric is char.
             %  @param datetime is datetime or char, .e.g., '20200101000000' | ''.
             %  @param dateonly is logical.
-            %  @param tags is char, e.g., '_b43_wmparc1'
+            %  @param tags is char, e.g., 'b43_wmparc1', default ''.
             
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -637,6 +637,9 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             parse(ip, metric, varargin{:})
             ipr = ip.Results;
             
+            if ~isempty(ipr.tags)
+                ipr.tags = strcat("_", strip(ipr.tags, "_"));
+            end   
             if ischar(ipr.datetime)
                 adatestr = ipr.datetime;
             end
@@ -650,7 +653,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             
             fqfn = fullfile( ...
                 this.dataPath, ...
-                sprintf('%s%s%s%s%s', ...
+                sprintf('%s%s_%s%s%s', ...
                         lower(ipr.metric), ...
                         adatestr, ...
                         this.sessionData.registry.atlasTag, ...
