@@ -27,10 +27,10 @@ classdef Test_AerobicGlycolysisKit < matlab.unittest.TestCase
         resampling_restricted
         sesd_fdg
         sesd_oc
-        sesf_fdg = 'CCIR_00559/ses-E03056/FDG_DT20190523132832.000000-Converted-AC'
-        sesf_ho  = 'CCIR_00559/ses-E03056/HO_DT20190523125900.000000-Converted-AC'
-        sesf_oo  = 'CCIR_00559/ses-E03056/OO_DT20190523123738.000000-Converted-AC'
-        sesf_oc  = 'CCIR_00559/ses-E03056/OC_DT20190523122016.000000-Converted-AC'
+        sesf_fdg = 'CCIR_00559_00754/derivatives/nipet/ses-E03056/FDG_DT20190523132832.000000-Converted-AC'
+        sesf_ho  = 'CCIR_00559_00754/derivatives/nipet/ses-E03056/HO_DT20190523125900.000000-Converted-AC'
+        sesf_oo  = 'CCIR_00559_00754/derivatives/nipet/ses-E03056/OO_DT20190523123738.000000-Converted-AC'
+        sesf_oc  = 'CCIR_00559_00754/derivatives/nipet/ses-E03056/OC_DT20190523122016.000000-Converted-AC'
         subjectFolder = 'sub-S58163'
         subjectPath
  	end
@@ -41,6 +41,32 @@ classdef Test_AerobicGlycolysisKit < matlab.unittest.TestCase
  			this.assumeEqual(1,1);
  			this.verifyEqual(1,1);
  			this.assertEqual(1,1);
+        end
+        function test_alignArterialToScanner(this)
+            nipet_pth = fullfile(getenv('SINGULARITY_HOME'), 'CCIR_00559_00754', 'derivatives', 'nipet', '');
+            for s = globFoldersT(fullfile(nipet_pth, 'ses-E*', '*_DT*.000000-Converted-AC'))
+                try
+                    sessd = mlraichle.SessionData.create(s{1});    
+                    artdev = mlswisstrace.TwiliteDevice.createFromSession(sessd);
+                    if isempty(artdev)
+                        continue
+                    end
+                    artdev.deconvCatheter = true;    
+                    brain = sessd.brainOnAtlas('typ', 'mlfourd.ImagingContext2'); 
+                    scakit = mlpet.ScannerKit.createFromSession(sessd);
+                    sca = scakit.buildScannerDevice();
+                    scadev = sca.volumeAveraged(brain.binarized());
+        
+                    [artdev1,dtpeak] = mlsiemens.BiographKit.alignArterialToScanner(artdev, scadev);
+        
+                    disp(dtpeak)
+                    disp(mlaif.AifData.instance())
+                    plot(scadev)
+                    plot(artdev1)
+                catch ME
+                    handwarning(ME)
+                end
+            end
         end
         function test_ctor(this)
             disp(this.obj_oc)
@@ -122,6 +148,14 @@ classdef Test_AerobicGlycolysisKit < matlab.unittest.TestCase
             inst = mlraichle.StudyRegistry.instance();
             inst.wallClockLimit = 168*3600;
         end
+        function test_constructQC(this)
+            import mlraichle.*
+            cd(fullfile(this.home, 'subjects'))
+            QuadraticAerobicGlycolysisKit.constructQC('cbv', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
+            QuadraticAerobicGlycolysisKit.constructQC('cbf', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
+            QuadraticAerobicGlycolysisKit.constructQC('oef', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
+            QuadraticAerobicGlycolysisKit.constructQC('cmro2', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
+        end
         function test_ensureModelPrereq(this)
             pwd0 = pushd(this.resampling_restricted);
             popd(pwd0)
@@ -137,18 +171,6 @@ classdef Test_AerobicGlycolysisKit < matlab.unittest.TestCase
             this.verifyEqual(double(tmp), [0.00841269269585609 0.0186939630657434 0.893551290035248 0.486106723546982 5 0.0506881438195705], 'RelTol', 1e-2)
             popd(pwd0)
         end
-        function test_subject(this)
-            import mlraichle.*
-            cd(this.resampling_restricted)
-            %DispersedAerobicGlycolysisKit_construct('cbv', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
-            %DispersedAerobicGlycolysisKit_construct('cbf', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
-            %DispersedAerobicGlycolysisKit_construct('cmro2', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
-            %DispersedAerobicGlycolysisKit_construct('cmrglc', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
-            
-            %QuadraticAerobicGlycolysisKit.construct('cbv', 'subjectsExpr', 'sub-S58163', 'Nthreads', 1)
-            %QuadraticAerobicGlycolysisKit.construct('cbf', 'subjectsExpr', 'sub-S58163', 'Nthreads', 1)
-            QuadraticAerobicGlycolysisKit.construct('cmro2', 'subjectsExpr', 'sub-S58163', 'Nthreads', 1)
-        end
         function test_QuadraticAerobicGlycolysisKit(this)
             import mlraichle.*
             cd(fullfile(this.home, 'subjects'))
@@ -161,13 +183,17 @@ classdef Test_AerobicGlycolysisKit < matlab.unittest.TestCase
             QuadraticAerobicGlycolysisKit.construct('cbf', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
             QuadraticAerobicGlycolysisKit.construct('cmro2', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
         end
-        function test_constructQC(this)
+        function test_subject(this)
             import mlraichle.*
-            cd(fullfile(this.home, 'subjects'))
-            QuadraticAerobicGlycolysisKit.constructQC('cbv', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
-            QuadraticAerobicGlycolysisKit.constructQC('cbf', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
-            QuadraticAerobicGlycolysisKit.constructQC('oef', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
-            QuadraticAerobicGlycolysisKit.constructQC('cmro2', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
+            cd(this.resampling_restricted)
+            %DispersedAerobicGlycolysisKit_construct('cbv', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
+            %DispersedAerobicGlycolysisKit_construct('cbf', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
+            %DispersedAerobicGlycolysisKit_construct('cmro2', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
+            %DispersedAerobicGlycolysisKit_construct('cmrglc', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
+            
+            %QuadraticAerobicGlycolysisKit.construct('cbv', 'subjectsExpr', 'sub-S58163', 'Nthreads', 1)
+            %QuadraticAerobicGlycolysisKit.construct('cbf', 'subjectsExpr', 'sub-S58163', 'Nthreads', 1)
+            QuadraticAerobicGlycolysisKit.construct('cmro2', 'subjectsExpr', 'sub-S58163', 'Nthreads', 1)
         end
         function test_subS33789(this)
             %% Diagnose creation of SessionData objects for sub-S33789, which is not getting 
