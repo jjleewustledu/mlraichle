@@ -136,7 +136,7 @@ classdef HerscovitchContext < mlraichle.SessionData
     methods (Access = protected)
         function obj  = visitMapOnAtl(this, map, varargin)
             fqfn = fullfile(this.vallLocation, ...
-                sprintf('%s_on_%s%s%s', map, this.studyAtlas.fileprefix, this.atlasTag, this.filetypeExt));
+                sprintf('%s_on_%s_%s%s', map, this.studyAtlas.fileprefix, this.atlasTag, this.filetypeExt));
             obj  = this.fqfilenameObject(fqfn, varargin{:});
         end     
         function obj  = visitMapOpFdg(this, map, varargin)

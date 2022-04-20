@@ -646,6 +646,9 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             parse(ip, metric, varargin{:})
             ipr = ip.Results;
             
+            if ~isempty(ipr.tags)
+                ipr.tags = strcat("_", strip(ipr.tags, "_"));
+            end   
             if ischar(ipr.datetime)
                 adatestr = ipr.datetime;
             end
@@ -672,7 +675,7 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             
             fqfn = fullfile( ...
                 this.dataPath, ...
-                sprintf('%s%s%s%s%s%s%s%s', ...
+                sprintf('%s%s%s%s%s_%s%s%s', ...
                         lower(ipr.metric), ...
                         adatestr, ...
                         adatestr2, ...
@@ -691,27 +694,24 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             parse(ip, varargin{:})
             ipr = ip.Results;
             
-            tags = ipr.tags;
-            if ~isempty(tags)
-                tags_ = ['_' strrep(tags, ' ', '_')];
-            else
-                tags_ = '';
-            end            
+            if ~isempty(ipr.tags)
+                ipr.tags = strcat("_", strip(ipr.tags, "_"));
+            end             
             dbs = dbstack;
             client = dbs(2).name;
             client_ = strrep(dbs(2).name, '.', '_');
             dtStr = [datestr(this.sessionData.datetime) ', ' datestr(this.sessionData2.datetime)];
-            title(sprintf('%s.idx == %i\n%s %s', client, ipr.idx, tags, dtStr))
+            title(sprintf('%s.idx == %i\n%s %s', client, ipr.idx, ipr.tags, dtStr))
             try
-                dtTag = [lower(this.sessionData.doseAdminDatetimeTag) ...
-                         lower(this.sessionData2.doseAdminDatetimeTag)];
+                dtTag = strcat("_", lower(this.sessionData.doseAdminDatetimeTag), ...
+                                    lower(this.sessionData2.doseAdminDatetimeTag));
                 savefig(ipr.handle, ...
                     fullfile(this.dataPath, ...
-                    sprintf('%s_idx%i%s_%s.fig', client_, ipr.idx, tags_, dtTag)))
+                    sprintf('%s_idx%i%s%s.fig', client_, ipr.idx, ipr.tags, dtTag)))
                 figs = get(0, 'children');
                 saveas(figs(1), ...
                     fullfile(this.dataPath, ...
-                    sprintf('%s_idx%i%s_%s.png', client_, ipr.idx, tags_, dtTag)))
+                    sprintf('%s_idx%i%s%s.png', client_, ipr.idx, ipr.tags, dtTag)))
                 close(figs(1))
             catch ME
                 handwarning(ME)
