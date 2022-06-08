@@ -71,47 +71,45 @@ classdef TracerDirector2 < mlnipet.CommonTracerDirector
         end
         function constructResolvedStudy(varargin)
             %% CONSTRUCTRESOLVEDSTUDY supports t4_resolve for niftypet.  It provides iterators for 
-            %  project, session and tracer folders on the filesystem.
-            %  Usage:  constructResolvedStudy(<folders experssion>[, 'ignoreFinishMark', <true|false>])
-            %          e.g.:  >> constructResolvedStudy('CCIR_00123/ses-E00123/OO_DT20190101.000000-Converted-NAC')    
-            %          e.g.:  >> constructResolvedStudy('CCIR_00123/ses-E0012*/OO_DT*-Converted-NAC')
-            %  
-            %  @precondition fullfile(projectsDir, project, session, 'umapSynth_op_T1001_b43.4dfp.*') and
-            %                         projectsDir := getenv('PROJECTS_DIR')
-            %  @precondition files{.bf,.dcm} in fullfile(projectsDir, project, session, 'LM', '')
-            %  @precondition files{.bf,.dcm} in fullfile(projectsDir, project, session, 'norm', '')
-            %  @precondition FreeSurfer recon-all results in fullfile(projectsDir, project, session, 'mri', '')
+            %  project, session and tracer folders on the filesystem.  It provides top-level delegation for 
+            %  construct_resolved().
+            %  Usage:  construct_resolved(<folders experssion>[, 'ignoreFinishMark', <true|false>])
+            %          e.g.:  >> construct_resolved('CCIR_00123/ses-E00123/OO_DT20190101.000000-Converted-NAC')
+            %          e.g.:  >> construct_resolved('CCIR_00123/ses-E0012*/OO_DT*-Converted-NAC')
+            %          e.g.:  >> construct_resolved('CCIR_00559_00754/derivatives/nipet/ses-E03140/HO_DT20190530111122.000000-Converted-NAC')
             %
-            %  @param foldersExpr is char.
-            %  @return results in fullfile(projectsDir, project, session, tracer) 
-            %          for elements of projectsExpr, sessionsExpr and tracerExpr.
+            %  @precondition s = SessionData.create();
+            %  @precondition files{.bf,.dcm} in fullfile(s.sessionPath, 'LM', '')
+            %  @precondition files{.bf,.dcm} in fullfile(s.sessionPath, 'norm', '')
+            %  @precondition FreeSurfer recon-all results in fullfile(s.sessionPath, 'mri', '')
+            %  @precondition fullfile(s.sessionPath, 'umap', '')
+            %  @param foldersExpr is text.
+            %  @return results in s.scanPath specified by adjustIprConstructResolvedStudy().
+            %
+            %  N.B.:  Setting environment vars PROJECTS_DIR or SUBJECTS_DIR is not compatible with many Docker or 
+            %         Singularity use cases.
 
             import mlraichle.*; %#ok<NSTIMP>
-            import mlsystem.DirTool;
-            import mlpet.DirToolTracer;
 
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired( ip, 'foldersExpr', @ischar)
-            addParameter(ip, 'ignoreFinishMark', true, @islogical);
-            addParameter(ip, 'reconstructionMethod', 'NiftyPET', @ischar);
+            addParameter(ip, 'ignoreFinishMark', false, @islogical);
             parse(ip, varargin{:});
             ipr = TracerDirector2.adjustIprConstructResolvedStudy(ip.Results);
 
-            registry = mlraichle.StudyRegistry.instance();
-            for p = globT(fullfile(registry.projectsDir, ipr.projectsExpr))
-                for s = globT(fullfile(p{1}, ipr.sessionsExpr))
+            reg = mlraichle.StudyRegistry.instance();
+            for p = globT(fullfile(reg.projectsDir, ipr.projectsExpr))
+                for s = globT(fullfile(p{1}, 'derivatives', 'nipet', ipr.sessionsExpr))
                     pwd0 = pushd(s{1});
                             
                     for t = globT(ipr.tracersExpr)
                         try
-                            folders = fullfile(basename(p{1}), basename(s{1}), t{1});
-                            sessd = mlraichle.SessionData.create(folders, ...
-                                'ignoreFinishMark', ipr.ignoreFinishMark, ...
-                                'reconstructionMethod', ipr.reconstructionMethod);                    
-                            if ~isfile(fullfile(sessd.umapSynthOpT1001('typ','fqfn')))
-                                TracerDirector2.constructUmaps('sessionData', sessd, 'umapType', registry.umapType);
-                            end
+                            folders = fullfile(p{1}, 'derivatives', 'nipet', basename(s{1}), t{1});
+                            sessd = SessionData.create(folders, 'ignoreFinishMark', ipr.ignoreFinishMark);                    
+                            %if ~isfile(fullfile(sessd.umapSynthOpT1001('typ','fqfn')))
+                            %    TracerDirector2.constructUmaps('sessionData', sessd, 'umapType', reg.umapType);
+                            %end
                             if isempty(glob(fullfile(sessd.tracerLocation, 'umap', '*')))
                                 TracerDirector2.populateTracerUmapFolder('sessionData', sessd)
                             end
