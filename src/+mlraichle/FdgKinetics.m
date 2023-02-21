@@ -15,7 +15,7 @@ classdef FdgKinetics
             %% GOCONSTRUCTKINETICS is a static method needed by parcluster.batch            
             
             ip = inputParser;
-            addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             addRequired(ip, 'roisBuild',   @(x) isa(x, 'mlrois.IRoisBuilder'));
             parse(ip, varargin{:});
             
@@ -31,11 +31,11 @@ classdef FdgKinetics
 		  
  		function this = FdgKinetics(varargin)
  			%% FDGKINETICS
-            %  @param named 'sessionData' is an 'mlpipeline.SessionData'.
+            %  @param named 'sessionData' is an 'mlpipeline.ISessionData'.
             %  @returns this
             
             ip = inputParser;
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});		
             
             

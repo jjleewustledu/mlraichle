@@ -7,11 +7,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
  	%% It was developed on Matlab 9.7.0.1434023 (R2019b) Update 6 for MACI64.  Copyright 2020 John Joowon Lee.
  	  
     properties
-        aifMethods
         dataFolder
-        indexCliff
-        model
-        sessionData
     end
     
     properties (Dependent)
@@ -117,7 +113,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
         end
         function constructCbfByRegion(varargin)
             %% CONSTRUCTCBFBYREGION
-            %  @param required sessionData is mlpipeline.ISessionData.
+            %  @param required sessionData is mlpipeline.{ISessionData,ImagingData}.
             %  @param required another sessionData for augmentation by averaging.
             %  @return fs on filesystem.
             %  @return aifs on filesystem.
@@ -140,7 +136,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
         end        
         function constructCbvByRegion(varargin)
             %% CONSTRUCTCBVBYREGION
-            %  @param required sessionData is mlpipeline.ISessionData.
+            %  @param required sessionData is mlpipeline.{ISessionData,ImagingData}.
             %  @param required another sessionData for augmentation by averaging.
             %  @return vs on filesystem.
             %  @return aifs on filesystem.
@@ -185,7 +181,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
         end
         function constructCmro2ByRegion(varargin)
             %% CONSTRUCTCMRO2BYREGION
-            %  @param required sessionData is mlpipeline.ISessionData.
+            %  @param required sessionData is mlpipeline.{ISessionData,ImagingData}.
             %  @param required another sessionData for augmentation by averaging.
             %  @return os on filesystem.
             %  @return aifs on filesystem.
@@ -679,7 +675,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             ip = inputParser;
             ip.KeepUnmatched = true;
             ip.PartialMatching = false;
-            addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
+            addRequired(ip, 'sessionData');
             addParameter(ip, 'indexCliff', [], @isnumeric)
             addParameter(ip, 'aifMethods', am, @(x) isa(x, 'containers.Map'))
             parse(ip, varargin{:})
@@ -687,9 +683,6 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             this.sessionData = ipr.sessionData;
             this.indexCliff = ipr.indexCliff;
             this.aifMethods = ipr.aifMethods;
-            
-            this.dataFolder = 'resampling_restricted';
-            this.resetModelSampler()
         end
  	end 
 

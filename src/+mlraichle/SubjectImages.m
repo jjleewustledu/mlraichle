@@ -930,7 +930,7 @@ classdef SubjectImages
 
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'census', [], @(x) isa(x, 'mlpipeline.IStudyCensus'));
             addParameter(ip, 'referenceTracer', 'fdg', @ischar);
             addParameter(ip, 'rnumberOfSource', 2, @isnumeric);

@@ -1,4 +1,4 @@
-classdef SubjectData < mlnipet.SubjectData
+classdef SubjectData < mlnipet.SubjectData2022
 	%% SUBJECTDATA
 
 	%  $Revision$
@@ -55,38 +55,52 @@ classdef SubjectData < mlnipet.SubjectData
             error('mlraichle:ValueError', ...
                 'SubjectData.sesFolder2subFolder(%s) found no subject folder', sesf)
         end
-        function sesf = subFolder2sesFolders(subf)
-            %% requires well-defined cell-array mlraichle.StudyRegistry.instance().subjectsJson.
-            %  @param subf is a subject folder.
-            %  @returns first-found non-trivial session folder in the subject folder.
-            
-            import mlraichle.SubjectData
-            json = mlraichle.StudyRegistry.instance().subjectsJson;
-            subjectsLabel = fields(json);
-            ssesf = split(subf, '-');
-            sesf = {};
-            for sL = asrow(subjectsLabel)
-                subjectStruct = json.(sL{1});
-                if lstrfind(subjectStruct.id, ssesf{2}) || lstrfind(subjectStruct.sid, ssesf{2})
-                    sesf = [sesf SubjectData.findExperiments(subjectStruct, subf)]; %#ok<AGROW>
-                    %disp(sesf)
-                end
-            end 
-        end
         function sesf = subFolder2sesFolder(subf)
             sesf = mlraichle.SubjectData.subFolder2sesFolders(subf);
             if iscell(sesf)
                 sesf = sesf{1};
             end
         end
+        function sesf = subFolder2sesFolders(subf)
+            %% requires well-defined cell-array mlraichle.StudyRegistry.instance().subjectsJson.
+            %  @param subf is a subject folder.
+            %  @returns first-found non-trivial session folder in the subject folder.
+            
+            this = mlraichle.SubjectData('subjectFolder', subf);
+            subjects = fields(this.subjectsJson_);
+            ss = split(subf, '-');
+            sesf = {};
+            for sL = asrow(subjects)
+                subjectStruct = this.subjectsJson_.(sL{1});
+                if lstrfind(subjectStruct.id, ss{2}) || lstrfind(subjectStruct.sid, ss{2})
+                    sesf = [sesf this.findExperiments(subjectStruct, subf)]; %#ok<AGROW>
+                    %disp(sesf)
+                end
+            end 
+        end
     end
 
-	methods 		  
+	methods
+        function tf   = hasScanFolders(this, ~, sesf)
+            %% legacy folders CCIR_*/derivatives/nipet/ses-E*/HO_DT*.000000-Converted-*/
+            %  @param subf
+            %  @param sesf
+            
+            reg = this.studyRegistry_;
+            if ~isfolder(fullfile(reg.sessionsDir, sesf, ''))
+                tf = false;
+                return
+            end
+            globbed = globFoldersT( ...
+                fullfile(reg.sessionsDir, sesf, '*_DT*.000000-Converted-AC', ''));
+            tf = ~isempty(globbed);
+        end
+
  		function this = SubjectData(varargin)
  			%% SUBJECTDATA
  			%  @param .
 
- 			this = this@mlnipet.SubjectData(varargin{:});
+ 			this = this@mlnipet.SubjectData2022(varargin{:});
             
             this.studyRegistry_ = mlraichle.StudyRegistry.instance;
             this.subjectsJson_ = this.studyRegistry_.subjectsJson;

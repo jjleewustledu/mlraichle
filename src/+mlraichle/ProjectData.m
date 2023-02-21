@@ -1,5 +1,5 @@
-classdef ProjectData < mlpipeline.ProjectData
-	%% PROJECTDATA  
+classdef ProjectData < mlpipeline.ProjectData2022
+	%% PROJECTDATA2022  
 
 	%  $Revision$
  	%  was created 08-May-2019 19:15:29 by jjlee,
@@ -39,7 +39,7 @@ classdef ProjectData < mlpipeline.ProjectData
  			%  @param sessionStr is char.
             %  See also mlraichle.ProjectData.session2project.
 
- 			this = this@mlpipeline.ProjectData(varargin{:});
+ 			this = this@mlpipeline.ProjectData2022(varargin{:});
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionStr', '', @ischar)

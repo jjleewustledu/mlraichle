@@ -10,9 +10,6 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
         dataFolder
         DtMixing
         fracMixing
-        indexCliff
-        model
-        sessionData
         sessionData2
         similarGlycemias = false
         tausForMixing = 4
@@ -760,7 +757,6 @@ classdef AugmentedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 mkdir(this.dataPath)
             end
             this.fracMixing = 0.45*rand() + 0.5; % favors the first tac/aif
-            this.resetModelSampler()
  		end
  	end 
 

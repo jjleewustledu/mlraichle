@@ -17,7 +17,7 @@ classdef FDGKineticsWholebrain < mlraichle.F18DeoxyGlucoseKinetics
     methods (Static)
         function this = constructKinetics(varargin)
             ip = inputParser;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             
             try

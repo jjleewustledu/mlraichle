@@ -98,7 +98,7 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
         end
         function constructCbfByRegion(varargin)
             %% CONSTRUCTCBFBYREGION
-            %  @param required sessionData is mlpipeline.ISessionData.
+            %  @param required sessionData is mlpipeline.{ISessionData,ImagingData}.
             %  @return cbf on filesystem.
             
             this = mlraichle.QuadraticAerobicGlycolysisKit(varargin{:});            
@@ -115,7 +115,7 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
         end
         function constructCbvByRegion(varargin)
             %% CONSTRUCTCBVBYREGION
-            %  @param required sessionData is mlpipeline.ISessionData.
+            %  @param required sessionData is mlpipeline.{ISessionData,ImagingData}.
             %  @return cbv on filesystem.
             
             this = mlraichle.QuadraticAerobicGlycolysisKit(varargin{:});
@@ -132,7 +132,7 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
         end 
         function constructCmro2ByRegion(varargin)
             %% CONSTRUCTCMRO2BYREGION
-            %  @param required sessionData is mlpipeline.ISessionData.
+            %  @param required sessionData is mlpipeline.{ISessionData,ImagingData}.
             %  @return cmro2 on filesystem.
             %  @return oef on filesystem.
             
@@ -262,7 +262,7 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
         function qc = construct_qc_wholebrain(physio, varargin)
             %% CONSTRUCT_QC_WHOLEBRAIN
             %  @param required physio is char:  'cbv', 'cbf', 'oef', cmro2', ...
-            %  @param required sessionData is mlpipeline.ISessionData.
+            %  @param required sessionData is mlpipeline.{ISessionData,ImagingData}.
             %  @return qc as struct('subject', [], 'filename', [], 'datetime_', [], 'wholebrain', []).
             
             assert(ischar(physio))
@@ -280,7 +280,7 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             wm1 = wm1.binarized();            
             ic = mlfourd.ImagingContext2(qc.filename);
             ic = ic.volumeAveraged(wm1);
-            wb = ic.fourdfp.img;
+            wb = ic.imagingFormat.img;
             assert(isscalar(wb))
             qc.wholebrain = wb;
             
@@ -294,13 +294,6 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 {'Physiology', 'Subject', 'Filename', 'DateTime', averaging});
             writetable(tbl, ['qc_' physio '_wholebrain.xlsx'])
         end
-    end
-
-    properties 
-        aifMethods
-        indexCliff
-        model
-        sessionData
     end
     
     properties (Dependent)
@@ -354,7 +347,7 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             scannerBrain = scanner.volumeAveraged(brain.binarized());
             arterial = this.buildAif(devkit, scanner, scannerBrain);
             
-            fs_ = copy(brain.fourdfp);
+            fs_ = copy(brain.imagingFormat);
             fs_.filepath = this.dataPath;
             fs_.fileprefix = this.fsOnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
 
@@ -390,7 +383,7 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             scannerBrain = scanner.volumeAveraged(brain.binarized()); 
             arterial = this.buildAif(devkit, scanner, scannerBrain);
             
-            os_ = copy(brain.fourdfp);
+            os_ = copy(brain.imagingFormat);
             os_.filepath = this.dataPath;
             os_.fileprefix = this.osOnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
 
@@ -427,7 +420,7 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             scannerBrain = scanner.volumeAveraged(brain.binarized());
             arterial = this.buildAif(devkit, scanner, scannerBrain);
             
-            vs_ = copy(brain.fourdfp);
+            vs_ = copy(brain.imagingFormat);
             vs_.filepath = this.dataPath;
             vs_.fileprefix = this.vsOnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
 
@@ -506,7 +499,7 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             ip = inputParser;
             ip.KeepUnmatched = true;
             ip.PartialMatching = false;
-            addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'))
+            addRequired(ip, 'sessionData');
             addParameter(ip, 'indexCliff', [], @isnumeric)
             addParameter(ip, 'aifMethods', am, @(x) isa(x, 'containers.Map'))
             parse(ip, varargin{:})
@@ -514,9 +507,6 @@ classdef QuadraticAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             this.sessionData = ipr.sessionData;
             this.indexCliff = ipr.indexCliff;
             this.aifMethods = ipr.aifMethods;
-            
-            this.dataFolder = 'resampling_restricted';
-            this.resetModelSampler()
  		end
  	end 
 

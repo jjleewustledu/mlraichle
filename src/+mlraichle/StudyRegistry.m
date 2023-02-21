@@ -8,42 +8,26 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 8.5.0.197613 (R2015a) for MACI64. 	
     
-    methods (Static)
-        function this = instance(varargin)
-            %% INSTANCE
-            %  @param optional qualifier is char \in {'initialize' ''}
-            
-            ip = inputParser;
-            addOptional(ip, 'qualifier', '', @ischar)
-            parse(ip, varargin{:})
-            
-            persistent uniqueInstance
-            if (strcmp(ip.Results.qualifier, 'initialize'))
-                uniqueInstance = [];
-            end          
-            if (isempty(uniqueInstance))
-                this = mlraichle.StudyRegistry();
-                uniqueInstance = this;
-            else
-                this = uniqueInstance;
-            end
-        end
-    end 
-
     properties
+        atlasTag = '111'
         blurTag = ''
+        comments = ''
         Ddatetime0 % seconds
         dicomExtension = '.dcm'
         ignoredExperiments = {'52823', '53317', '53343', '178378', '186470'}
+        noclobber = true
         normalizationFactor = 1
+        numberNodes
         projectFolder = 'CCIR_00559_00754'
         projectFolders = {'CCIR_00559', 'CCIR_00754'};
         referenceTracer = 'FDG'
         scatterFraction = 0
         T = 10 % sec at the start of artery_interpolated used for model but not described by scanner frames
+        stableToInterpolation = true
         tracerList = {'oc' 'oo' 'ho' 'fdg'}
         umapType = 'ct'
-        stableToInterpolation = true
+        voxelTime = 60 % sec
+        wallClockLimit = 168*3600 % sec
     end
     
     properties (Dependent)
@@ -55,10 +39,7 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
         tBuffer
     end 
     
-    methods
-        
-        %% GET
-        
+    methods % GET        
         function g = get.projectsDir(~)
             g = getenv('SINGULARITY_HOME');
         end 
@@ -81,9 +62,9 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
         function g = get.tBuffer(this)
             g = max(0, -this.Ddatetime0) + this.T;
         end
-
-        %%
-
+    end
+    
+    methods
         function dt = ses2dt(this, ses)
             ses = strsplit(ses, '-');
             ses = ses{2};
@@ -184,6 +165,18 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
         end
     end    
     
+    methods (Static)
+        function this = instance()
+            persistent uniqueInstance  
+            if (isempty(uniqueInstance))
+                this = mlraichle.StudyRegistry();
+                uniqueInstance = this;
+            else
+                this = uniqueInstance;
+            end
+        end
+    end 
+
     %% PRIVATE
     
     properties (Access = private)
@@ -192,7 +185,6 @@ classdef (Sealed) StudyRegistry < handle & mlnipet.StudyRegistry
     
 	methods (Access = private)		  
  		function this = StudyRegistry(varargin)
-            this = this@mlnipet.StudyRegistry(varargin{:});
  		end
     end 
 

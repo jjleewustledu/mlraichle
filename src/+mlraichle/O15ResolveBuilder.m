@@ -24,7 +24,7 @@ classdef O15ResolveBuilder < mlfourdfp.AbstractTracerResolveBuilder
             ip = inputParser;
             addRequired( ip, 'methodName', @ischar);
             addParameter(ip, 'ac', false, @islogical);
-            addParameter(ip, 'studyd', mlraichle.StudyData, @(x) isa(x, 'mlpipeline.IStudyData'));
+            addParameter(ip, 'studyd', mlraichle.StudyData, @(x) isa(x, 'mlnipet.StudyData'));
             addParameter(ip, 'tag', '', @ischar);
             addParameter(ip, 'tracerExpr', {'OC'}, @iscell);
             parse(ip, varargin{:});
@@ -72,7 +72,7 @@ classdef O15ResolveBuilder < mlfourdfp.AbstractTracerResolveBuilder
             ip = inputParser;
             addRequired( ip, 'methodName', @ischar);
             addParameter(ip, 'ac', false, @islogical);
-            addParameter(ip, 'studyd', mlraichle.StudyData, @(x) isa(x, 'mlpipeline.IStudyData'));
+            addParameter(ip, 'studyd', mlraichle.StudyData, @(x) isa(x, 'mlnipet.StudyData'));
             addParameter(ip, 'tag', '', @ischar);
             addParameter(ip, 'tracerExpr', {'OC'}, @iscell);
             parse(ip, varargin{:});

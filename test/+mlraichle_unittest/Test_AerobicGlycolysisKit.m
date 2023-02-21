@@ -171,17 +171,20 @@ classdef Test_AerobicGlycolysisKit < matlab.unittest.TestCase
             this.verifyEqual(double(tmp), [0.00841269269585609 0.0186939630657434 0.893551290035248 0.486106723546982 5 0.0506881438195705], 'RelTol', 1e-2)
             popd(pwd0)
         end
+        function test_DispersedAerobicGlycolysisKit(this)
+            import mlraichle.*
+            cd(fullfile(this.home, 'subjects'))
+            DispersedAerobicGlycolysisKit_construct('cbv', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
+            DispersedAerobicGlycolysisKit_construct('cbf', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
+            DispersedAerobicGlycolysisKit_construct('cmro2', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
+            DispersedAerobicGlycolysisKit_construct('cmrglc', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)            
+        end
         function test_QuadraticAerobicGlycolysisKit(this)
             import mlraichle.*
             cd(fullfile(this.home, 'subjects'))
-            %DispersedAerobicGlycolysisKit_construct('cbv', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
-            %DispersedAerobicGlycolysisKit_construct('cbf', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
-            %DispersedAerobicGlycolysisKit_construct('cmro2', 'subjectsExpr', 'sub-S*', 'Nthreads', 14)
-            %DispersedAerobicGlycolysisKit_construct('cmrglc', 'subjectsExpr', 'sub-S58163*', 'Nthreads', 14)
-            
-            %QuadraticAerobicGlycolysisKit.construct('cbv', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
-            QuadraticAerobicGlycolysisKit.construct('cbf', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
-            QuadraticAerobicGlycolysisKit.construct('cmro2', 'subjectsExpr', 'sub-S*', 'Nthreads', 1)
+            QuadraticAerobicGlycolysisKit.construct('cbv', 'subjectsExpr', 'sub-S58163', 'Nthreads', 1)
+            QuadraticAerobicGlycolysisKit.construct('cbf', 'subjectsExpr', 'sub-S58163', 'Nthreads', 1)
+            QuadraticAerobicGlycolysisKit.construct('cmro2', 'subjectsExpr', 'sub-S58163', 'Nthreads', 1)
         end
         function test_subject(this)
             import mlraichle.*

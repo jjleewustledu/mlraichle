@@ -92,9 +92,7 @@ classdef Ccir559754Bids < handle & mlpipeline.IBids
             sub = ss{contains(ss, 'sub-')};
             dest = fullfile(getenv('PPG'), ...
                 'jjlee', 'Singularity', 'CCIR_00559_00754', 'derivatives', 'resolve', sub, 'resampling_restricted', '');
-            if ~isfolder(dest)
-                mkdir(dest)
-            end
+            ensuredir(dest)
 
             % FreeSurfer objects
             movefiles('{brain,wmparc,T1001}.4dfp.*', dest);

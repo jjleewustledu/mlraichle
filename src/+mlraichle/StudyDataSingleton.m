@@ -7,12 +7,6 @@ classdef StudyDataSingleton < handle & mlpipeline.StudyDataSingleton
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.0.0.307022 (R2016a) Prerelease for MACI64.
-        
-    properties (Dependent)
-        rawdataDir
-        projectsDir
-        subjectsDir
-    end
 
     methods (Static)
         function this = instance(varargin)
@@ -28,21 +22,6 @@ classdef StudyDataSingleton < handle & mlpipeline.StudyDataSingleton
     end
     
     methods
-        
-        %% GET
-        
-        function d = get.rawdataDir(~)
-            d = mlraichle.StudyRegistry.instance.subjectsDir;
-        end
-        function g = get.projectsDir(~)
-            g = mlraichle.StudyRegistry.instance.projectsDir;
-        end
-        function g = get.subjectsDir(~)
-            g = mlraichle.StudyRegistry.instance.subjectsDir;
-        end
-        
-        %%
-        
         function        register(this, varargin)
             %% REGISTER this class' persistent instance with mlpipeline.StudyDataSingletons
             %  using the latter class' register methods.
@@ -64,9 +43,6 @@ classdef StudyDataSingleton < handle & mlpipeline.StudyDataSingleton
         end
         function        seriesDicomAsterisk(~, varargin)
             error('pythonic:NotImplementedError', 'mlraichle.StudyDataSingleton.seriesDicomAsterisk')
-        end
-        function        subjectsDirFqdns(~)
-            error('pythonic:NotImplementedError', 'mlraichle.StudyDataSingleton.subjectsDirFqdns')
         end
     end
     
