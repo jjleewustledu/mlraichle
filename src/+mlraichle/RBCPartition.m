@@ -1,17 +1,18 @@
-classdef RBCPartition < mlkinetics.AbstractKinetics & mlkinetics.F18
+classdef RBCPartition < mlkinetics.AbstractKinetics
 	%% RBCPartition models fig. 8 of Phelps, Ann. Neurol., 1978 with
-    %  rbcOverPlasma = a0 + a1 t + a2(1 - exp(-t/tau))
+    %  rbcOverPlasma = a0 + a1 t + a2(1 - exp(-t/tau)), time in min.  [18F]FDG only.
     
  	%% It was developed on Matlab 9.0.0.307022 (R2016a) Prerelease for MACI64.  Copyright 2017 John Joowon Lee.
- 	
 
-	properties
+	properties (Constant)
         a0 = 0.814104   % FINAL STATS param  a0 mean  0.814192	 std 0.004405
         a1 = 0.000680   % FINAL STATS param  a1 mean  0.001042	 std 0.000636
         a2 = 0.103307   % FINAL STATS param  a2 mean  0.157897	 std 0.110695
         tau = 50.052431 % FINAL STATS param tau mean  116.239401	 std 51.979195
-        
-        sessionData
+    end
+
+    properties        
+        sessionData1
         xLabel = 'times/min'
         yLabel = 'RBC / plasma'
         notes
@@ -22,15 +23,15 @@ classdef RBCPartition < mlkinetics.AbstractKinetics & mlkinetics.F18
     end
     
     properties (Dependent)
-        baseTitle
+        baseTitle1
         detailedTitle
         mapParams 
         parameters
     end
     
     methods %% GET
-        function bt = get.baseTitle(this)
-            if (isempty(this.sessionData))
+        function bt = get.baseTitle1(this)
+            if (isempty(this.sessionData1))
                 bt = sprintf('%s %s', class(this), pwd);
                 return
             end
@@ -54,9 +55,55 @@ classdef RBCPartition < mlkinetics.AbstractKinetics & mlkinetics.F18
     end
     
     methods (Static)
-        function rop = rbcOverPlasma(a0, a1, a2, tau, t)
-            import mlraichle.*;
+        function Cwb  = plasma2wb(Cp, hct, t, units)
+            arguments
+                Cp double
+                hct double {mustBeScalarOrEmpty}
+                t double
+                units {mustBeTextScalar} = "s" % h, m, s
+            end
+            if (hct > 1)
+                hct = hct/100;
+            end
+            lambda_t = mlraichle.RBCPartition.rbcOverPlasma(t, units);
+            Cwb = Cp.*(1 + hct*(lambda_t - 1));
+        end  
+        function rop = rbcOverPlasma(t, units)
+            arguments
+                t double {mustBeNonempty}
+                units {mustBeTextScalar} = "s" % h, m, s
+            end
+
+            a0 = mlraichle.RBCPartition.a0;
+            a1 = mlraichle.RBCPartition.a1;
+            a2 = mlraichle.RBCPartition.a2;
+            tau = mlraichle.RBCPartition.tau;
+            switch units
+                case "h"
+                    t = 60*t;
+                case "m"
+                case "s"
+                    t = t/60;
+                otherwise
+                    error("mlraichle:ValueError", "units->%s", units)
+            end
+            rop = mlraichle.RBCPartition.rbcOverPlasma_5param(a0, a1, a2, tau, t);
+        end
+        function rop = rbcOverPlasma_5param(a0, a1, a2, tau, t)
             rop = a0 + a1*t + a2*(1 - exp(-t/tau));
+        end
+        function Cp  = wb2plasma(Cwb, hct, t, units)
+            arguments
+                Cwb double
+                hct double {mustBeScalarOrEmpty}
+                t double
+                units {mustBeTextScalar} = "s" % h, m, s
+            end
+            if (hct > 1)
+                hct = hct/100;
+            end
+            lambda_t = mlraichle.RBCPartition.rbcOverPlasma(t, units);
+            Cp = Cwb./(1 + hct*(lambda_t - 1));
         end
     end
     
@@ -69,23 +116,23 @@ classdef RBCPartition < mlkinetics.AbstractKinetics & mlkinetics.F18
             
             [this.tData, I] = sort(this.tData);
             this.rbcData = this.rbcData(I);
-            [~,idxHour] = max(this.tData > 60);
-            this.tData = this.tData(1:idxHour);
-            this.rbcData = this.rbcData(1:idxHour);
+            %[~,idxHour] = max(this.tData > 60);
+            %this.tData = this.tData(1:idxHour);
+            %this.rbcData = this.rbcData(1:idxHour);
             
-            this.independentData = {ensureRowVector(this.tData)};
-            this.dependentData   = {ensureRowVector(this.rbcData)};
+            %this.independentData = {ensureRowVector(this.tData)};
+            %this.dependentData   = {ensureRowVector(this.rbcData)};
             
             this.showPlots = true;
             this.showAnnealing = true;
             this.showBeta = true;
-            this.expectedBestFitParams_ = ...
-                [this.a0 this.a1 this.a2 this.tau]';
+            %this.expectedBestFitParams = ...
+            %    [this.a0 this.a1 this.a2 this.tau]';
         end
         
         function rop = itsRbcOverPlasma(this)
             import mlraichle.*;            
-            rop = RBCPartition.rbcOverPlasma(this.a0, this.a1, this.a2, this.tau, this.tData);
+            rop = RBCPartition.rbcOverPlasma_5param(this.a0, this.a1, this.a2, this.tau, this.tData);
         end
         function this = estimateParameters(this, varargin)
             ip = inputParser;
@@ -96,9 +143,8 @@ classdef RBCPartition < mlkinetics.AbstractKinetics & mlkinetics.F18
         end
         function ed   = estimateDataFast(this, a0, a1, a2, tau)
             import mlraichle.*;            
-            ed{1} = RBCPartition.rbcOverPlasma(a0, a1, a2, tau, this.tData);
-        end
-        
+            ed{1} = RBCPartition.rbcOverPlasma_5param(a0, a1, a2, tau, this.tData);
+        end        
         function plot(this, varargin)
             figure;
             plot(this.tData, this.rbcData, '-o',  ...
@@ -108,7 +154,10 @@ classdef RBCPartition < mlkinetics.AbstractKinetics & mlkinetics.F18
             xlabel(this.xLabel);
             ylabel(this.yLabel);
         end
-    
+        function prepareScannerData(this)
+        end
+        function prepareAifData(this)
+        end
     end
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end

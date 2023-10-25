@@ -276,7 +276,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
             cohortMetric.filepath = subjectsDir;
             cohortMetric.fileprefix = [ipr.metric '_cohort_222_b43_wmparc1'];
             cohortMetric = cohortMetric.fourdfp;
-            popd(pwd1)
+            popd(pwd1);
             
             % remaining sessions
             
@@ -290,7 +290,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                             theSessionData(p+1).(metricOnAtlas)('typ', 'mlfourd.ImagingContext2', 'tags', '_b43_wmparc1'), ...
                             refWmparc1);
                         img_(:,:,:,p+1) = metric_.fourdfp.img;
-                        popd(pwd2)
+                        popd(pwd2);
                     catch ME
                         handwarning(ME)
                     end
@@ -305,7 +305,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                             theSessionData(p+1).(metricOnAtlas)('typ', 'mlfourd.ImagingContext2', 'tags', '_b43_wmparc1'), ...
                             refWmparc1);
                         cohortMetric.img(:,:,:,p+1) = metric_.fourdfp.img;                    
-                        popd(pwd2)
+                        popd(pwd2);
                     catch ME
                         handwarning(ME)
                     end
@@ -652,7 +652,7 @@ classdef DispersedAerobicGlycolysisKit < handle & mlpet.AbstractAerobicGlycolysi
                 sprintf('%s%s_%s%s%s', ...
                         lower(ipr.metric), ...
                         adatestr, ...
-                        this.sessionData.registry.atlasTag, ...
+                        this.sessionData.registry.instance().atlasTag, ...
                         ipr.tags, ...
                         this.sessionData.filetypeExt));
             obj  = this.sessionData.fqfilenameObject(fqfn, varargin{:});
