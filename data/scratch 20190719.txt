@@ -1,0 +1,165 @@
+scratch 20190719
+
+bad T1001s:
+
+ses-E118669
+ses-E146273
+ses-E153610
+
+
+
+
+missing /scratch/jjlee/Singularity/subjects/sub-S35090/ses-E35090/t4_obj.mat       H46L402 - missing most listmode 
+
+missing /scratch/jjlee/Singularity/subjects/sub-S35897/t4_obj.mat
+missing /scratch/jjlee/Singularity/subjects/sub-S35897/ses-E158631/t4_obj.mat      ct
+missing /scratch/jjlee/Singularity/subjects/sub-S35897/ses-E158712/t4_obj.mat    X LM needs aufbau, HYGLY05
+missing /scratch/jjlee/Singularity/subjects/sub-S35897/ses-E162949/t4_obj.mat    X
+
+acquisition times:
+
+OC  20150709111713.620000
+OO  20150709113301.830000
+HO  20150709115109.150000
+OC  20150709124914.860000
+OO  20150709130549.330000
+HO  20150709132120.130000
+FDG 20150709133256.290000
+
+OC  20150911113636.130000
+OO  20150911115405.320000
+HO  20150911121112.720000
+OC  20150911123727.440000
+OO  20150911125513.170000
+HO  20150911131307.200000
+FDG 20150911132615.760000
+
+missing /scratch/jjlee/Singularity/subjects/sub-S37244/ses-E167319/t4_obj.mat
+missing /scratch/jjlee/Singularity/subjects/sub-S37244/ses-E52823/t4_obj.mat     X No LM P8079 (Ecat)
+missing /scratch/jjlee/Singularity/subjects/sub-S37244/ses-E53317/t4_obj.mat     X       P8085 (Ecat)
+missing /scratch/jjlee/Singularity/subjects/sub-S37244/ses-E53343/t4_obj.mat       ct
+
+
+
+
+
+28763 # blur ~ 7.5.  stop.
+29097 # blur ~ 7.5.  stop.
+
+>> 32920 # NP995_09.  HO_DT20140923111404 fixed.  blur ~ 10.  
+
+33789 # blur ~ 7.5.  stop.
+35201 # blur ~ 7.5.  stop.
+35924 # blur ~ 7.5.  fdgdt20150710 displaced > 20 mm.  blur ~ 10.  displacements worse for all tracers.  blur ~ 6.  t4resolve_to_T1001().  stop.
+37005 # blur ~ 7.5.  mangled experiment IDs.  
+37244 # blur ~ 7.5.  stop.
+37721 # blur ~ 7.5.  stop.
+
+>> 37992 # blur ~ 7.5.  misplaced OO folders; repairing.  
+
+38239 # blur ~ 7.5.  stop.
+38675
+38938 # t4_resolve blur ~ 7.5.   blur ~ 10.  t4resolve_to_T1001() on all oc.  ocdt20160719111444 has resistant y-axis rotation.  ocdt20170613103735 &  ocdt20170613112825 have z-axis shift.  align_multiSpectral no masks.  
+39157
+39781 # blur ~ 7.5.  revised FDG recon of truncated listmode.  removed empty OO.  blur ~ 10.  t4resolves_to_T1001().  stop.
+40037
+41723
+42130 # blur ~ 7.5.  ocdt20170726105117, ocdt20161005120141 still misreg.  blur ~ 10.  displacements worse for all tracers.  blur ~ 6.   t4resolve_to_T1001().  stop.
+42756 # blur ~ 10.  stop.
+47634 # ocdt20171206103642_avgt_on_T1001 has >10 mm sup. displace.  blur ~ 7.5.  blur ~ 10.  displacements worse for all tracers.  blur ~ 6.  all oc displaced > 2 mm.  t4resolve_to_T1001().  stop.
+48783
+49157
+52590 # blur ~ 7.5.  stop.
+57920 # added missing 20180425 objects.  blur ~ 7.5.  stop.
+58163 # NP995_25 missing ses-E03056 listmode recovered from CNDA.  blur ~ 7.5.  displacements:  hodt20190523120249, ocdt20180511114714, fdgdt20190523132832.  t4resolve_to_T1001().  align_crossModal() on fdg.  stop.
+58258 # oc, ho misreg.  blur ~ 7.5.  blur ~ 10.  oc, ho dispace > 10 mm.  blur ~ 6.  t4resolve_to_T1001().  stop.
+63372
+
+
+
+experiment-level faults:
+
+['sub-S52590', 'ses-E228496' # Msktgen exception; t4_resolve fails; ses removed]
+['sub-S37005', 'ses-E164929', 2015/10/09 images misregistered]
+['sub-S39781', 'ses-E182107' missing session-level OC <- PPGdata/jjlee/subjects]
+
+
+
+
+listmode build faults:
+
+['sub-S58258', ses-E00165' yet has 61 frames in FDG]
+['sub-S28763', 'ses-E118669' DT04 recons incomplete]
+[28763 # blur ~ 7.5.  FDG output complete.  step4 incomplete.]
+
+
+
+
+listmode missing from CNDA:
+
+'sub-S35897', {'ses-E158631' 'ses-E158712' 'ses-E162949'}
+
+
+
+
+Manually edited json files have new field "edited" <- 1.  
+
+Subject,Tracer,Time,JSON,4dfp
+sub-S38938,ho,20160408111600,49,48
+sub-S38938,ho,20160408115936,49,48
+sub-S38938,ho,20160719114826,49,48
+sub-S47634,oc,20170209102433,35,34
+sub-S39157,ho,20160819111009,49,48
+sub-S39157,ho,20160819120411,49,48
+sub-S38675,ho,20150106114415,49,48
+sub-S37244,ho,20151106120924,49,48
+sub-S39781,fdg,20160520130859,61,60 # CCIR_00754/ses-E181327/FDG_DT20160520130859.000000-Converted-AC
+sub-S39781,oo,20160606102623,29,17
+
+
+
+
+
+
+Siemens/e7 Recovery:
+
+\\miro\c\Users\jjlee\Tmp, 881 GB
+\\braque\d\jjlee\Tmp, 56 GB
+
+/data/nil-bluearc/raichle/.zfs/snapshot/weekday_2019-06-26_00:00-0500/PPGdata/jjlee2
+
+
+
+
+
+# I don't recommend using it for dynamic scans, but static only, as it drains the memory big time:
+
+recon = nipet.mmrchain(
+         datain,
+         mMRpars,
+         mu_h = muhdct,
+         mu_o = muodct,
+         itr = 4,
+         fwhm = 0.,
+         outpath = opth,
+         fcomment = '_qnt',
+         ret_sinos=True,
+         store_img = True)
+
+# Then you sum up all sinograms to see the average performace:
+
+ssn = np.sum(recon['sinos']['ssino'], axis=(0,1))
+psn = np.sum(recon['sinos']['psino'], axis=(0,1))
+rsn = np.sum(recon['sinos']['rsino'], axis=(0,1))
+msk = np.sum(recon['sinos']['amask'], axis=(0,1))
+
+# plotting the sinogram profiles for angle indexes 128 and 196:
+figure()
+ia = 128 #196 
+plot(psn[ia,:], label='prompts')
+plot(rsn[ia,:], label='randoms')
+plot(rsn[ia,:]+ssn[ia,:], label='scatter+randoms')
+plot(msk[ia,:], label='mask')
+legend()
+
+
