@@ -57,7 +57,7 @@ classdef Test_AerobicGlycolysisKit < matlab.unittest.TestCase
                     sca = scakit.buildScannerDevice();
                     scadev = sca.volumeAveraged(brain.binarized());
         
-                    [artdev1,dtpeak] = mlsiemens.BiographKit.alignArterialToScanner(artdev, scadev);
+                    [artdev1,dtpeak] = mlsiemens.BiographKit.alignArterialToReference(artdev, scadev);
         
                     disp(dtpeak)
                     disp(mlaif.AifData.instance())
