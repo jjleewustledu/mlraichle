@@ -57,16 +57,30 @@ classdef RBCPartition < mlkinetics.AbstractKinetics
     methods (Static)
         function Cwb  = plasma2wb(Cp, hct, t, units)
             arguments
-                Cp double
+                Cp  % must be understood by mlfourd.ImagingContext2
                 hct double {mustBeScalarOrEmpty}
-                t double
+                t double = []
                 units {mustBeTextScalar} = "s" % h, m, s
             end
+            Cp_ = mlfourd.ImagingContext2(Cp);
             if (hct > 1)
                 hct = hct/100;
             end
+            if isempty(t)
+                if isfield(Cp_.json_metadata, "timesMid")
+                    t = asrow(Cp_.json_metadata.timesMid);
+                else
+                    t = 0:length(Cp_.imagingFormat.img)-1;
+                end
+            end
             lambda_t = mlraichle.RBCPartition.rbcOverPlasma(t, units);
-            Cwb = Cp.*(1 + hct*(lambda_t - 1));
+            if iscolumn(Cp_)
+                lambda_t = ascolumn(lambda_t);
+            end
+            Cwb = Cp_.*(1 + hct*(lambda_t - 1));
+            if isnumeric(Cp)
+                Cwb = double(Cwb);
+            end
         end  
         function rop = rbcOverPlasma(t, units)
             arguments
@@ -94,16 +108,30 @@ classdef RBCPartition < mlkinetics.AbstractKinetics
         end
         function Cp  = wb2plasma(Cwb, hct, t, units)
             arguments
-                Cwb double
+                Cwb  % must be understood by mlfourd.ImagingContext2
                 hct double {mustBeScalarOrEmpty}
-                t double
+                t double = []
                 units {mustBeTextScalar} = "s" % h, m, s
             end
+            Cwb_ = mlfourd.ImagingContext2(Cwb);
             if (hct > 1)
                 hct = hct/100;
             end
+            if isempty(t)
+                if isfield(Cwb_.json_metadata, "timesMid")
+                    t = asrow(Cwb_.json_metadata.timesMid);
+                else
+                    t = 0:length(Cwb_.imagingFormat.img)-1;
+                end
+            end
             lambda_t = mlraichle.RBCPartition.rbcOverPlasma(t, units);
-            Cp = Cwb./(1 + hct*(lambda_t - 1));
+            if iscolumn(Cwb_)
+                lambda_t = ascolumn(lambda_t);
+            end
+            Cp = Cwb_./(1 + hct*(lambda_t - 1));
+            if isnumeric(Cwb)
+                Cp = double(Cp);
+            end
         end
     end
     
