@@ -1,6 +1,7 @@
 classdef RBCPartition < mlkinetics.AbstractKinetics
-	%% RBCPartition models fig. 8 of Phelps, Ann. Neurol., 1978 with
-    %  rbcOverPlasma = a0 + a1 t + a2(1 - exp(-t/tau)), time in min.  [18F]FDG only.
+	%% RBCPartition models fig. 8 of Phelps, Ann. Neurol., 1979 
+    %  Tomographic measurement of local cerebral glucose metabolic rate in humans with (F‐18)2‐fluoro‐2‐deoxy‐D‐glucose: Validation of method
+    %  with rbcOverPlasma = a0 + a1 t + a2(1 - exp(-t/tau)), time in min.  [18F]FDG only.
     
  	%% It was developed on Matlab 9.0.0.307022 (R2016a) Prerelease for MACI64.  Copyright 2017 John Joowon Lee.
 
